@@ -58,4 +58,7 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/LICENSE" in names
     assert "autoseo/README.md" in names
     assert "autoseo/skills/autoseo/SKILL.md" in names
+    assert "autoseo/data/feature-parity.json" in names
+    assert "autoseo/data/workflow-playbooks.json" in names
+    assert "autoseo/scripts/workflow_catalog.py" in names
     assert all(name.startswith("autoseo/") for name in names)

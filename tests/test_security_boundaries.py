@@ -27,6 +27,7 @@ import indexnow_submit  # noqa: E402
 import iptc_ai_label  # noqa: E402
 import nlp_analyze  # noqa: E402
 import unlighthouse_run  # noqa: E402
+import workflow_catalog  # noqa: E402
 from url_safety import URLSafetyError, read_limited_response  # noqa: E402
 
 
@@ -171,6 +172,70 @@ def test_safe_text_writer_refuses_silent_overwrite(tmp_path: Path) -> None:
         output, "second", extensions={".txt"}, overwrite=True
     )
     assert output.read_text(encoding="utf-8") == "second"
+
+
+def test_workflow_refresh_requires_consent_before_network(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        workflow_catalog,
+        "safe_requests_get",
+        lambda *args, **kwargs: pytest.fail("network must not run before consent"),
+    )
+    args = Namespace(
+        confirm_network=False,
+        source=workflow_catalog.OFFICIAL_SOURCE,
+        output=str(tmp_path / "catalog.json"),
+        overwrite=False,
+    )
+    with pytest.raises(ValueError, match="--confirm-network"):
+        workflow_catalog._refresh(args)
+
+
+def test_workflow_refresh_source_is_an_exact_allowlist() -> None:
+    assert workflow_catalog._official_source(workflow_catalog.OFFICIAL_SOURCE)
+    for source in (
+        "http://raw.githubusercontent.com/HarrisonCho407/AutoSEO-codex/main/"
+        "plugins/autoseo/data/workflow-playbooks.json",
+        "https://raw.githubusercontent.com.evil.invalid/HarrisonCho407/"
+        "AutoSEO-codex/main/plugins/autoseo/data/workflow-playbooks.json",
+        "https://user@raw.githubusercontent.com/HarrisonCho407/AutoSEO-codex/"
+        "main/plugins/autoseo/data/workflow-playbooks.json",
+        "https://raw.githubusercontent.com:443/HarrisonCho407/AutoSEO-codex/"
+        "main/plugins/autoseo/data/workflow-playbooks.json",
+        "https://raw.githubusercontent.com/HarrisonCho407/AutoSEO-codex/other/"
+        "plugins/autoseo/data/workflow-playbooks.json",
+        workflow_catalog.OFFICIAL_SOURCE + "?ref=other",
+        workflow_catalog.OFFICIAL_SOURCE + "#fragment",
+    ):
+        assert not workflow_catalog._official_source(source), source
+
+
+def test_workflow_refresh_refuses_silent_overwrite(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "catalog.json"
+    output.write_text("keep", encoding="utf-8")
+
+    class Response:
+        @staticmethod
+        def raise_for_status() -> None:
+            return None
+
+        @staticmethod
+        def json() -> dict:
+            return workflow_catalog.load_catalog()
+
+    monkeypatch.setattr(workflow_catalog, "safe_requests_get", lambda *args, **kwargs: Response())
+    args = Namespace(
+        confirm_network=True,
+        source=workflow_catalog.OFFICIAL_SOURCE,
+        output=str(output),
+        overwrite=False,
+    )
+    with pytest.raises(ValueError, match="--overwrite"):
+        workflow_catalog._refresh(args)
+    assert output.read_text(encoding="utf-8") == "keep"
 
 
 def test_image_metadata_write_requires_confirmation(
