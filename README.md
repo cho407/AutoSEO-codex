@@ -7,9 +7,18 @@ local and international SEO, performance, and AI-search visibility.
 
 ## Status
 
-AutoSEO 0.1.0 is a public-preview **Skills-only** plugin. The repository
-marketplace layout is ready for local development and GitHub-based distribution;
-store screenshots and the formal listing review remain before marketplace
+AutoSEO 0.2.0 is a functional-parity public preview and a **Skills-only** plugin.
+It maps all 32 user-facing capability groups in the 2.2.5 reference baseline,
+including the complete 41-playbook research-to-growth workflow library and the
+provider-specific command surfaces.
+
+Host-level mechanics intentionally follow Codex: prompt invocation, skill discovery,
+connector authorization, and plugin installation are not copied from another host.
+Provider-backed measurements still require the respective authorized capability;
+AutoSEO gives a documented fallback and never fabricates unavailable metrics.
+
+The repository marketplace layout is ready for local development and GitHub-based
+distribution. Store screenshots and formal listing review remain before marketplace
 submission.
 
 ## Install from GitHub
@@ -27,6 +36,8 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
 - `@autoseo Create a technical SEO remediation plan for this site.`
 - `@autoseo Review this page's content, schema, and Core Web Vitals.`
 - `@autoseo Build a topic cluster and internal-link plan for this keyword.`
+- `@autoseo workflow optimize https://example.com`
+- `@autoseo dataforseo serp "technical seo"` (when authorized)
 
 ## Safety model
 
@@ -80,7 +91,8 @@ packages globally.
 ## Acknowledgement
 
 The initial feature inventory and workflow coverage were developed with reference
-to [claude-seo by AgricIDaniel](https://github.com/AgricIDaniel/claude-seo).
+to [claude-seo by AgricIDaniel](https://github.com/AgricIDaniel/claude-seo),
+with functional coverage checked against release 2.2.5.
 That project is distributed under the MIT License. Portions adapted from that
 work retain the following notice:
 

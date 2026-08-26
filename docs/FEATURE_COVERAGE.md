@@ -1,8 +1,18 @@
 # Feature Coverage
 
-AutoSEO 0.1.0 provides 33 routable skills. The table is the release inventory used
-by tests and submission review; a skill is not considered supported unless its folder,
-frontmatter, references, safety boundary, and fallback behavior validate together.
+AutoSEO 0.2.0 provides 33 routable skills covering all 32 user-facing capabilities
+in the 2.2.5 functional baseline. `autoseo-performance` and `autoseo-visual` remain
+dedicated skills while their outcomes also participate in the full audit.
+
+Functional parity is measured at the user-outcome level. Prompt syntax, skill discovery,
+agent profile representation, hooks, connector authorization, and installation use the
+host's native structure. A proprietary provider command is supported when its authorized
+capability is present; without it, AutoSEO reports the missing measurement and follows the
+documented fallback rather than fabricating data.
+
+The inventory is enforced by `data/feature-parity.json` and regression tests. A skill
+is not considered supported unless its folder, command surface, helper dependencies,
+safety boundary, documentation, and fallback behavior validate together.
 
 ## Core workflows
 
@@ -22,7 +32,7 @@ frontmatter, references, safety boundary, and fallback behavior validate togethe
 | `autoseo-image-gen` | Host-native creation briefs and SEO-ready image assets |
 | `autoseo-geo` | AI-search visibility, crawler access, entity, attribution, and citation readiness |
 | `autoseo-plan` | SEO/GEO strategy, prioritization, roadmaps, and industry templates |
-| `autoseo-workflow` | Research-to-optimization operating cycle and repeatable delivery stages |
+| `autoseo-workflow` | 41 playbooks across discovery, authority, optimization, conversion, and local stages |
 | `autoseo-programmatic` | Template/data quality controls for generated page collections |
 | `autoseo-competitor-pages` | Comparison and alternative-page planning |
 | `autoseo-hreflang` | International targeting, locale mapping, and hreflang validation |
@@ -54,3 +64,17 @@ sitemap discovery, structured-data generation and validation, PageSpeed and CrUX
 Google account reports, backlink providers and verification, drift baselines, commerce
 checks, image metadata, content checks, and report generation. Helpers complement Codex
 reasoning; they do not turn estimates into verified measurements or bypass provider terms.
+
+## Parity boundaries
+
+| Included | Host-native equivalent |
+|---|---|
+| 32 user-facing SEO/GEO capability groups | Codex skill routing and `@autoseo` prompts |
+| 41 guided workflow playbooks | Local validated catalog with select, recommend, export, and refresh operations |
+| Provider-specific command outcomes | Authorized Codex connectors or tools plus explicit fallbacks |
+| Audit decomposition and parallelizable specialist work | Focused skills selected or coordinated by the AutoSEO orchestrator |
+| Schema and report validation | Deterministic allowlisted helpers and test gates |
+
+Host-specific agent files, hooks, extension installers, and invocation syntax are
+structural implementation details and are not copied. Their user-facing outcomes are
+represented by the skills, runtime, validation, and consent gates above.

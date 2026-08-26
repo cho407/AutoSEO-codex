@@ -4,6 +4,11 @@ This directory is the distributable AutoSEO Codex plugin. It contains only
 Skills-only workflows, local helper scripts, references, and brand assets. It
 does not include a hosted service, embedded credentials, or an MCP server.
 
+Version 0.2.0 covers all 32 user-facing capability groups in the 2.2.5 reference
+baseline and ships 41 guided workflow playbooks. Host-specific invocation,
+connector authorization, and installation follow Codex conventions; user-facing
+SEO/GEO outcomes are mapped through AutoSEO skills and bounded helpers.
+
 Resolve this directory as `<plugin-root>` whenever a skill runs a bundled helper:
 
 ```text
@@ -21,7 +26,7 @@ AutoSEO is distributed under the MIT License in `LICENSE`.
 
 The initial functional inventory was developed with reference to
 [claude-seo by AgricIDaniel](https://github.com/AgricIDaniel/claude-seo),
-licensed under MIT. Adapted portions retain this notice:
+release 2.2.5, licensed under MIT. Adapted portions retain this notice:
 
 > Copyright (c) 2026 agricidaniel
 >

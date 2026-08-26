@@ -1,22 +1,32 @@
-# AutoSEO 0.1.0
+# AutoSEO 0.2.0
 
-Initial public preview of the AutoSEO Codex plugin.
+Functional-parity public preview of the AutoSEO Codex plugin.
 
-## Included
+## Added
 
-- 33 focused SEO, GEO, content, technical, local, ecommerce, and provider skills
-- Bounded full-site and one-page audit workflows
-- SSRF-safe public URL validation and redirect handling
-- Explicit isolated runtime with an allowlisted script dispatcher
-- Search Console, PageSpeed, CrUX, GA4, Bing, Moz, and optional provider workflows
-- Structured-data, sitemap, content, image, performance, backlink, and drift helpers
-- Public marketplace metadata, policy documents, submission cases, and regression tests
+- Complete 32-capability user-facing command inventory for the 2.2.5 baseline
+- Forty-one original AutoSEO workflow playbooks across five operating stages
+- Deterministic workflow catalog validation, discovery, recommendation, export,
+  and consent-gated refresh
+- Complete Ahrefs, Bing, DataForSEO, Firecrawl, image-generation, Profound,
+  SE Ranking, and workflow subcommand surfaces
+- A full command guide and machine-readable parity manifest
+- Regression tests for capability coverage, command routing, release contents,
+  refresh source allowlisting, network consent, and overwrite protection
 
 ## Safety defaults
 
 - Read-only analysis by default
 - No bundled credentials, hosted backend, or telemetry
-- No automatic connector or Unlighthouse download
-- Consent required for paid calls, indexing submissions, and other external writes
-- Bounded network responses, safe output paths, and explicit overwrite controls
+- No automatic connector or external crawler download
+- Consent required for paid calls, network refreshes, indexing submissions, and
+  other external writes
+- Bounded network responses, exact official-source allowlisting, safe output paths,
+  and explicit overwrite controls
 - SHA-pinned official CI actions and a deterministic release archive
+
+## Compatibility
+
+Prompt invocation, skill discovery, connector authorization, hooks, and installation
+follow Codex conventions. Provider-specific live metrics require the corresponding
+authorized capability; transparent local or public-data fallbacks remain available.
