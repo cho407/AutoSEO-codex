@@ -1,0 +1,40 @@
+# AutoSEO Privacy Policy
+
+Effective date: 2026-08-26
+
+AutoSEO is an open-source, locally executed Codex plugin. The publisher does not
+operate an AutoSEO backend and does not receive prompts, analyzed pages, reports,
+credentials, or usage telemetry.
+
+## Data processed locally
+
+AutoSEO may process URLs, downloaded public page content, user-selected files,
+generated reports, audit baselines, and configuration required for a requested
+workflow. Local runtime data is stored in the platform-appropriate AutoSEO data
+directory or a directory explicitly selected by the user.
+
+## Third-party services
+
+When a user chooses an optional service such as Google APIs, Bing Webmaster,
+Moz, DataForSEO, Ahrefs, Firecrawl, SE Ranking, Profound, or an image-generation
+provider, data is sent directly to that provider under the user's account and
+is governed by that provider's terms and privacy policy. AutoSEO does not proxy
+or retain those requests on publisher-controlled infrastructure.
+
+## Credentials
+
+Credentials remain on the user's device or in the user's configured connector.
+They must not be committed to this repository. AutoSEO redacts known credential
+patterns from diagnostic output but users remain responsible for revoking any
+credential that is accidentally disclosed.
+
+## Retention and deletion
+
+AutoSEO retains no publisher-side data. Users can delete local reports, caches,
+audit history, configuration, and the managed runtime at any time. Removing the
+plugin does not automatically remove user-created reports.
+
+## Contact
+
+Open a privacy question through the repository's GitHub issue tracker without
+including personal data or secrets.

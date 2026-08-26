@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoseo-codex"
+version = "0.1.0"
+description = "Open-source SEO and GEO workflows packaged as a Codex plugin"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "HarrisonCho407" }]
+keywords = ["seo", "geo", "codex", "search", "ai-visibility"]
+
+[project.urls]
+Homepage = "https://github.com/HarrisonCho407/AutoSEO-codex"
+Repository = "https://github.com/HarrisonCho407/AutoSEO-codex"
+Issues = "https://github.com/HarrisonCho407/AutoSEO-codex/issues"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.1.1,<10",
+  "PyYAML>=6.0.3,<7",
+  "requests>=2.32.4,<3",
+  "ruff>=0.16.4,<1",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.setuptools]
+packages = []

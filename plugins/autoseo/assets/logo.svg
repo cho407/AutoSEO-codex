@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">AutoSEO</title>
+  <desc id="desc">AutoSEO wordmark with search visibility mark</desc>
+  <rect width="360" height="96" rx="20" fill="#071F19"/>
+  <circle cx="52" cy="44" r="20" fill="none" stroke="#2BE3A6" stroke-width="8"/>
+  <path d="m67 59 17 17" stroke="#2BE3A6" stroke-width="8" stroke-linecap="round"/>
+  <path d="m40 48 8-8 7 7 12-14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="104" y="61" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">AutoSEO</text>
+</svg>

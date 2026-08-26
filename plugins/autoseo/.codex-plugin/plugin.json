@@ -1,0 +1,46 @@
+{
+  "name": "autoseo",
+  "version": "0.1.0",
+  "description": "Open-source SEO and generative engine optimization workflows for Codex.",
+  "author": {
+    "name": "HarrisonCho407",
+    "url": "https://github.com/HarrisonCho407"
+  },
+  "homepage": "https://github.com/HarrisonCho407/AutoSEO-codex",
+  "repository": "https://github.com/HarrisonCho407/AutoSEO-codex",
+  "license": "MIT",
+  "keywords": [
+    "seo",
+    "geo",
+    "generative-engine-optimization",
+    "technical-seo",
+    "structured-data",
+    "content-strategy",
+    "search-visibility"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AutoSEO",
+    "shortDescription": "Audit and optimize search and AI visibility",
+    "longDescription": "Audit websites, diagnose technical and content issues, improve structured data, plan search content, and optimize pages for both conventional search engines and generative answer systems. AutoSEO is read-only by default and asks before any external write action.",
+    "developerName": "HarrisonCho407",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/HarrisonCho407/AutoSEO-codex",
+    "privacyPolicyURL": "https://github.com/HarrisonCho407/AutoSEO-codex/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/HarrisonCho407/AutoSEO-codex/blob/main/TERMS.md",
+    "defaultPrompt": [
+      "Audit this website for SEO and AI-search visibility",
+      "Create an SEO and GEO improvement plan for my site",
+      "Review this page's technical SEO, content, and schema"
+    ],
+    "brandColor": "#0F9D75",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": []
+  }
+}

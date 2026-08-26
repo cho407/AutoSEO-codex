@@ -1,0 +1,20 @@
+{
+  "name": "autoseo",
+  "interface": {
+    "displayName": "AutoSEO"
+  },
+  "plugins": [
+    {
+      "name": "autoseo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/autoseo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

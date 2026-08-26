@@ -1,0 +1,36 @@
+# Local environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+*client_secret*.json
+*oauth-token*.json
+*service-account*.json
+
+# Generated reports and runtime state
+dist/
+build/
+coverage/
+htmlcov/
+*.coverage
+*-audit/
+autoseo-output/
+runtime-state.json
+.setup.lock
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
