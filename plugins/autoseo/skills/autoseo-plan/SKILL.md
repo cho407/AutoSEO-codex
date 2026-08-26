@@ -17,6 +17,19 @@ description: >
 
 # Strategic SEO Planning
 
+## Commands
+
+| Prompt | Template |
+|---|---|
+| `@autoseo plan saas <context>` | SaaS or software company |
+| `@autoseo plan local <context>` | Local service business |
+| `@autoseo plan ecommerce <context>` | Store, catalog, or marketplace |
+| `@autoseo plan publisher <context>` | Publisher or media property |
+| `@autoseo plan agency <context>` | Agency or consultancy |
+
+If the business type is omitted, infer it from evidence and state the inference;
+use the generic template when confidence is low.
+
 ## Process
 
 ### 1. Discovery

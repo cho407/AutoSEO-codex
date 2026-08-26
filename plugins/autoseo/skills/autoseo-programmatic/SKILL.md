@@ -17,6 +17,16 @@ description: >
 
 # Programmatic SEO Analysis & Planning
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo programmatic audit <site-or-template>` | Audit template usefulness, data quality, duplication, crawl controls, and scaled-content risk |
+| `@autoseo programmatic plan <dataset-and-market>` | Plan page types, quality gates, internal links, rollout limits, measurement, and rollback |
+
+Planning never authorizes bulk publication. Require a reviewed sample and explicit
+approval before any generated collection is written or published.
+
 Build and audit SEO pages generated at scale from structured data sources.
 Enforces quality gates to prevent thin content penalties and index bloat.
 

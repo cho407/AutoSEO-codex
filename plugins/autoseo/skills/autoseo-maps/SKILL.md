@@ -19,6 +19,10 @@ description: >
 
 # Maps Intelligence (March 2026)
 
+`@autoseo maps audit <business-or-url>` is the explicit alias for the complete
+maps-presence audit described below. It detects the available evidence tier before
+running any provider-backed subworkflow.
+
 Maps platform analysis for local businesses. Works with external APIs to assess
 how a business appears on Google Maps, Bing Places, Apple Maps, and OpenStreetMap.
 

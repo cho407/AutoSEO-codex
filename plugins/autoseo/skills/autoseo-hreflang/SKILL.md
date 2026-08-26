@@ -16,6 +16,15 @@ description: >
 
 # Hreflang & International SEO
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo hreflang audit <site-or-files>` | Validate locale mapping, reciprocity, canonical alignment, and content parity |
+| `@autoseo hreflang generate <locale-map>` | Generate an HTML, HTTP-header, or sitemap implementation from approved canonical locale URLs |
+
+Generated annotations are presented for review and are not deployed automatically.
+
 Validate existing hreflang implementations or generate correct hreflang tags
 for multi-language and multi-region sites. Supports HTML, HTTP header, and
 XML sitemap implementations.

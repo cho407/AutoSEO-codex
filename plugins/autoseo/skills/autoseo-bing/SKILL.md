@@ -15,6 +15,16 @@ description: Analyze Bing Webmaster data and prepare or perform IndexNow submiss
 Read operations may use an authorized Bing tool or `BING_WEBMASTER_API_KEY`
 configured in the user's environment.
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo bing links <url>` | Registered-property backlink and referring-page data |
+| `@autoseo bing compare <url-a> <url-b>` | Like-for-like comparison of two properties controlled by the account |
+| `@autoseo bing submit <url>` | Consent-gated single-URL IndexNow submission |
+| `@autoseo bing submit-batch <file>` | Consent-gated, bounded IndexNow batch submission |
+| `@autoseo bing verify-indexnow <host>` | Validate key placement and request shape without submitting URLs |
+
 After resolving `<plugin-root>` and checking the runtime:
 
 ```text
@@ -33,7 +43,9 @@ IndexNow changes external state. Before submission:
 5. report accepted, rejected, and unsubmitted URLs without retry loops.
 
 ```text
+<plugin-root>/scripts/autoseo run indexnow_submit.py --host <host> --urls <url> --confirm-submit
 <plugin-root>/scripts/autoseo run indexnow_submit.py --host <host> --urls-file <file> --confirm-submit
+<plugin-root>/scripts/autoseo run indexnow_submit.py --host <host> --verify-only
 ```
 
 Do not imply that IndexNow submits to Google or guarantees indexing. If credentials

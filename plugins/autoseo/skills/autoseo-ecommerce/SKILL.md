@@ -18,6 +18,10 @@ description: >
 
 # E-commerce SEO Analysis
 
+`@autoseo ecommerce audit <url>` is the explicit alias for the complete store or
+product-page analysis. Provider-backed marketplace metrics remain optional and
+always pass through the cost gate.
+
 Comprehensive product page optimization, marketplace intelligence, and
 competitive pricing analysis. Works standalone (on-page + schema) and with
 DataForSEO Merchant API for live Google Shopping and Amazon data.

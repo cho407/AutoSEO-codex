@@ -14,12 +14,25 @@ description: Analyze authorized SE Ranking AI visibility and search data, includ
 
 Use an already-authorized connector. Do not request credentials in chat.
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo seranking ai-visibility <brand>` | Share of voice across the connector's supported answer platforms |
+| `@autoseo seranking serp <keyword>` | Organic positions and result features |
+| `@autoseo seranking backlinks <url>` | Backlink profile as an alternative vendor source |
+| `@autoseo seranking competitors <url>` | Organic competitors and shared-keyword gaps |
+
 1. Confirm project, market, language, devices, prompt cohort, and date range.
 2. Retrieve only the metrics needed for the request.
 3. Preserve provider terminology, sampling method, and collection date.
 4. Compare the same prompt and platform set across brands and periods.
 5. Separate visibility, mention, recommendation, and citation signals.
 6. Convert gaps into evidence-backed actions and measurement checks.
+
+For AI visibility, return per-platform percentages, prompt count, sampling date,
+market, and confidence based on sample size. Never infer a citation from share of
+voice alone. Show estimated units and obtain confirmation before paid calls.
 
 If the integration is unavailable, route to `autoseo-geo` and explain that
 provider-specific share-of-voice data could not be measured.

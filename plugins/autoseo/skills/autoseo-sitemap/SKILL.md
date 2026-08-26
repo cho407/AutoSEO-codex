@@ -15,6 +15,16 @@ description: >
 
 # Sitemap Analysis & Generation
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo sitemap analyze <url-or-file>` | Discover and validate sitemap indexes, sitemap files, and URL quality |
+| `@autoseo sitemap generate <site-or-url-list>` | Build a bounded sitemap plan or XML artifact from approved canonical URLs |
+
+Generation does not upload the result or modify `robots.txt`; those are separate
+external or repository writes requiring explicit scope.
+
 ## Mode 1: Analyze Existing Sitemap
 
 Discover candidates before reporting a sitemap missing:

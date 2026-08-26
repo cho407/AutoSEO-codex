@@ -24,6 +24,19 @@ not ask the user to paste a token and do not install an integration.
 - organic keyword and top-page discovery;
 - competitor gaps and content opportunities.
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo ahrefs metrics <url>` | Domain or URL rating, referring-domain count, and organic traffic estimate |
+| `@autoseo ahrefs backlinks <url>` | Referring domains, anchors, follow ratio, new/lost links, and top linked pages |
+| `@autoseo ahrefs organic <url>` | Organic keywords, positions, traffic share, countries, and ranking pages |
+| `@autoseo ahrefs content <topic>` | Content-explorer results, referring domains, shares, freshness, and content gaps |
+
+Use the connector's currently exposed tool names rather than guessing an API
+operation. Record the provider, retrieval time, market, index, target mode, and
+requested limit on every result.
+
 ## Workflow
 
 1. Confirm the target, market, date window, and authorized account scope.
@@ -33,6 +46,11 @@ not ask the user to paste a token and do not install an integration.
 5. Separate vendor metrics from AutoSEO interpretation.
 6. Corroborate high-impact conclusions with page evidence or a second source.
 7. Do not label a link toxic or recommend disavow solely from one vendor score.
+
+For a batch of 50 or more targets, show the provider-unit estimate and obtain
+explicit approval before the call. For overlapping live SERP data, prefer the
+authorized SERP provider selected by the user; for multi-source link confidence,
+hand results to `autoseo-backlinks` without silently mixing incompatible metrics.
 
 If Ahrefs is unavailable, route to `autoseo-backlinks` and use public or other
 authorized sources while clearly marking unavailable proprietary metrics.

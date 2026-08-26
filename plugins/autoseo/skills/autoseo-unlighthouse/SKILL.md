@@ -16,6 +16,13 @@ This workflow never downloads an executable automatically. It requires a trusted
 locally installed `unlighthouse-ci` binary or an explicit absolute path supplied
 through `AUTOSEO_UNLIGHTHOUSE_BIN`.
 
+## Command
+
+`@autoseo unlighthouse audit <url>` runs a bounded mobile audit by default.
+The same prompt may specify `desktop`, a maximum route count, and a user-approved
+output directory. It returns aggregate performance, accessibility, best-practice,
+and SEO scores plus a per-route breakdown when the local result contains one.
+
 ## Workflow
 
 1. Validate the public target URL.

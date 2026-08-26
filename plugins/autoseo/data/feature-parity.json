@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "baseline_version": "2.2.5",
+  "structural_exclusions": [
+    "host invocation syntax",
+    "host-specific agent profile format",
+    "host-specific hook registration",
+    "host-specific extension installer format"
+  ],
+  "capabilities": [
+    {
+      "id": "setup",
+      "skill": "autoseo",
+      "status": "supported",
+      "subcommands": [],
+      "helpers": ["runtime.py"]
+    },
+    {
+      "id": "doctor",
+      "skill": "autoseo",
+      "status": "supported",
+      "subcommands": [],
+      "helpers": ["runtime.py"]
+    },
+    {
+      "id": "audit",
+      "skill": "autoseo-audit",
+      "status": "supported",
+      "subcommands": [],
+      "helpers": ["render_page.py", "sitemap_discovery.py", "google_report.py"]
+    },
+    {
+      "id": "page",
+      "skill": "autoseo-page",
+      "status": "supported",
+      "subcommands": [],
+      "helpers": ["fetch_page.py", "parse_html.py"]
+    },
+    {
+      "id": "technical",
+      "skill": "autoseo-technical",
+      "status": "supported",
+      "subcommands": [],
+      "helpers": ["render_page.py", "agent_ux_check.py", "preload_check.py"]
+    },
+    {
+      "id": "content",
+      "skill": "autoseo-content",
+      "status": "supported",
+      "subcommands": ["humanize", "verify"],
+      "helpers": ["content_quality.py", "content_humanize.py", "content_verify.py"]
+    },
+    {
+      "id": "content-brief",
+      "skill": "autoseo-content-brief",
+      "status": "supported",
+      "subcommands": ["brief", "outline"],
+      "helpers": []
+    },
+    {
+      "id": "schema",
+      "skill": "autoseo-schema",
+      "status": "supported",
+      "subcommands": ["detect", "validate", "generate"],
+      "helpers": ["schema_generate.py", "schema_ecommerce_validate.py"]
+    },
+    {
+      "id": "geo",
+      "skill": "autoseo-geo",
+      "status": "supported",
+      "subcommands": [],
+      "helpers": ["agent_ux_check.py", "parasite_risk.py"]
+    },
+    {
+      "id": "images",
+      "skill": "autoseo-images",
+      "status": "supported",
+      "subcommands": ["audit", "serp", "optimize"],
+      "helpers": ["iptc_ai_label.py"]
+    },
+    {
+      "id": "sitemap",
+      "skill": "autoseo-sitemap",
+      "status": "supported",
+      "subcommands": ["analyze", "generate"],
+      "helpers": ["sitemap_discovery.py"]
+    },
+    {
+      "id": "plan",
+      "skill": "autoseo-plan",
+      "status": "supported",
+      "subcommands": ["saas", "local", "ecommerce", "publisher", "agency"],
+      "helpers": []
+    },
+    {
+      "id": "competitor-pages",
+      "skill": "autoseo-competitor-pages",
+      "status": "supported",
+      "subcommands": ["audit", "generate"],
+      "helpers": []
+    },
+    {
+      "id": "hreflang",
+      "skill": "autoseo-hreflang",
+      "status": "supported",
+      "subcommands": ["audit", "generate"],
+      "helpers": []
+    },
+    {
+      "id": "programmatic",
+      "skill": "autoseo-programmatic",
+      "status": "supported",
+      "subcommands": ["audit", "plan"],
+      "helpers": []
+    },
+    {
+      "id": "local",
+      "skill": "autoseo-local",
+      "status": "supported",
+      "subcommands": [],
+      "helpers": ["gbp_deprecation_lint.py"]
+    },
+    {
+      "id": "maps",
+      "skill": "autoseo-maps",
+      "status": "supported",
+      "subcommands": ["audit", "grid", "gbp", "reviews", "competitors", "nap", "schema"],
+      "helpers": []
+    },
+    {
+      "id": "backlinks",
+      "skill": "autoseo-backlinks",
+      "status": "supported",
+      "subcommands": ["audit", "gap", "toxic", "new", "verify", "setup"],
+      "helpers": ["commoncrawl_graph.py", "moz_api.py", "bing_webmaster.py", "verify_backlinks.py"]
+    },
+    {
+      "id": "cluster",
+      "skill": "autoseo-cluster",
+      "status": "supported",
+      "subcommands": ["plan", "execute", "map"],
+      "helpers": []
+    },
+    {
+      "id": "sxo",
+      "skill": "autoseo-sxo",
+      "status": "supported",
+      "subcommands": ["audit", "wireframe", "personas"],
+      "helpers": ["parse_html.py"]
+    },
+    {
+      "id": "drift",
+      "skill": "autoseo-drift",
+      "status": "supported",
+      "subcommands": ["baseline", "compare", "history"],
+      "helpers": ["drift_baseline.py", "drift_compare.py", "drift_history.py", "drift_report.py"]
+    },
+    {
+      "id": "ecommerce",
+      "skill": "autoseo-ecommerce",
+      "status": "supported",
+      "subcommands": ["audit", "products", "gaps", "schema"],
+      "helpers": ["dataforseo_merchant.py", "schema_ecommerce_validate.py", "ucp_check.py"]
+    },
+    {
+      "id": "workflow",
+      "skill": "autoseo-workflow",
+      "status": "supported",
+      "subcommands": ["overview", "find", "leverage", "optimize", "win", "local", "catalog", "refresh"],
+      "helpers": ["workflow_catalog.py"]
+    },
+    {
+      "id": "google",
+      "skill": "autoseo-google",
+      "status": "supported",
+      "subcommands": ["setup", "pagespeed", "crux", "crux-history", "gsc", "inspect", "inspect-batch", "sitemaps", "index", "index-batch", "ga4", "ga4-pages", "youtube", "youtube-video", "nlp", "entities", "keywords", "volume", "entity", "safety", "quotas", "report"],
+      "helpers": ["google_auth.py", "pagespeed_check.py", "crux_history.py", "gsc_query.py", "gsc_inspect.py", "indexing_notify.py", "ga4_report.py", "youtube_search.py", "nlp_analyze.py", "keyword_planner.py", "google_report.py"]
+    },
+    {
+      "id": "image-gen",
+      "skill": "autoseo-image-gen",
+      "status": "supported",
+      "subcommands": ["og", "hero", "product", "infographic", "custom", "batch"],
+      "helpers": []
+    },
+    {
+      "id": "firecrawl",
+      "skill": "autoseo-firecrawl",
+      "status": "supported",
+      "subcommands": ["crawl", "map", "scrape", "search"],
+      "helpers": ["fetch_page.py", "render_page.py", "sitemap_discovery.py"]
+    },
+    {
+      "id": "dataforseo",
+      "skill": "autoseo-dataforseo",
+      "status": "supported",
+      "subcommands": ["serp", "serp-images", "serp-youtube", "youtube", "keywords", "volume", "difficulty", "intent", "trends", "backlinks", "competitors", "ranked", "intersection", "traffic", "subdomains", "top-searches", "onpage", "tech", "whois", "content", "listings", "ai-scrape", "ai-mentions", "costs"],
+      "helpers": ["dataforseo_costs.py", "dataforseo_normalize.py", "dataforseo_merchant.py"]
+    },
+    {
+      "id": "ahrefs",
+      "skill": "autoseo-ahrefs",
+      "status": "supported",
+      "subcommands": ["metrics", "backlinks", "organic", "content"],
+      "helpers": []
+    },
+    {
+      "id": "bing",
+      "skill": "autoseo-bing",
+      "status": "supported",
+      "subcommands": ["links", "compare", "submit", "submit-batch", "verify-indexnow"],
+      "helpers": ["bing_webmaster.py", "indexnow_submit.py"]
+    },
+    {
+      "id": "profound",
+      "skill": "autoseo-profound",
+      "status": "supported",
+      "subcommands": ["citations", "prompts", "competitors", "alerts"],
+      "helpers": []
+    },
+    {
+      "id": "seranking",
+      "skill": "autoseo-seranking",
+      "status": "supported",
+      "subcommands": ["ai-visibility", "serp", "backlinks", "competitors"],
+      "helpers": []
+    },
+    {
+      "id": "unlighthouse",
+      "skill": "autoseo-unlighthouse",
+      "status": "supported",
+      "subcommands": ["audit"],
+      "helpers": ["unlighthouse_run.py"]
+    }
+  ]
+}

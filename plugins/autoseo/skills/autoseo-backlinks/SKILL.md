@@ -12,6 +12,10 @@ description: "Backlink profile analysis: referring domains, anchor text distribu
 
 # Backlink Profile Analysis
 
+`@autoseo backlinks audit <url>` is the explicit alias for the full profile
+analysis. It uses every authorized source that passes the detection and cost gates
+below, while preserving provider-specific metrics.
+
 ## Source Detection
 
 Before analysis, detect available data sources:

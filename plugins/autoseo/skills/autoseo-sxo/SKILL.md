@@ -18,6 +18,9 @@ description: >
 
 # Search Experience Optimization (SXO)
 
+`@autoseo sxo audit <url> [keyword]` is the explicit alias for the complete
+SERP-consensus, page-type alignment, user-story, persona, and friction analysis.
+
 SXO bridges the gap between SEO (what Google rewards) and UX (what users need).
 Traditional SEO audits check technical health. SXO asks: "Does this page deserve
 to rank for this keyword based on what Google is actually rewarding in the SERP?"

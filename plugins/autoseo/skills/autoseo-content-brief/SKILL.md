@@ -18,6 +18,16 @@ description: >
 
 # SEO Content Brief Generator
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo content-brief brief <topic-or-url>` | Research-backed writing brief for a new or existing page |
+| `@autoseo content-brief outline <topic-or-url>` | Section-level outline with intent, evidence, coverage, and internal-link requirements |
+
+Both modes apply the same competitor filtering, site-relevance rules, factual
+boundaries, and page-type templates. `outline` returns the narrower deliverable.
+
 Generate research-backed content briefs that help writers produce pages capable of outranking current top results. Briefs include competitor analysis with gap scoring, per-section word count breakdowns, keyword placement rules, and page-type-specific templates.
 
 ## Process

@@ -17,6 +17,16 @@ description: >
 
 # Competitor Comparison & Alternatives Pages
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo competitor-pages audit <url>` | Review an existing comparison or alternative page for evidence, intent, balance, and schema |
+| `@autoseo competitor-pages generate <comparison>` | Produce an implementation brief and factual draft structure for an approved comparison |
+
+Generation never invents competitor prices, features, reviews, or claims. Verify
+time-sensitive facts and include a review date.
+
 Create high-converting comparison and alternatives pages that target
 competitive intent keywords with accurate, structured content.
 

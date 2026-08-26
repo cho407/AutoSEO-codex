@@ -18,6 +18,12 @@ description: >
 
 # Image Optimization Analysis
 
+## Command alias
+
+`@autoseo images audit <url>` runs the complete existing-image audit. The
+`serp` and `optimize` commands below remain available for live result analysis
+and consent-gated local file optimization respectively.
+
 ## Checks
 
 ### Alt Text

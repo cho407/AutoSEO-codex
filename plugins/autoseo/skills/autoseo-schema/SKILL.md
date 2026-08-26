@@ -15,6 +15,17 @@ description: >
 
 # Schema Markup Analysis & Generation
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo schema detect <url-or-file>` | Inventory JSON-LD, Microdata, and RDFa without changing the page |
+| `@autoseo schema validate <url-or-file>` | Validate syntax, eligibility, required fields, deprecations, and factual consistency |
+| `@autoseo schema generate <page-type>` | Generate truthful JSON-LD from supplied or verified page facts, then validate it |
+
+Detection and validation are read-only. Generation writes a file only when the
+user supplies an approved destination, and it never publishes markup automatically.
+
 ## Detection
 
 1. Scan page source for JSON-LD `<script type="application/ld+json">`

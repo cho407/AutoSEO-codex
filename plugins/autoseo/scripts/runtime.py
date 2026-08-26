@@ -40,7 +40,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "schema_ecommerce_validate.py", "schema_generate.py", "autoseo_updates.py",
         "sitemap_discovery.py", "ucp_check.py", "unlighthouse_run.py",
         "url_safety.py", "validate_backlink_report.py", "verify_backlinks.py",
-        "youtube_search.py",
+        "workflow_catalog.py", "youtube_search.py",
     }
 )
 REDACTIONS = (

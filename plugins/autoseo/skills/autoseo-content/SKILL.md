@@ -15,6 +15,16 @@ description: >
 
 # Content Quality & E-E-A-T Analysis
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo content humanize <file-or-text>` | Detect and revise mechanical patterns while preserving facts, meaning, citations, and brand voice |
+| `@autoseo content verify <file-or-text>` | Extract checkable claims, verify them against current primary sources, and return an evidence ledger |
+
+Without a subcommand, run the complete content quality, E-E-A-T, readability,
+intent, and citation-readiness review.
+
 ## Google's "Who / How / Why" Test (canonical heuristic)
 
 Before scoring E-E-A-T sub-factors, every page audit should pass Google's

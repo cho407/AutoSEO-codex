@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "name": "AutoSEO evidence-to-growth playbooks",
+  "description": "Forty-one deterministic planning playbooks for discovery, authority, optimization, conversion, and local search work.",
+  "playbooks": [
+    {
+      "id": "audience-outcome-map",
+      "stage": "find",
+      "title": "Audience and outcome map",
+      "triggers": ["audience", "persona", "customer", "market"],
+      "questions": ["Who must make progress, in what situation, and toward which measurable outcome?", "Which constraints and objections change the search journey?"],
+      "deliverables": ["audience segments", "search jobs and success measures"],
+      "verification": ["Each segment is supported by supplied research or labeled as a hypothesis."]
+    },
+    {
+      "id": "demand-intent-research",
+      "stage": "find",
+      "title": "Demand and intent research",
+      "triggers": ["keyword", "demand", "intent", "serp"],
+      "questions": ["Which queries represent real demand and which page types currently satisfy them?", "Where do intent and business value overlap?"],
+      "deliverables": ["intent-grouped demand set", "SERP evidence notes"],
+      "verification": ["Every intent label cites observed results or a clearly marked heuristic."]
+    },
+    {
+      "id": "topical-coverage-plan",
+      "stage": "find",
+      "title": "Topical coverage plan",
+      "triggers": ["topic", "coverage", "pillar", "cluster"],
+      "questions": ["What must a trustworthy resource cover to satisfy the topic completely?", "Which existing pages already own part of the topic?"],
+      "deliverables": ["topic graph", "new, merge, refresh, and retire decisions"],
+      "verification": ["The plan avoids duplicate intent and assigns one canonical owner per topic."]
+    },
+    {
+      "id": "opportunity-prioritization",
+      "stage": "find",
+      "title": "Opportunity prioritization",
+      "triggers": ["priority", "roadmap", "impact", "effort"],
+      "questions": ["Which opportunities combine impact, confidence, feasibility, and strategic fit?", "Which dependencies must be resolved first?"],
+      "deliverables": ["scored opportunity backlog", "dependency-aware first sequence"],
+      "verification": ["Scores expose assumptions and do not imply guaranteed rankings."]
+    },
+    {
+      "id": "keyword-variation-map",
+      "stage": "find",
+      "title": "Keyword variation and entity map",
+      "triggers": ["variation", "synonym", "entity", "long-tail"],
+      "questions": ["Which language variants express the same task and which imply a different page?", "Which entities and modifiers recur across authoritative results?"],
+      "deliverables": ["deduplicated query families", "entity and modifier vocabulary"],
+      "verification": ["Variants are grouped by demonstrated intent rather than lexical similarity alone."]
+    },
+    {
+      "id": "authority-gap",
+      "stage": "leverage",
+      "title": "Authority and link-gap analysis",
+      "triggers": ["backlink", "authority", "mention", "digital-pr"],
+      "questions": ["Which credible sources endorse competing resources but not this one?", "What genuinely link-worthy evidence or utility can the site offer?"],
+      "deliverables": ["source-qualified authority gaps", "earned-link asset and outreach angles"],
+      "verification": ["Opportunities are checked for relevance, editorial legitimacy, and live-link evidence."]
+    },
+    {
+      "id": "page-baseline",
+      "stage": "optimize",
+      "title": "Page optimization baseline",
+      "triggers": ["page", "baseline", "on-page", "optimize"],
+      "questions": ["Does the page satisfy its primary intent and expose a clear next action?", "Which technical, content, and trust signals are measurably weak?"],
+      "deliverables": ["baseline scorecard", "prioritized page changes"],
+      "verification": ["Each recommendation includes current evidence and a post-change test."]
+    },
+    {
+      "id": "core-content-audit",
+      "stage": "optimize",
+      "title": "Core content audit",
+      "triggers": ["content audit", "quality", "helpful", "eeat"],
+      "questions": ["What unique value, first-hand evidence, and trustworthy support does the page provide?", "Where is the answer incomplete, repetitive, or unsupported?"],
+      "deliverables": ["content-quality diagnosis", "retain, rewrite, merge, or remove decisions"],
+      "verification": ["Claims are traceable and subjective judgments are labeled."]
+    },
+    {
+      "id": "technical-quality",
+      "stage": "optimize",
+      "title": "Technical quality review",
+      "triggers": ["technical", "crawl", "index", "render"],
+      "questions": ["Can eligible agents fetch, render, interpret, and canonicalize the page consistently?", "Which issue blocks discovery or understanding first?"],
+      "deliverables": ["technical finding set", "dependency-ordered remediation"],
+      "verification": ["Critical findings are reproduced with a second signal when practical."]
+    },
+    {
+      "id": "click-through",
+      "stage": "optimize",
+      "title": "Search click-through audit",
+      "triggers": ["ctr", "title", "snippet", "meta"],
+      "questions": ["Does the result promise the right outcome without exaggeration?", "What SERP features and competing messages shape the click decision?"],
+      "deliverables": ["snippet diagnosis", "testable title and description variants"],
+      "verification": ["Variants remain accurate to on-page content and are evaluated over a defined window."]
+    },
+    {
+      "id": "article-outline",
+      "stage": "optimize",
+      "title": "Evidence-led article outline",
+      "triggers": ["outline", "brief", "article", "blog"],
+      "questions": ["Which reader questions must be answered and in what dependency order?", "Where must original evidence or expert review be supplied?"],
+      "deliverables": ["section-by-section outline", "evidence and internal-link requirements"],
+      "verification": ["The outline covers the primary task without padding or duplicate sections."]
+    },
+    {
+      "id": "article-draft",
+      "stage": "optimize",
+      "title": "Article drafting specification",
+      "triggers": ["draft", "write", "article", "content"],
+      "questions": ["What is the shortest complete answer that preserves nuance and proof?", "Which statements require citations or subject-matter approval?"],
+      "deliverables": ["production-ready draft", "claim and review ledger"],
+      "verification": ["No invented facts, experiences, quotations, or performance claims are introduced."]
+    },
+    {
+      "id": "supporting-page-refresh",
+      "stage": "optimize",
+      "title": "Supporting-page refresh",
+      "triggers": ["supporting page", "refresh", "cluster", "internal link"],
+      "questions": ["How should this page strengthen the canonical topic owner?", "What stale sections or links weaken that role?"],
+      "deliverables": ["refresh brief", "internal-link changes"],
+      "verification": ["The refreshed page has a distinct intent and reciprocal contextual links."]
+    },
+    {
+      "id": "answer-citability",
+      "stage": "optimize",
+      "title": "Answer citability review",
+      "triggers": ["citation", "ai search", "answer", "geo"],
+      "questions": ["Can a passage stand alone with a clear entity, claim, context, and source?", "Are important answers accessible in rendered text?"],
+      "deliverables": ["citation-ready passage plan", "source and entity improvements"],
+      "verification": ["Recommendations support users and conventional search as well as answer systems."]
+    },
+    {
+      "id": "human-review",
+      "stage": "optimize",
+      "title": "Human quality review",
+      "triggers": ["humanize", "tone", "ai content", "editorial"],
+      "questions": ["Where does the text sound generic, over-patterned, or detached from real experience?", "Which passages need an accountable human decision?"],
+      "deliverables": ["editorial issue map", "human-review checklist"],
+      "verification": ["The review improves clarity without pretending to detect authorship reliably."]
+    },
+    {
+      "id": "claim-verification",
+      "stage": "optimize",
+      "title": "Claim verification",
+      "triggers": ["fact check", "claim", "citation", "verify"],
+      "questions": ["Which claims are externally verifiable, time-sensitive, or high stakes?", "Does each cited source directly support the exact claim?"],
+      "deliverables": ["claim-source matrix", "unsupported and stale claim list"],
+      "verification": ["Primary and current sources are preferred and retrieval dates are recorded."]
+    },
+    {
+      "id": "source-authority",
+      "stage": "optimize",
+      "title": "Source and author authority audit",
+      "triggers": ["author", "source", "trust", "authority"],
+      "questions": ["Can readers identify who is responsible and why the source is credible?", "Are conflicts, methods, dates, and corrections transparent?"],
+      "deliverables": ["authority signal inventory", "trust remediation brief"],
+      "verification": ["Recommendations do not fabricate credentials or endorsements."]
+    },
+    {
+      "id": "structured-data",
+      "stage": "optimize",
+      "title": "Structured-data opportunity",
+      "triggers": ["schema", "json-ld", "rich result", "structured data"],
+      "questions": ["Which supported type accurately describes visible content?", "Do identifiers connect related entities consistently?"],
+      "deliverables": ["schema eligibility map", "validated JSON-LD specification"],
+      "verification": ["Generated markup mirrors visible content and passes deterministic validation."]
+    },
+    {
+      "id": "question-reframing",
+      "stage": "optimize",
+      "title": "Question and answer reframing",
+      "triggers": ["paa", "question", "faq", "heading"],
+      "questions": ["What task is the searcher actually trying to complete?", "Can headings and answers express that task naturally without keyword repetition?"],
+      "deliverables": ["normalized question set", "answer placement plan"],
+      "verification": ["Questions are supported by observed demand or clearly marked audience research."]
+    },
+    {
+      "id": "community-language",
+      "stage": "optimize",
+      "title": "Community language research",
+      "triggers": ["community", "forum", "reddit", "voice of customer"],
+      "questions": ["How do real users describe the problem, trade-offs, and failed alternatives?", "Which language is widespread enough to inform the page?"],
+      "deliverables": ["voice-of-customer themes", "language and objection notes"],
+      "verification": ["Anecdotes are not presented as representative statistics."]
+    },
+    {
+      "id": "competitor-discovery",
+      "stage": "optimize",
+      "title": "Search competitor discovery",
+      "triggers": ["competitor", "serp", "alternative", "comparison"],
+      "questions": ["Which pages compete for the same intent rather than merely the same product category?", "What evidence explains their result fit?"],
+      "deliverables": ["intent-level competitor set", "differentiation opportunities"],
+      "verification": ["Competitors are selected from current evidence and not assumed from brand familiarity."]
+    },
+    {
+      "id": "opportunity-qualification",
+      "stage": "optimize",
+      "title": "Optimization opportunity qualification",
+      "triggers": ["qualify", "opportunity", "feasibility", "impact"],
+      "questions": ["Is the opportunity reachable with the site's authority, assets, and constraints?", "What would falsify the expected benefit?"],
+      "deliverables": ["go, defer, or reject decision", "measurement contract"],
+      "verification": ["The decision states evidence, dependencies, uncertainty, and stop conditions."]
+    },
+    {
+      "id": "visibility-baseline",
+      "stage": "optimize",
+      "title": "Search visibility baseline",
+      "triggers": ["visibility", "baseline", "ranking", "share of voice"],
+      "questions": ["Which queries, surfaces, pages, and engines define current visibility?", "Which measurements are comparable over time?"],
+      "deliverables": ["dated visibility baseline", "measurement limitations"],
+      "verification": ["Location, language, device, provider, and sample size are preserved."]
+    },
+    {
+      "id": "visibility-diagnosis",
+      "stage": "optimize",
+      "title": "Visibility change diagnosis",
+      "triggers": ["traffic drop", "ranking loss", "visibility change", "diagnose"],
+      "questions": ["What changed in demand, eligibility, competition, content, links, or measurement?", "Which causal explanation has direct evidence?"],
+      "deliverables": ["ranked cause analysis", "discriminating next checks"],
+      "verification": ["Correlation is not reported as causation and alternative explanations remain visible."]
+    },
+    {
+      "id": "content-gap-followup",
+      "stage": "optimize",
+      "title": "Content-gap follow-up",
+      "triggers": ["gap", "missing topic", "follow-up", "coverage"],
+      "questions": ["Does the gap represent missing user value or only competitor word count?", "Should it extend this page or belong elsewhere?"],
+      "deliverables": ["validated gap list", "page ownership decisions"],
+      "verification": ["Every addition has a user purpose and avoids intent cannibalization."]
+    },
+    {
+      "id": "reader-task-validation",
+      "stage": "optimize",
+      "title": "Reader task validation",
+      "triggers": ["user task", "journey", "sxo", "usability"],
+      "questions": ["Can each priority audience complete its next task with the information and controls provided?", "Where does information scent break?"],
+      "deliverables": ["task-path findings", "content and interface acceptance tests"],
+      "verification": ["Checks distinguish content, navigation, and technical causes."]
+    },
+    {
+      "id": "editorial-polish",
+      "stage": "optimize",
+      "title": "Editorial polish and consistency",
+      "triggers": ["polish", "clarity", "consistency", "style"],
+      "questions": ["Which passages can be shorter, clearer, more concrete, or better ordered?", "Are terminology and claims consistent across the page?"],
+      "deliverables": ["line-level editing brief", "terminology and consistency ledger"],
+      "verification": ["Edits preserve meaning, evidence, brand constraints, and accessibility."]
+    },
+    {
+      "id": "bofu-brief",
+      "stage": "win",
+      "title": "Bottom-of-funnel page brief",
+      "triggers": ["bofu", "purchase", "demo", "comparison"],
+      "questions": ["What decision is the visitor making and what proof removes the largest risk?", "Which alternatives must be compared fairly?"],
+      "deliverables": ["decision-page brief", "proof, objection, and CTA requirements"],
+      "verification": ["The brief avoids false urgency, unsupported superiority, and hidden trade-offs."]
+    },
+    {
+      "id": "conversion-audit",
+      "stage": "win",
+      "title": "Conversion and friction audit",
+      "triggers": ["conversion", "cro", "cta", "friction"],
+      "questions": ["Where does the page lose clarity, trust, momentum, or accessibility?", "Which change can be tested without harming search intent satisfaction?"],
+      "deliverables": ["friction map", "prioritized experiment backlog"],
+      "verification": ["Experiments define guardrails, primary outcomes, and rollback conditions."]
+    },
+    {
+      "id": "dual-surface-scorecard",
+      "stage": "win",
+      "title": "Search and conversion scorecard",
+      "triggers": ["scorecard", "seo and cro", "search conversion", "performance"],
+      "questions": ["Does the page earn qualified discovery and help that audience act?", "Which improvement benefits one surface while risking the other?"],
+      "deliverables": ["search-and-conversion scorecard", "balanced action sequence"],
+      "verification": ["SEO and conversion metrics are reported separately before synthesis."]
+    },
+    {
+      "id": "local-market-research",
+      "stage": "local",
+      "title": "Local market research",
+      "triggers": ["local research", "service area", "market", "competitor"],
+      "questions": ["Which locations, services, competitors, and local modifiers shape demand?", "Which facts vary legitimately by location?"],
+      "deliverables": ["local demand and competitor map", "location evidence inventory"],
+      "verification": ["Service areas and business facts are verified and doorway-page patterns are excluded."]
+    },
+    {
+      "id": "local-homepage-brief",
+      "stage": "local",
+      "title": "Local homepage brief",
+      "triggers": ["local homepage", "homepage brief", "service area", "local"],
+      "questions": ["What primary service, location, proof, and next action must the homepage establish?", "Which supporting pages should it route to?"],
+      "deliverables": ["local homepage outline", "proof and internal-link requirements"],
+      "verification": ["Business name, address, phone, service area, and claims match verified records."]
+    },
+    {
+      "id": "local-homepage-refresh",
+      "stage": "local",
+      "title": "Local homepage refresh",
+      "triggers": ["rewrite homepage", "local homepage", "refresh", "conversion"],
+      "questions": ["Which current sections obscure relevance, trust, or service coverage?", "What content must be retained for users and rankings?"],
+      "deliverables": ["section-level rewrite plan", "retention and migration checklist"],
+      "verification": ["The refresh preserves factual NAP, existing valuable content, and crawlable navigation."]
+    },
+    {
+      "id": "local-service-page-refresh",
+      "stage": "local",
+      "title": "Local service-page refresh",
+      "triggers": ["service page", "location page", "rewrite", "local"],
+      "questions": ["What service evidence and local relevance are unique to this page?", "How is it different from neighboring service or location pages?"],
+      "deliverables": ["service-page rewrite brief", "uniqueness and conversion requirements"],
+      "verification": ["The result avoids templated doorway content and unverifiable local claims."]
+    },
+    {
+      "id": "gbp-primary-category",
+      "stage": "local",
+      "title": "Business profile category selection",
+      "triggers": ["gbp category", "business category", "maps", "profile"],
+      "questions": ["Which category most precisely represents the primary real-world business?", "Which additional categories are supported by actual services?"],
+      "deliverables": ["primary and secondary category rationale", "unsupported category exclusions"],
+      "verification": ["Selections reflect current provider options and the real business, not keyword reach alone."]
+    },
+    {
+      "id": "gbp-description-facts",
+      "stage": "local",
+      "title": "Business profile factual description",
+      "triggers": ["gbp description", "business profile", "description", "local"],
+      "questions": ["Which verified services, history, locations, and differentiators matter most?", "Which promotional claims are prohibited or unsupported?"],
+      "deliverables": ["fact-led profile description", "claim approval checklist"],
+      "verification": ["Every specific claim is verified and the text follows current profile policies."]
+    },
+    {
+      "id": "gbp-description-differentiation",
+      "stage": "local",
+      "title": "Business profile differentiation",
+      "triggers": ["gbp", "differentiate", "positioning", "description"],
+      "questions": ["What verifiable choice criteria distinguish the business locally?", "How can those facts be stated without comparative exaggeration?"],
+      "deliverables": ["differentiation options", "evidence-backed profile copy"],
+      "verification": ["Differentiators are specific, current, and demonstrably true."]
+    },
+    {
+      "id": "gbp-description-compliance",
+      "stage": "local",
+      "title": "Business profile description compliance",
+      "triggers": ["gbp compliance", "profile policy", "description", "review"],
+      "questions": ["Does the description contain prohibited promotions, links, unsupported claims, or keyword repetition?", "What can be preserved safely?"],
+      "deliverables": ["compliance findings", "policy-safe revision"],
+      "verification": ["The final copy is checked against current official profile guidance."]
+    },
+    {
+      "id": "gbp-services",
+      "stage": "local",
+      "title": "Business profile services",
+      "triggers": ["gbp services", "service list", "business profile", "local"],
+      "questions": ["Which real services deserve distinct entries and descriptions?", "How should categories, website pages, and services align?"],
+      "deliverables": ["deduplicated service catalog", "profile-to-page mapping"],
+      "verification": ["Every service is actually offered and maps to an appropriate page or explanation."]
+    },
+    {
+      "id": "local-title",
+      "stage": "local",
+      "title": "Local title-tag design",
+      "triggers": ["local title", "title tag", "location", "serp"],
+      "questions": ["Which service, place, and differentiator accurately summarize the page?", "What competing titles set user expectations?"],
+      "deliverables": ["testable local title variants", "selection rationale"],
+      "verification": ["Titles match visible content, avoid stuffing, and preserve brand requirements."]
+    },
+    {
+      "id": "local-meta-description",
+      "stage": "local",
+      "title": "Local meta-description design",
+      "triggers": ["local meta", "meta description", "snippet", "location"],
+      "questions": ["What verified local value and next step should the snippet communicate?", "Which details improve qualification without overpromising?"],
+      "deliverables": ["local description variants", "claim and CTA rationale"],
+      "verification": ["Descriptions are accurate, readable, non-duplicative, and consistent with the page."]
+    }
+  ]
+}
