@@ -153,7 +153,7 @@
       "skill": "autoseo-neo",
       "status": "supported",
       "subcommands": ["audit", "visibility", "brief"],
-      "helpers": ["lane_engine.py"]
+      "helpers": ["lane_engine.py", "korean_text.py", "naver_evidence.py"]
     },
     {
       "id": "backlinks",

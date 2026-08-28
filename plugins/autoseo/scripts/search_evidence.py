@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -14,6 +13,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from file_safety import read_text_limited
+from korean_text import classify_intent, tokenize
 from url_safety import validate_url
 
 ALLOWED_RESULT_TYPES = {
@@ -26,36 +26,8 @@ ALLOWED_RESULT_TYPES = {
     "shopping",
     "ai-citation",
 }
-TOKEN_RE = re.compile(r"[\w-]+", re.UNICODE)
-COMMERCIAL_TERMS = {
-    "buy",
-    "best",
-    "compare",
-    "coupon",
-    "deal",
-    "hire",
-    "near",
-    "price",
-    "pricing",
-    "review",
-    "service",
-    "software",
-    "tool",
-}
-INFORMATIONAL_TERMS = {
-    "guide",
-    "how",
-    "learn",
-    "meaning",
-    "tutorial",
-    "what",
-    "when",
-    "why",
-}
-
-
 def _tokens(value: str) -> set[str]:
-    return {token.casefold() for token in TOKEN_RE.findall(value) if len(token) > 1}
+    return {token for token in tokenize(value) if len(token) > 1}
 
 
 def _load(path: str | Path) -> dict[str, Any]:
@@ -177,13 +149,12 @@ def analyze(data: dict[str, Any]) -> dict[str, Any]:
         1,
     )
 
-    tokens = _tokens(data["query"])
-    if tokens & COMMERCIAL_TERMS or result_types["shopping"] or result_types["map"]:
-        intent = "commercial-or-transactional"
-    elif tokens & INFORMATIONAL_TERMS:
-        intent = "informational"
-    else:
-        intent = "mixed-or-unclear"
+    intent_result = classify_intent(data["query"])
+    intent = intent_result["primary"]
+    if intent == "mixed-or-unclear" and result_types["map"]:
+        intent = "local"
+    elif intent == "mixed-or-unclear" and result_types["shopping"]:
+        intent = "transactional"
 
     signals = {key: float(value) for key, value in data.get("signals", {}).items()}
     return {
@@ -196,6 +167,7 @@ def analyze(data: dict[str, Any]) -> dict[str, Any]:
         "unique_domains": len(set(domains)),
         "result_types": dict(sorted(result_types.items())),
         "intent": intent,
+        "intent_evidence": intent_result,
         "competition_proxy": competition_proxy,
         "competition_inputs": {
             "title_alignment": round(title_alignment, 3),

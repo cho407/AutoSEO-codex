@@ -150,6 +150,10 @@ def test_each_lane_returns_an_independent_versioned_report() -> None:
     assert all(report["schema_version"] == 1 for report in reports.values())
     assert all(report["kind"] == "LaneReport" for report in reports.values())
     assert reports["llmo"]["readiness"]["score"] is None
+    neo_intent = next(
+        item for item in reports["neo"]["checks"] if item["id"] == "korean_intent"
+    )
+    assert neo_intent["status"] == "pass"
     closed_book = next(
         item
         for item in reports["llmo"]["checks"]

@@ -127,6 +127,42 @@
       "official_url": "https://github.com/cho407/AutoSEO-codex",
       "use_cases": ["new and lost link tracking", "ranking evidence history", "drift comparison"],
       "limitations": ["history starts at the first saved snapshot", "input coverage determines confidence"]
+    },
+    {
+      "id": "naver-search-api",
+      "name": "Naver Search API",
+      "access": "free-account",
+      "subscription_required": false,
+      "official_url": "https://developers.naver.com/docs/common/openapiguide/apilist.md",
+      "use_cases": ["Naver blog results", "web documents", "Knowledge iN", "cafe articles", "local results"],
+      "limitations": ["requires no-cost client credentials", "daily quotas apply", "API samples may differ from personalized integrated search"]
+    },
+    {
+      "id": "naver-datalab",
+      "name": "Naver DataLab Search Trends",
+      "access": "free-account",
+      "subscription_required": false,
+      "official_url": "https://developers.naver.com/docs/serviceapi/datalab/search/search.md",
+      "use_cases": ["relative Korean query trends", "like-for-like cohort comparison"],
+      "limitations": ["requires no-cost client credentials", "values are relative trends rather than exact search volume"]
+    },
+    {
+      "id": "naver-search-advisor",
+      "name": "Naver Search Advisor",
+      "access": "free-account",
+      "subscription_required": false,
+      "official_url": "https://searchadvisor.naver.com/",
+      "use_cases": ["user-owned site diagnostics", "visible crawl and search reports"],
+      "limitations": ["requires ownership verification", "no public read API; browser reading requires user authorization"]
+    },
+    {
+      "id": "naver-ai-briefing-observation",
+      "name": "Public Naver AI Briefing observation",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://www.navercorp.com/media/pressReleasesDetail?seq=32374",
+      "use_cases": ["small reproducible query samples", "visible source-link observations"],
+      "limitations": ["results vary by query, time, device, location, and personalization", "observations do not guarantee future exposure or citation"]
     }
   ]
 }

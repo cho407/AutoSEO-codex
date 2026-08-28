@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 
 from evidence_engine import EvidenceEngine
 from file_safety import read_text_limited
+from korean_text import classify_intent
 
 SCHEMA_VERSION = 1
 ALL_LANES = ("seo", "aeo", "geo", "llmo", "neo")
@@ -363,14 +364,31 @@ def _llmo_checks(bundle: dict[str, Any], _: str) -> list[dict[str, Any]]:
     ]
 
 
-def _neo_checks(bundle: dict[str, Any], _: str) -> list[dict[str, Any]]:
+def _neo_checks(bundle: dict[str, Any], target: str) -> list[dict[str, Any]]:
     source = bundle.get("source_response", {})
     language = str(bundle.get("content", {}).get("language") or "")
+    neo_evidence = bundle.get("neo_evidence", {})
+    intent = classify_intent(target)
+    yeti = neo_evidence.get("yeti_allowed")
+    feed = neo_evidence.get("rss_or_sitemap")
     return [
         _check("public_naver_access", "pass" if source.get("status_code") == 200 else "fail", "critical", source, required=True),
         _check("korean_language", "pass" if language.startswith("ko") else "fail", "high", language),
-        _check("yeti_policy", "unmeasured", "critical", [], note="Requires a dated robots.txt observation."),
-        _check("rss_or_sitemap", "unmeasured", "medium", [], note="Requires site-level discovery evidence."),
+        _check("korean_intent", "pass" if intent["primary"] != "mixed-or-unclear" else "fail", "medium", intent),
+        _check(
+            "yeti_policy",
+            "unmeasured" if not isinstance(yeti, bool) else "pass" if yeti else "fail",
+            "critical",
+            yeti,
+            note="Requires a dated robots.txt observation.",
+        ),
+        _check(
+            "rss_or_sitemap",
+            "unmeasured" if not isinstance(feed, bool) else "pass" if feed else "fail",
+            "medium",
+            feed,
+            note="Requires site-level discovery evidence.",
+        ),
         _check("naver_search_or_ai_briefing", "unmeasured", "high", [], note="Requires a reproducible Naver result sample."),
     ]
 

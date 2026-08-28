@@ -49,6 +49,7 @@ from collections import Counter
 from typing import Iterable
 
 from file_safety import read_stream_limited, read_text_limited
+from korean_text import normalize_text, tokenize
 
 # Padding / filler phrases that QRG §4.6 flags as "little-to-no value".
 # Each phrase scores 1 hit; threshold tuned at ~3 hits per 1000 tokens.
@@ -134,7 +135,6 @@ _AI_PATTERNS: tuple[str, ...] = (
 )
 
 
-_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
 _NUMBER_RE = re.compile(r"\b\d+(?:[.,]\d+)?(?:%|st|nd|rd|th)?\b")
 # Capitalised multi-word names: rough proper-noun heuristic. Two or more
 # capitalised tokens in a row count as one entity.
@@ -172,7 +172,8 @@ def analyse(text: str) -> dict:
             "unique_tokens": 0,
         }
 
-    tokens = [t.lower() for t in _TOKEN_RE.findall(text)]
+    text = normalize_text(text)
+    tokens = tokenize(text)
     n_tokens = len(tokens)
     unique = len(set(tokens))
 

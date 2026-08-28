@@ -33,6 +33,20 @@ promise search exposure or AI Briefing citation.
 5. Record AI Briefing by surface, exact query, market, language, date, source URL,
    numerator, denominator, confidence, and limitations.
 
+Optional free evidence commands:
+
+```text
+<plugin-root>/scripts/autoseo run naver_evidence.py search <query> --vertical blog
+<plugin-root>/scripts/autoseo run naver_evidence.py datalab <keyword-groups.json> --start-date <date> --end-date <date>
+<plugin-root>/scripts/autoseo run naver_evidence.py ai-briefing <samples.json>
+```
+
+Supported Search API verticals are `blog`, `webkr`, `kin`, `cafearticle`, and
+`local`. Keys come only from `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET`.
+Search Advisor has no public read endpoint in the current Open API list; read a
+visible report only after the user authorizes access to their verified property,
+or analyze an export or screenshot they provide.
+
 ```text
 <plugin-root>/scripts/autoseo run lane_engine.py audit <target> --lane neo --bundle <evidence.json>
 ```
