@@ -52,23 +52,30 @@ requested by the user.
 3. Record the date, user goal, market, page limit, and available data sources.
 4. Default to 100 URLs. Expand up to 500 only when the user requests it.
 
-### 2. Discover and render
+### 2. Select lanes and collect evidence
 
-1. Render the homepage:
+1. Select the smallest applicable lane set. Use all five only for an explicit
+   `@autoseo audit all <url>` request:
 
    ```text
-   <plugin-root>/scripts/autoseo run render_page.py <url> --mode auto --json
+   <plugin-root>/scripts/autoseo run lane_engine.py select <url>
    ```
 
-2. Discover declared and nested sitemaps:
+2. Fetch each URL once and reuse the bundle across every selected lane:
+
+   ```text
+   <plugin-root>/scripts/autoseo run evidence_engine.py <url>
+   ```
+
+3. Discover declared and nested sitemaps:
 
    ```text
    <plugin-root>/scripts/autoseo run sitemap_discovery.py <url> --json
    ```
 
-3. Compare raw and rendered content when JavaScript changes indexable content.
-4. Build a representative page sample across templates, depth, and business value.
-5. Do not bypass authentication, rate limits, robots controls, or access restrictions.
+4. Compare raw and rendered content only when JavaScript changes indexable content.
+5. Build a representative page sample across templates, depth, and business value.
+6. Do not bypass authentication, rate limits, robots controls, or access restrictions.
 
 ### 3. Detect business type
 
@@ -87,7 +94,7 @@ safe tool calls; the workflow must also work sequentially.
 - `autoseo-sitemap`: format, coverage, canonical consistency, stale URLs.
 - `autoseo-performance`: lab and available field CWV evidence.
 - `autoseo-visual`: mobile layout, above-the-fold content, intrusive elements.
-- `autoseo-geo`: AI crawler access, passage citability, entity clarity, source support.
+- selected AEO, GEO, LLMO, and NEO lanes: independent readiness and outcome panels.
 - `autoseo-sxo`: intent and page-type alignment.
 
 Add conditional modules for local, maps, hreflang, e-commerce, backlinks,

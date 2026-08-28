@@ -1,6 +1,6 @@
 ---
 name: autoseo
-description: Route and complete end-to-end SEO and generative engine optimization work. Use for website audits, technical SEO, content and schema reviews, search strategy, local or international SEO, AI-search visibility, and requests that span multiple AutoSEO workflows.
+description: Route end-to-end SEO, AEO, GEO, LLMO, and NEO work through shared evidence and independent readiness reports. Use for website audits, answer readiness, AI citations, brand facts, Naver visibility, technical SEO, content, and multi-lane requests.
 ---
 
 ## Safety Boundaries
@@ -75,6 +75,9 @@ when the request spans multiple areas.
 | Existing image optimization | `autoseo-images` |
 | Create an SEO image asset | `autoseo-image-gen` |
 | AI Overviews and generative search visibility | `autoseo-geo` |
+| Search answer readiness and answer-focused briefs | `autoseo-aeo` |
+| Closed-book brand facts and entity consistency | `autoseo-llmo` |
+| Naver Search and AI Briefing readiness | `autoseo-neo` |
 | Strategic roadmap | `autoseo-plan` |
 | Research-to-optimization operating cycle | `autoseo-workflow` |
 | Pages generated from structured data | `autoseo-programmatic` |
@@ -101,16 +104,16 @@ when the request spans multiple areas.
 When the user asks for a comprehensive audit:
 
 1. Confirm the canonical public URL and intended market when ambiguous.
-2. Validate the URL with `url_safety.py` before fetching.
-3. Render the homepage and detect whether client-side rendering materially changes
-   the page.
+2. Select the requested lanes with `lane_engine.py select`; `all` means SEO,
+   AEO, GEO, LLMO, and NEO.
+3. Collect each URL once with `evidence_engine.py`. Use raw HTTP first and render
+   only an SPA shell; all lanes must reuse the resulting `EvidenceBundle v1`.
 4. Detect business type: SaaS, e-commerce, local service, publisher, agency, or
    other. Record the signals supporting the classification.
 5. Discover URLs from declared sitemaps and internal links. Default to 100 pages;
    support up to 500 only when the user requests broader coverage.
-6. Run independent technical, content, schema, sitemap, performance, visual, GEO,
-   and SXO checks concurrently when the host supports safe parallel tool calls;
-   otherwise run them sequentially.
+6. Run independent lane and specialist checks over the normalized evidence.
+   Keep readiness checks separate from observed clicks, ranks, mentions, and citations.
 7. Add conditional checks:
    - local and maps for a local business;
    - e-commerce for product or marketplace sites;

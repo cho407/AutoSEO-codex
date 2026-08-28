@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cho407/AutoSEO-codex/schema/lane-report-v1.json",
+  "title": "LaneReport v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "lane",
+    "target",
+    "measured_at",
+    "readiness",
+    "checks",
+    "outcomes",
+    "observations",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "LaneReport"},
+    "lane": {"enum": ["seo", "aeo", "geo", "llmo", "neo"]},
+    "target": {"type": "string"},
+    "measured_at": {"type": "string", "format": "date-time"},
+    "readiness": {
+      "type": "object",
+      "required": ["score", "score_displayed", "coverage_percent", "meaning"],
+      "properties": {
+        "score": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "score_displayed": {"type": "boolean"},
+        "coverage_percent": {"type": "number", "minimum": 0, "maximum": 100},
+        "meaning": {"type": "string"}
+      }
+    },
+    "checks": {"type": "array"},
+    "outcomes": {"type": "array"},
+    "observations": {"type": "array"},
+    "limitations": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

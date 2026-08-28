@@ -12,6 +12,9 @@ description: Audit observable generative-search citations, prompts, competitors,
 
 # AutoSEO AI Citations
 
+This capability is a compatibility alias for the GEO lane's outcome panel. New
+work may use `@autoseo geo citations <target>`; existing commands remain valid.
+
 ## Commands
 
 | Prompt | Outcome |

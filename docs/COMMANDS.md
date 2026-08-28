@@ -10,6 +10,7 @@ Sources and limitations are included in the result.
 @autoseo setup
 @autoseo doctor
 @autoseo audit https://example.com
+@autoseo audit all https://example.com
 @autoseo page https://example.com/product
 @autoseo technical https://example.com
 @autoseo content https://example.com/guide
@@ -17,7 +18,15 @@ Sources and limitations are included in the result.
 @autoseo content verify <file-or-text>
 @autoseo content-brief brief <topic>
 @autoseo content-brief outline <topic>
-@autoseo geo https://example.com
+@autoseo aeo audit <target>
+@autoseo aeo brief <target>
+@autoseo geo audit <target>
+@autoseo geo citations <target>
+@autoseo llmo audit <brand>
+@autoseo llmo facts <brand>
+@autoseo neo audit <target>
+@autoseo neo visibility <target>
+@autoseo neo brief <target>
 @autoseo plan <business-context>
 @autoseo plan saas <context>
 @autoseo plan local <context>
@@ -226,7 +235,7 @@ a production-ready creative brief instead.
 
 ```text
 <plugin-root>/scripts/autoseo doctor --json
-<plugin-root>/scripts/autoseo setup [--skip-browser]
+<plugin-root>/scripts/autoseo setup [--profile standard|lite] [--with google] [--with report]
 <plugin-root>/scripts/autoseo run <allowlisted-script.py> [arguments]
 ```
 

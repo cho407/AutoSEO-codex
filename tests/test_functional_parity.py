@@ -15,6 +15,7 @@ EXPECTED_CAPABILITIES = {
     "setup",
     "doctor",
     "audit",
+    "aeo",
     "page",
     "technical",
     "content",
@@ -28,7 +29,9 @@ EXPECTED_CAPABILITIES = {
     "hreflang",
     "programmatic",
     "local",
+    "llmo",
     "maps",
+    "neo",
     "backlinks",
     "cluster",
     "sxo",
@@ -47,6 +50,7 @@ EXPECTED_CAPABILITIES = {
 }
 
 EXPECTED_PROVIDER_COMMANDS = {
+    "aeo": {"audit", "brief"},
     "authority": {"metrics", "backlinks", "organic", "content"},
     "bing": {"links", "compare", "submit", "submit-batch", "verify-indexnow"},
     "search-data": {
@@ -77,6 +81,9 @@ EXPECTED_PROVIDER_COMMANDS = {
     },
     "crawl": {"crawl", "map", "scrape", "search"},
     "image-gen": {"og", "hero", "product", "infographic", "custom", "batch"},
+    "geo": {"audit", "citations"},
+    "llmo": {"audit", "facts"},
+    "neo": {"audit", "visibility", "brief"},
     "ai-citations": {"citations", "prompts", "competitors", "alerts"},
     "ai-visibility": {"overview", "serp", "backlinks", "competitors"},
     "workflow": {"overview", "find", "leverage", "optimize", "win", "local", "catalog", "refresh"},

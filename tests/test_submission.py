@@ -61,6 +61,11 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/README.md" in names
     assert "autoseo/skills/autoseo/SKILL.md" in names
     assert "autoseo/skills/autoseo-audit/SKILL.md" in names
+    assert "autoseo/skills/autoseo-aeo/SKILL.md" in names
+    assert "autoseo/skills/autoseo-llmo/SKILL.md" in names
+    assert "autoseo/skills/autoseo-neo/SKILL.md" in names
+    assert "autoseo/schema/evidence-bundle.schema.json" in names
+    assert "autoseo/schema/lane-report.schema.json" in names
     assert "autoseo/data/feature-parity.json" in names
     assert "autoseo/data/free-sources.json" in names
     assert "autoseo/data/workflow-playbooks.json" in names

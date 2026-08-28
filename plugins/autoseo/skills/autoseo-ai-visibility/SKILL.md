@@ -12,6 +12,10 @@ description: Combine observable AI-result, search-result, backlink, and competit
 
 # AutoSEO AI Visibility
 
+This capability is a compatibility view over GEO citation outcomes and related
+public evidence. It does not create a second readiness score or recollect a URL
+that already has an `EvidenceBundle v1`.
+
 ## Commands
 
 | Prompt | Outcome |

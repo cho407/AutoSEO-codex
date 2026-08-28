@@ -12,6 +12,17 @@ description: Audit whether public content can be discovered and cited by generat
 
 # AI Search / GEO Optimization
 
+## Commands
+
+| Prompt | Outcome |
+|---|---|
+| `@autoseo geo audit <target>` | GEO `LaneReport v1` for search-crawler and citation readiness |
+| `@autoseo geo citations <target>` | Dated prompt cohort with cited URLs and competing sources |
+
+Both commands reuse `EvidenceBundle v1`. The older `@autoseo geo <target>`,
+`@autoseo ai-citations ...`, and `@autoseo ai-visibility ...` forms remain
+compatibility aliases; citation observations stay outside the readiness score.
+
 ## Primary Source: Google's AI Optimization Guide
 
 Google's Search Central guidance says that its generative search features are

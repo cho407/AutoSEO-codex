@@ -41,7 +41,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "evidence_engine.py", "file_safety.py", "free_source_policy.py",
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
-        "indexnow_submit.py", "iptc_ai_label.py", "lcp_subparts.py", "pagespeed_check.py",
+        "indexnow_submit.py", "iptc_ai_label.py", "lane_engine.py", "lcp_subparts.py", "pagespeed_check.py",
         "parasite_risk.py", "parse_html.py", "preload_check.py", "render_page.py",
         "rdap_lookup.py", "schema_ecommerce_validate.py", "schema_generate.py",
         "autoseo_updates.py", "search_evidence.py",
