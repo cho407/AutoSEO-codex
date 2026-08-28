@@ -20,9 +20,17 @@ import time
 from pathlib import Path
 from typing import Any
 
-RUNTIME_SCHEMA = 1
+RUNTIME_SCHEMA = 2
 LOCK_STALE_SECONDS = 30 * 60
 SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*\.py$")
+RUNTIME_PROFILES = {
+    "lite": ("requirements-core.txt",),
+    "standard": ("requirements-core.txt", "requirements-browser.txt"),
+}
+RUNTIME_EXTRAS = {
+    "google": "requirements-google.txt",
+    "report": "requirements-report.txt",
+}
 ALLOWED_CORE_SCRIPTS = frozenset(
     {
         "agent_ux_check.py", "analyze_visual.py", "backlink_history.py",
@@ -30,7 +38,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "content_humanize.py", "content_quality.py", "content_verify.py",
         "crux_history.py", "domain_history.py", "drift_baseline.py",
         "drift_compare.py", "drift_history.py", "drift_report.py", "fetch_page.py",
-        "file_safety.py", "free_source_policy.py",
+        "evidence_engine.py", "file_safety.py", "free_source_policy.py",
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
         "indexnow_submit.py", "iptc_ai_label.py", "lcp_subparts.py", "pagespeed_check.py",
@@ -79,12 +87,34 @@ def _plugin_version(root: Path) -> str:
     return "unknown"
 
 
-def _requirements_hash(root: Path) -> str:
+def _requirement_files(
+    root: Path, profile: str, extras: tuple[str, ...]
+) -> list[Path]:
+    if profile not in RUNTIME_PROFILES:
+        raise ValueError(f"unknown runtime profile: {profile}")
+    unknown = set(extras) - set(RUNTIME_EXTRAS)
+    if unknown:
+        raise ValueError(f"unknown runtime extras: {sorted(unknown)}")
+    names = list(RUNTIME_PROFILES[profile])
+    names.extend(RUNTIME_EXTRAS[name] for name in sorted(set(extras)))
+    paths = [root / name for name in names]
+    if any(not path.is_file() for path in paths):
+        raise ValueError("runtime requirement profile is incomplete")
+    return paths
+
+
+def _requirements_hash(root: Path, profile: str, extras: tuple[str, ...]) -> str:
+    digest = hashlib.sha256()
     try:
-        content = (root / "requirements.txt").read_bytes()
-    except OSError:
+        paths = _requirement_files(root, profile, extras)
+        for path in paths:
+            digest.update(path.name.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+            digest.update(b"\0")
+    except (OSError, ValueError):
         return "missing"
-    return hashlib.sha256(content).hexdigest()
+    return digest.hexdigest()
 
 
 def _is_plugin(root: Path) -> bool:
@@ -137,25 +167,48 @@ def _load_state(data_dir: Path) -> dict[str, Any]:
         return {}
 
 
-def _expected(root: Path) -> dict[str, Any]:
+def _expected(
+    root: Path, profile: str, extras: tuple[str, ...]
+) -> dict[str, Any]:
     return {
         "runtime_schema": RUNTIME_SCHEMA,
         "plugin_version": _plugin_version(root),
-        "requirements_sha256": _requirements_hash(root),
+        "requirements_sha256": _requirements_hash(root, profile, extras),
         "python": f"{sys.version_info.major}.{sys.version_info.minor}",
+        "profile": profile,
+        "extras": list(sorted(set(extras))),
     }
 
 
-def _status(root: Path) -> dict[str, Any]:
+def _status(
+    root: Path,
+    profile: str | None = None,
+    extras: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
     data_dir, mode = _data_dir(root)
     venv = data_dir / ".venv"
     python = _venv_python(venv)
     state = _load_state(data_dir)
-    expected = _expected(root)
+    selected_profile = profile or str(state.get("profile") or "standard")
+    selected_extras = extras
+    if selected_extras is None:
+        stored_extras = state.get("extras")
+        selected_extras = (
+            tuple(item for item in stored_extras if isinstance(item, str))
+            if isinstance(stored_extras, list)
+            else ()
+        )
+    expected = _expected(root, selected_profile, selected_extras)
     reasons: list[str] = []
     if not python.is_file():
         reasons.append("managed environment is missing")
-    for key in ("runtime_schema", "requirements_sha256", "python"):
+    for key in (
+        "runtime_schema",
+        "requirements_sha256",
+        "python",
+        "profile",
+        "extras",
+    ):
         if state.get(key) != expected[key]:
             reasons.append(f"{key} changed")
     browser_dir = data_dir / "ms-playwright"
@@ -237,7 +290,9 @@ class SetupLock:
 
 def command_setup(args: argparse.Namespace) -> int:
     root = _root()
-    status = _status(root)
+    profile = "lite" if args.skip_browser else args.profile
+    extras = tuple(args.extras or ())
+    status = _status(root, profile, extras)
     data_dir: Path = status["data_dir"]
     final_venv: Path = status["venv"]
     staged = data_dir / f".venv.next-{os.getpid()}"
@@ -255,12 +310,24 @@ def command_setup(args: argparse.Namespace) -> int:
             print("Creating isolated AutoSEO environment...")
             _run_checked([sys.executable, "-m", "venv", str(staged)], env=env, stage="virtual environment creation")
             staged_python = _venv_python(staged)
+            requirement_args = [
+                value
+                for path in _requirement_files(root, profile, extras)
+                for value in ("-r", str(path))
+            ]
             _run_checked(
-                [str(staged_python), "-m", "pip", "install", "--disable-pip-version-check", "-r", str(root / "requirements.txt")],
+                [
+                    str(staged_python),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--disable-pip-version-check",
+                    *requirement_args,
+                ],
                 env=env,
                 stage="dependency installation",
             )
-            if not args.skip_browser:
+            if profile == "standard":
                 try:
                     _run_checked(
                         [str(staged_python), "-m", "playwright", "install", "chromium"],
@@ -270,12 +337,15 @@ def command_setup(args: argparse.Namespace) -> int:
                     browser_ready = True
                 except RuntimeError as exc:
                     print(f"Browser setup incomplete: {exc}", file=sys.stderr)
+            imports = ["bs4", "lxml", "lxml_html_clean", "requests", "trafilatura"]
+            if profile == "standard":
+                imports.append("playwright")
+            if "google" in extras:
+                imports.extend(("google.auth", "google.analytics.data", "googleapiclient"))
+            if "report" in extras:
+                imports.extend(("matplotlib", "numpy", "openpyxl", "weasyprint"))
             _run_checked(
-                [
-                    str(staged_python),
-                    "-c",
-                    "import bs4, lxml, lxml_html_clean, playwright, requests, trafilatura",
-                ],
+                [str(staged_python), "-c", "; ".join(f"import {name}" for name in imports)],
                 env=env,
                 stage="runtime import validation",
             )
@@ -301,7 +371,7 @@ def command_setup(args: argparse.Namespace) -> int:
                 backup.replace(final_venv)
         print(f"AutoSEO setup failed: {_redact(str(exc))}", file=sys.stderr)
         return 1
-    if browser_ready or args.skip_browser:
+    if browser_ready or profile == "lite":
         print("AutoSEO runtime is ready.")
         return 0
     print("Core runtime is ready, but Chromium is unavailable. Run setup again to enable rendered-page features.", file=sys.stderr)
@@ -354,6 +424,8 @@ def command_doctor(args: argparse.Namespace) -> int:
         "plugin_version": status["plugin_version"],
         "python_version": status["python_version"],
         "browser_ready": status["browser_ready"],
+        "profile": status["expected"]["profile"],
+        "extras": status["expected"]["extras"],
         "reasons": status["reasons"],
     }
     if args.json:
@@ -362,6 +434,9 @@ def command_doctor(args: argparse.Namespace) -> int:
         print(f"Runtime: {'ready' if public['ready'] else 'setup required'}")
         print(f"Install mode: {public['mode']}")
         print(f"Python: {public['python_version']}")
+        print(f"Profile: {public['profile']}")
+        if public["extras"]:
+            print(f"Extras: {', '.join(public['extras'])}")
         print(f"Chromium: {'ready' if public['browser_ready'] else 'not installed'}")
         for reason in public["reasons"]:
             print(f"Reason: {reason}")
@@ -372,7 +447,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="autoseo", description="AutoSEO managed Python runtime")
     sub = parser.add_subparsers(dest="command", required=True)
     setup = sub.add_parser("setup", help="create or refresh the isolated runtime")
-    setup.add_argument("--skip-browser", action="store_true")
+    setup.add_argument("--profile", choices=tuple(RUNTIME_PROFILES), default="standard")
+    setup.add_argument(
+        "--with",
+        dest="extras",
+        action="append",
+        choices=tuple(RUNTIME_EXTRAS),
+        default=[],
+        help="install an optional integration profile; may be repeated",
+    )
+    setup.add_argument(
+        "--skip-browser",
+        action="store_true",
+        help="backward-compatible alias for --profile lite",
+    )
     setup.set_defaults(func=command_setup)
     doctor = sub.add_parser("doctor", help="check runtime readiness without changing it")
     doctor.add_argument("--json", action="store_true")

@@ -397,6 +397,173 @@ def _capture_accessibility_tree(context: Any, page: Any) -> tuple[Optional[dict]
                 pass
 
 
+class RenderSession:
+    """Reuse one Chromium process for every rendered page in an audit."""
+
+    def __init__(self, *, headless: bool = True) -> None:
+        self.headless = headless
+        self._playwright = None
+        self._browser = None
+        self._contexts: dict[tuple[str, str], Any] = {}
+        self.launch_count = 0
+
+    def __enter__(self) -> "RenderSession":
+        self.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+    def start(self) -> None:
+        if self._browser is not None:
+            return
+        if sync_playwright is None:
+            raise RuntimeError(
+                "playwright is required for rendered mode. Install the standard profile"
+            )
+        self._playwright = sync_playwright().start()
+        self._browser = self._playwright.chromium.launch(headless=self.headless)
+        self.launch_count += 1
+
+    def close(self) -> None:
+        for context in self._contexts.values():
+            try:
+                context.close()
+            except Exception:
+                pass
+        self._contexts.clear()
+        if self._browser is not None:
+            try:
+                self._browser.close()
+            finally:
+                self._browser = None
+        if self._playwright is not None:
+            try:
+                self._playwright.stop()
+            finally:
+                self._playwright = None
+
+    def _context(self, viewport: str, user_agent: Optional[str]) -> Any:
+        self.start()
+        key = (viewport, user_agent or USER_AGENT)
+        if key not in self._contexts:
+            vp = VIEWPORTS[viewport]
+            self._contexts[key] = self._browser.new_context(
+                viewport={"width": vp["width"], "height": vp["height"]},
+                device_scale_factor=vp["device_scale"],
+                user_agent=key[1],
+            )
+        return self._contexts[key]
+
+    def render(
+        self,
+        url: str,
+        *,
+        viewport: str = "desktop",
+        timeout_ms: int = 15000,
+        block_resources: Optional[list[str]] = None,
+        extract_accessibility: bool = False,
+        user_agent: Optional[str] = None,
+        fallback_status: int | None = None,
+        fallback_headers: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        """Render one validated URL without starting another browser."""
+        result: dict[str, Any] = {
+            "url": url,
+            "status_code": fallback_status,
+            "content": None,
+            "headers": dict(fallback_headers or {}),
+            "console_errors": [],
+            "render_diagnostics": [],
+            "render_engine": None,
+            "render_ms": None,
+            "accessibility_tree": None,
+            "accessibility_error": None,
+            "accessibility_partial": False,
+            "error": None,
+        }
+        if viewport not in VIEWPORTS:
+            result["error"] = f"Invalid viewport: {viewport!r}"
+            return result
+        try:
+            norm_url, _ = validate_url_strict(url)
+        except URLSafetyError as exc:
+            result["error"] = f"url_safety: {exc}"
+            return result
+
+        start = time.monotonic()
+        page = None
+        try:
+            context = self._context(viewport, user_agent)
+            page = context.new_page()
+
+            def _on_console(msg):  # type: ignore[no-untyped-def]
+                if msg.type == "error":
+                    result["console_errors"].append(msg.text)
+
+            page.on("console", _on_console)
+            page.route(
+                "**/*",
+                make_safe_playwright_route_handler(set(block_resources or [])),
+            )
+            try:
+                response = page.goto(
+                    norm_url, wait_until="domcontentloaded", timeout=timeout_ms
+                )
+            except PlaywrightTimeout:
+                response = None
+                result["render_diagnostics"].append(
+                    f"DOMContentLoaded timed out after {timeout_ms}ms; "
+                    "captured the available DOM"
+                )
+            if not _wait_for_dom_stability(page, timeout_ms):
+                result["render_diagnostics"].append(
+                    "DOM did not reach the bounded stability threshold; "
+                    "captured the available DOM"
+                )
+            result["url"] = page.url
+            result["content"] = page.content()
+            result["status_code"] = response.status if response else fallback_status
+            result["headers"] = (
+                dict(response.all_headers()) if response else dict(fallback_headers or {})
+            )
+            result["render_engine"] = "playwright-chromium"
+
+            if extract_accessibility:
+                try:
+                    (
+                        result["accessibility_tree"],
+                        result["accessibility_partial"],
+                    ) = _capture_accessibility_tree(context, page)
+                    if result["accessibility_tree"] is None:
+                        result["accessibility_partial"] = True
+                        result["accessibility_error"] = (
+                            "Chromium returned no accessibility nodes"
+                        )
+                    elif result["accessibility_partial"]:
+                        result["accessibility_error"] = (
+                            "accessibility tree exceeded the capture bounds"
+                        )
+                except Exception as exc:
+                    result["accessibility_partial"] = True
+                    result["accessibility_error"] = (
+                        f"accessibility capture failed: {type(exc).__name__}: {exc}"
+                    )
+                    result["render_diagnostics"].append(
+                        result["accessibility_error"]
+                    )
+        except Exception as exc:
+            result["error"] = f"playwright error: {exc}"
+        finally:
+            if page is not None:
+                try:
+                    page.close()
+                except Exception:
+                    pass
+            result["render_ms"] = (time.monotonic() - start) * 1000.0
+        return result
+
+
 def render_page(
     url: str,
     *,
@@ -407,6 +574,7 @@ def render_page(
     extract_content: bool = True,
     extract_accessibility: bool = False,
     user_agent: Optional[str] = None,
+    session: Optional[RenderSession] = None,
 ) -> dict:
     """Render or fetch ``url`` per the chosen mode. See module docstring.
 
@@ -486,83 +654,27 @@ def render_page(
             )
             return result
 
-        vp = VIEWPORTS[viewport]
-        blocked = set(block_resources or [])
-        route_handler = make_safe_playwright_route_handler(blocked)
-        start = time.monotonic()
-
+        owns_session = session is None
+        renderer = session or RenderSession()
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                context = browser.new_context(
-                    viewport={"width": vp["width"], "height": vp["height"]},
-                    device_scale_factor=vp["device_scale"],
-                    user_agent=user_agent or USER_AGENT,
-                )
-                page = context.new_page()
-
-                def _on_console(msg):  # type: ignore[no-untyped-def]
-                    if msg.type == "error":
-                        result["console_errors"].append(msg.text)
-
-                page.on("console", _on_console)
-                page.route("**/*", route_handler)
-
-                try:
-                    response = page.goto(
-                        norm_url, wait_until="domcontentloaded", timeout=timeout_ms
-                    )
-                except PlaywrightTimeout:
-                    response = None
-                    result["render_diagnostics"].append(
-                        f"DOMContentLoaded timed out after {timeout_ms}ms; "
-                        "captured the available DOM"
-                    )
-                if not _wait_for_dom_stability(page, timeout_ms):
-                    result["render_diagnostics"].append(
-                        "DOM did not reach the bounded stability threshold; "
-                        "captured the available DOM"
-                    )
-
-                result["url"] = page.url
-                result["content"] = page.content()
-                result["status_code"] = response.status if response else raw_status
-                result["headers"] = (
-                    dict(response.all_headers()) if response else raw_headers
-                )
-                result["render_engine"] = "playwright-chromium"
-
-                if extract_accessibility:
-                    try:
-                        (
-                            result["accessibility_tree"],
-                            result["accessibility_partial"],
-                        ) = _capture_accessibility_tree(context, page)
-                        if result["accessibility_tree"] is None:
-                            result["accessibility_partial"] = True
-                            result["accessibility_error"] = (
-                                "Chromium returned no accessibility nodes"
-                            )
-                        elif result["accessibility_partial"]:
-                            result["accessibility_error"] = (
-                                "accessibility tree exceeded the capture bounds"
-                            )
-                    except Exception as exc:
-                        result["accessibility_tree"] = None
-                        result["accessibility_partial"] = True
-                        result["accessibility_error"] = (
-                            f"accessibility capture failed: {type(exc).__name__}: {exc}"
-                        )
-                        result["render_diagnostics"].append(
-                            result["accessibility_error"]
-                        )
-
-                browser.close()
-        except Exception as exc:
-            result["error"] = f"playwright error: {exc}"
-            return result
+            if owns_session:
+                renderer.__enter__()
+            rendered = renderer.render(
+                norm_url,
+                viewport=viewport,
+                timeout_ms=timeout_ms,
+                block_resources=block_resources,
+                extract_accessibility=extract_accessibility,
+                user_agent=user_agent,
+                fallback_status=raw_status,
+                fallback_headers=raw_headers,
+            )
+            result.update(rendered)
+            if result["error"]:
+                return result
         finally:
-            result["render_ms"] = (time.monotonic() - start) * 1000.0
+            if owns_session:
+                renderer.__exit__(None, None, None)
 
     # Step 2 — content extraction (works on either raw or rendered HTML).
     if extract_content and result["content"]:

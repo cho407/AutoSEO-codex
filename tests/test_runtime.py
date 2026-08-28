@@ -61,3 +61,25 @@ def test_unlighthouse_never_auto_downloads_packages() -> None:
     for forbidden in ("npx", "npm install", "--yes", "--package"):
         assert forbidden not in text
     assert "AUTOSEO_UNLIGHTHOUSE_BIN" in text
+
+
+def test_runtime_dependency_profiles_are_explicit_and_composable() -> None:
+    runtime = _load_runtime()
+
+    assert [path.name for path in runtime._requirement_files(PLUGIN, "lite", ())] == [
+        "requirements-core.txt"
+    ]
+    assert [
+        path.name for path in runtime._requirement_files(PLUGIN, "standard", ())
+    ] == ["requirements-core.txt", "requirements-browser.txt"]
+    assert [
+        path.name
+        for path in runtime._requirement_files(PLUGIN, "lite", ("google", "report"))
+    ] == [
+        "requirements-core.txt",
+        "requirements-google.txt",
+        "requirements-report.txt",
+    ]
+
+    with pytest.raises(ValueError):
+        runtime._requirement_files(PLUGIN, "unknown", ())

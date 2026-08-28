@@ -1,0 +1,2 @@
+# Shared page rendering and user-visible editor automation.
+playwright>=1.59.0,<2.0.0

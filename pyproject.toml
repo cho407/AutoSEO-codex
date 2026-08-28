@@ -19,6 +19,7 @@ Issues = "https://github.com/cho407/AutoSEO-codex/issues"
 
 [project.optional-dependencies]
 dev = [
+  "beautifulsoup4>=4.12.0,<5",
   "pytest>=9.1.1,<10",
   "PyYAML>=6.0.3,<7",
   "requests>=2.32.4,<3",

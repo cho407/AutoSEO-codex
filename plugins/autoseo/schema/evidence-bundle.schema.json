@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cho407/AutoSEO-codex/schema/evidence-bundle-v1.json",
+  "title": "EvidenceBundle v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "url",
+    "requested_url",
+    "collected_at",
+    "source_response",
+    "render",
+    "content",
+    "metadata",
+    "links",
+    "structured_data",
+    "entities",
+    "performance_signals"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "EvidenceBundle"},
+    "url": {"type": "string", "format": "uri"},
+    "requested_url": {"type": "string", "format": "uri"},
+    "collected_at": {"type": "string", "format": "date-time"},
+    "source_response": {"type": "object"},
+    "render": {"type": "object"},
+    "content": {
+      "type": "object",
+      "required": ["text", "text_chars", "original_text_chars", "truncated", "language"],
+      "properties": {
+        "text": {"type": "string", "maxLength": 16000},
+        "text_chars": {"type": "integer", "minimum": 0, "maximum": 16000},
+        "original_text_chars": {"type": "integer", "minimum": 0},
+        "truncated": {"type": "boolean"},
+        "language": {"type": ["string", "null"]}
+      }
+    },
+    "metadata": {"type": "object"},
+    "links": {"type": "object"},
+    "structured_data": {"type": "object"},
+    "entities": {"type": "array", "maxItems": 100},
+    "performance_signals": {"type": "object"},
+    "cache": {"type": "object"},
+    "error": {"type": ["string", "null"]},
+    "html": {
+      "description": "Present only when a caller explicitly requests a full-HTML artifact.",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}
