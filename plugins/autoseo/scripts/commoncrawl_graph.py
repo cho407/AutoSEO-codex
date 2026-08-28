@@ -37,6 +37,7 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _SCRIPTS_DIR)
 try:
+    from file_safety import write_text_atomically
     from url_safety import (
         URLSafetyError,
         safe_requests_head,
@@ -202,8 +203,11 @@ def _save_cache(domain: str, release: str, data: dict) -> None:
     """Save domain data to cache."""
     cache_path = _get_cache_path(domain, release, "combined")
     data.setdefault("metadata", {})["cached_at"] = time.time()
-    with open(cache_path, "w") as f:
-        json.dump(data, f, indent=2)
+    write_text_atomically(
+        cache_path,
+        json.dumps(data, indent=2) + "\n",
+        extensions={".json"},
+    )
 
 
 def _stream_gz_chunked(url: str, target_domain: str, timeout: int = 120,

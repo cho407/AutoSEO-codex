@@ -175,6 +175,52 @@ def test_safe_text_writer_refuses_silent_overwrite(tmp_path: Path) -> None:
     assert output.read_text(encoding="utf-8") == "second"
 
 
+def test_safe_text_writer_never_follows_destination_symlink(tmp_path: Path) -> None:
+    target = tmp_path / "target.txt"
+    target.write_text("keep", encoding="utf-8")
+    link = tmp_path / "result.txt"
+    link.symlink_to(target)
+    with pytest.raises(ValueError, match="symbolic link"):
+        file_safety.write_text_safely(
+            link, "replace", extensions={".txt"}, overwrite=True
+        )
+    assert target.read_text(encoding="utf-8") == "keep"
+
+
+def test_atomic_text_writer_replaces_file_not_symlink_target(tmp_path: Path) -> None:
+    output = tmp_path / "cache.json"
+    file_safety.write_text_atomically(output, '{"ok": true}\n', extensions={".json"})
+    assert output.read_text(encoding="utf-8") == '{"ok": true}\n'
+
+    target = tmp_path / "target.json"
+    target.write_text("keep", encoding="utf-8")
+    output.unlink()
+    output.symlink_to(target)
+    with pytest.raises(ValueError, match="symbolic link"):
+        file_safety.write_text_atomically(output, "{}\n", extensions={".json"})
+    assert target.read_text(encoding="utf-8") == "keep"
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), 10**400])
+def test_search_evidence_rejects_non_finite_signals(value: float | int) -> None:
+    payload = {
+        "query": "example",
+        "captured_at": "2026-08-28T00:00:00Z",
+        "results": [
+            {
+                "position": 1,
+                "url": "https://example.com/",
+                "title": "Example",
+                "result_type": "organic",
+            }
+        ],
+        "signals": {"observed_mentions": value},
+    }
+    assert "signals.observed_mentions" in "; ".join(
+        search_evidence.validate_evidence(payload)
+    )
+
+
 def test_workflow_refresh_requires_consent_before_network(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

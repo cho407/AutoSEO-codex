@@ -104,7 +104,16 @@ def validate_evidence(data: dict[str, Any]) -> list[str]:
         errors.append("signals must be an object when present")
     else:
         for key, value in signals.items():
-            if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
+            try:
+                finite = math.isfinite(value)
+            except (TypeError, OverflowError):
+                finite = False
+            if (
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not finite
+                or value < 0
+            ):
                 errors.append(f"signals.{key} must be a non-negative number")
     return errors
 

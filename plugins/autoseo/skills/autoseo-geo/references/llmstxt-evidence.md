@@ -2,20 +2,16 @@
 
 ## TL;DR
 
-`/llms.txt` is **not currently consumed by any major AI search system**, and
-**Google now states in its own docs that Google Search ignores it**. Generate
-one anyway as low-cost optionality for non-Google AI services, but never present
-it as a Google ranking or citation lever in any autoseo report.
+Google states that Google Search ignores `/llms.txt`. Other systems may use the
+format for documented purposes, so report support per target system and date.
+Never present the file as a Google ranking or citation lever.
 
 ## Primary-source evidence
 
 | Source | Date | What they said |
 |---|---|---|
 | **Google AI optimization guide** (docs) | 2026-06-29 | You don't need llms.txt/AI-text files for Google Search (incl. generative AI features); doing so "won't harm (nor help) your visibility or rankings in Google Search, **as Google Search ignores them**." |
-| **John Mueller** (Google) | 2026 | Called the llms.txt discovery/differentiation use case "a dead end." |
-| **John Mueller** (Google) — Reddit + Bluesky | 2025 | "No AI system currently uses llms.txt." Compared the file to deprecated meta keywords. |
-| **Gary Illyes** (Google) — Search Central Live | July 2025 | Google has no plans to support llms.txt. |
-| **OpenAI, Stripe, Cloudflare, NVIDIA** — published files | 2024–2025 | All publish `llms.txt`. **None** have stated their crawlers consume third-party `llms.txt` files. |
+| **Other systems** | measured date | Record only documented consumption or behavior for that specific system. |
 
 ## Where it does matter
 
@@ -25,19 +21,17 @@ Mintlify auto-generates `/llms.txt` and `/llms-full.txt` for thousands
 of developer-docs sites. For a developer-tooling site, publishing
 `llms.txt` is a net win — it helps agents quote the docs accurately.
 
-For a non-developer business site, the value is purely defensive: zero
-cost, possible future-optionality if a major AI provider eventually
-adopts it.
+For other sites, create the file only when a target consumer documents a useful
+workflow or the publisher has another concrete maintenance reason.
 
 ## How autoseo treats `llms.txt`
 
 - `autoseo-geo` audits **report presence** of `/llms.txt` and `/llms-full.txt`.
 - The audit notes whether the file is well-formed (Mintlify-style markdown).
 - The audit explicitly does **not** assign citation-ranking weight to it.
-- If the user asks to generate one, autoseo produces a minimal valid
-  example and a banner stating "Google Search ignores llms.txt (Google docs,
-  2026-06-29); no major LLM provider has confirmed consumption; ship for
-  non-Google optionality, not for citation".
+- If the user asks to generate one, autoseo produces a minimal valid example
+  and states that Google Search ignores it; any other claimed benefit must name
+  the supporting system documentation.
 
 ## When this guidance changes
 
@@ -48,6 +42,6 @@ Update this file (and the autoseo-geo audit copy) when:
   `llms.txt` consumption.
 - A major answer system publishes primary documentation confirming consumption
   of third-party `/llms.txt` files.
-- John Mueller / Gary Illyes / equivalent retract their 2025 statements.
+- Google changes its published Search guidance.
 
 Last verified: 2026-06-21.

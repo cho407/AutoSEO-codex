@@ -8,6 +8,7 @@ bound input size, and refuse silent overwrites by default.
 
 from __future__ import annotations
 
+import errno
 import os
 import tempfile
 from pathlib import Path
@@ -45,6 +46,28 @@ def resolve_user_path(
         allowed = {value.lower() for value in extensions}
         if path.suffix.lower() not in allowed:
             raise ValueError(f"path extension must be one of: {sorted(allowed)}")
+    return path
+
+
+def _resolve_output_path(
+    raw_path: str | os.PathLike[str],
+    *,
+    extensions: Iterable[str] | None = None,
+) -> Path:
+    """Resolve an output path without following its final path component."""
+    candidate = Path(raw_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+    parent = candidate.parent.resolve(strict=False)
+    path = parent / candidate.name
+    if not _is_within(path, _allowed_roots()):
+        raise ValueError("path must stay within the working, home, or temporary directory")
+    if extensions is not None:
+        allowed = {value.lower() for value in extensions}
+        if path.suffix.lower() not in allowed:
+            raise ValueError(f"path extension must be one of: {sorted(allowed)}")
+    if path.is_symlink():
+        raise ValueError("output path must not be a symbolic link")
     return path
 
 
@@ -94,14 +117,45 @@ def write_text_safely(
     extensions: Iterable[str] | None = None,
 ) -> Path:
     """Write UTF-8 text, refusing existing files unless explicitly allowed."""
-    path = resolve_user_path(raw_path, extensions=extensions)
+    path = _resolve_output_path(raw_path, extensions=extensions)
     path.parent.mkdir(parents=True, exist_ok=True)
-    mode = "w" if overwrite else "x"
+    flags = os.O_WRONLY | os.O_CREAT
+    flags |= os.O_TRUNC if overwrite else os.O_EXCL
+    flags |= getattr(os, "O_NOFOLLOW", 0)
     try:
-        with path.open(mode, encoding="utf-8", newline="") as handle:
+        descriptor = os.open(path, flags, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as handle:
             handle.write(content)
     except FileExistsError as exc:
         raise ValueError("output already exists; pass --overwrite to replace it") from exc
+    except OSError as exc:
+        if exc.errno == errno.ELOOP:
+            raise ValueError("output path must not be a symbolic link") from exc
+        raise
+    return path
+
+
+def write_text_atomically(
+    raw_path: str | os.PathLike[str],
+    content: str,
+    *,
+    extensions: Iterable[str] | None = None,
+) -> Path:
+    """Atomically replace a text file without following a destination symlink."""
+    path = _resolve_output_path(raw_path, extensions=extensions)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
     return path
 
 

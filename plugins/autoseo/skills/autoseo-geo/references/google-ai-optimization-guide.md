@@ -22,9 +22,9 @@ https://developers.google.com/search/docs/fundamentals/ai-optimization-guide
 
 ## TL;DR
 
-> "Optimizing for generative AI search is **still SEO** from Google's
-> perspective. AEO and GEO are rebranded labels for the same work."
-> — Google, AI optimization guide
+Google says its generative Search features use the core Search ranking and
+quality systems. From Google's perspective, work described as AEO or GEO is
+still optimization for the search experience and should begin with SEO.
 
 AI Overviews and AI Mode are grounded in the same ranking and quality systems
 as classic Search. Two AI techniques layer on top:
