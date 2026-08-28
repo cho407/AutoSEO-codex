@@ -37,7 +37,7 @@ When analysing SERPs for competitor scoring, filter out these domains. They are 
 - seek.com.au, indeed.com, glassdoor.com, jora.com, linkedin.com/jobs
 
 ## SEO and Marketing Tool Pages
-- semrush.com, ahrefs.com, moz.com, neilpatel.com, backlinko.com, searchengineland.com, searchenginejournal.com, yoast.com, screaming frog.co.uk, majestic.com
+- generic SEO tool landing pages, affiliate comparison pages, and unsourced marketing blogs
 
 ## AI Platforms
 - chat.openai.com, chatgpt.com, codex.ai, perplexity.ai, gemini.google.com, copilot.microsoft.com

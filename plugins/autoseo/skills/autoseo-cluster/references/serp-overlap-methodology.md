@@ -12,7 +12,7 @@ content architecture rather than relying on keyword text similarity or stemming.
 ### Step 1: Collect SERP Data
 
 For each keyword in the candidate set, retrieve the top 10 organic results:
-- Use WebSearch or DataForSEO `serp_organic_live_advanced`
+- Use Codex-native current web research and record the capture time and market
 - Extract only organic result URLs (ignore ads, featured snippets, PAA, knowledge panels)
 - Normalize URLs: strip protocol, trailing slash, and query parameters (except meaningful ones)
 - Store as a set of 10 URLs per keyword
@@ -96,10 +96,11 @@ Diagonal is always 10 (a keyword overlaps perfectly with itself).
 
 ## Data Source Priority
 
-1. **DataForSEO** (if available): Most reliable, consistent SERP data. Use
-   `serp_organic_live_advanced` with `location_code: 2840` (US) and `language_code: "en"`.
-2. **WebSearch** (fallback): Adequate for clustering but results may vary by session.
-   Run multiple searches for the same keyword and use the most common result set.
+1. **Codex-native current web research:** capture query, market, language, date,
+   result type, and URL for each observation.
+2. **User-provided result export:** validate the collection method and keep it
+   separate when its market or date differs.
+3. If neither is available, use intent-only clustering and do not calculate overlap.
 
 ## Caching
 

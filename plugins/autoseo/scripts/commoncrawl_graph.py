@@ -22,7 +22,9 @@ import json
 import os
 import re
 import sys
+import tempfile
 import time
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -35,7 +37,6 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _SCRIPTS_DIR)
 try:
-    from backlinks_auth import get_cache_dir
     from url_safety import (
         URLSafetyError,
         safe_requests_head,
@@ -43,7 +44,7 @@ try:
         validate_url,
     )
 except ImportError:
-    print("Error: backlinks_auth.py and url_safety.py required in scripts/", file=sys.stderr)
+    print("Error: url_safety.py required in scripts/", file=sys.stderr)
     sys.exit(1)
 
 # Common Crawl web graph base URL (HTTP access to S3 bucket)
@@ -71,6 +72,33 @@ _RELEASE_RE = re.compile(
     r"^cc-main-[0-9]{4}-(?:jan-feb-mar|apr-may-jun|jul-aug-sep|oct-nov-dec)$"
 )
 _DOMAIN_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+
+
+def get_cache_dir() -> str:
+    """Return a dedicated user-controlled cache directory for public graph data."""
+    configured = os.environ.get("AUTOSEO_COMMONCRAWL_CACHE_DIR")
+    if configured:
+        candidate = Path(configured).expanduser().resolve(strict=False)
+    elif os.environ.get("AUTOSEO_DATA_DIR"):
+        candidate = Path(os.environ["AUTOSEO_DATA_DIR"]).expanduser().resolve(strict=False) / "cache" / "commoncrawl"
+    else:
+        try:
+            candidate = Path.home().resolve() / ".cache" / "autoseo" / "commoncrawl"
+        except RuntimeError:
+            candidate = Path(tempfile.gettempdir()).resolve() / "autoseo" / "commoncrawl"
+
+    roots = {Path.cwd().resolve(), Path(tempfile.gettempdir()).resolve()}
+    try:
+        home = Path.home().resolve()
+        roots.add(home)
+    except RuntimeError:
+        home = None
+    if candidate in {Path(candidate.anchor).resolve(), home} or not any(
+        candidate == root or candidate.is_relative_to(root) for root in roots
+    ):
+        raise ValueError("Common Crawl cache must be a dedicated user-controlled directory")
+    candidate.mkdir(parents=True, exist_ok=True)
+    return str(candidate)
 
 
 def _validate_release(release: str) -> str:

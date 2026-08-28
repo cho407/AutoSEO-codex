@@ -1,107 +1,51 @@
-# Free Backlink Data Sources
+# No-subscription backlink evidence
 
-Reference for the autoseo-backlinks skill. Loaded on demand when analyzing backlinks
-with free sources.
+No public source provides a complete, real-time backlink index. AutoSEO combines
+several inspectable sources and reports coverage rather than inventing totals.
 
-## Source Comparison
+## Common Crawl domain graph
 
-| Source | Auth | Any Domain? | Data Quality | Coverage vs Commercial | Rate Limit |
-|--------|------|-------------|-------------|----------------------|------------|
-| **Moz API** | API key (free signup) | Yes | ★★★★☆ | ~70% for DA/PA | 1 req/10s, 2,500 rows/mo |
-| **Bing Webmaster** | API key (free) | Verified sites only | ★★★☆☆ | ~15% (Bing index) | Generous |
-| **Common Crawl** | None (public) | Yes | ★★★☆☆ | ~25-40% domains | N/A |
-| **Verification Crawler** | None | Yes | ★★★★★ (binary) | N/A (checks known links) | 1 req/s per domain |
-| **DataForSEO** (paid) | API key | Yes | ★★★★★ | ~90%+ | Per plan |
+- Public and downloadable without an account.
+- Useful fields: crawl presence, PageRank rank, harmonic-centrality rank, host
+  count, graph release, and capture age.
+- Limitations: periodic releases, incomplete coverage, and no guarantee that every
+  individual incoming link can be enumerated from the bundled lookup.
 
-## Confidence Weighting
+## Codex-native public research
 
-When merging data from multiple sources, apply confidence weights to each metric:
+- Search for the domain, brand, quoted claims, research titles, assets, and known
+  citations.
+- Record the exact query, market, capture time, result URL, and source page.
+- Treat the output as a discoverable sample, never as total link count.
 
-| Source | Weight | Rationale |
-|--------|--------|-----------|
-| DataForSEO | 1.00 | Commercial-grade, real-time, comprehensive |
-| Verification Crawler | 0.95 | Direct observation (binary: link exists or not) |
-| Moz API | 0.85 | Large index (45.5T links), established metrics, 3-day update lag |
-| Bing Webmaster | 0.70 | Smaller index (~15% of web), but authoritative for Bing-indexed pages |
-| Common Crawl | 0.50 | Domain-level only, quarterly updates, no anchor text |
+## Verified-site search data
 
-**Composite formula:**
-```
-weighted_score = Σ(source_score × confidence × factor_weight) / Σ(confidence × factor_weight)
-```
+When the user already owns and authorizes a no-cost search property, use its link
+or performance evidence. This cannot be used to inspect arbitrary competitors.
 
-When only Common Crawl is available, cap the maximum health score at 70/100 and note
-"limited to domain-level metrics" in the report.
+## User exports
 
-## Source Details
+Accept CSV or JSON exports supplied by the user. Preserve the export date and
+source. Validate columns and avoid silently mixing different collection methods.
 
-### Moz API (Tier 1)
-- **Endpoint:** `https://api.moz.com/jsonrpc` (JSON-RPC 2.0)
-- **Free tier:** 2,500 rows/month, 1 request per 10 seconds (verify current limits at https://moz.com/products/api — free tier limits may change)
-- **Signup:** https://moz.com/products/api (credit card required, not charged)
-- **Data:** Domain Authority (0-100), Page Authority, Spam Score (1-17%), link counts,
-  referring domains, anchor text distribution
-- **Command:** `<plugin-root>/scripts/autoseo run moz_api.py`
-- **Commands:** `metrics`, `domains`, `anchors`, `pages`
-- **Blind spots:** No link velocity, no toxic link patterns beyond Spam Score,
-  3-day update lag, smaller index than Ahrefs/Semrush
+## Direct verification
 
-### Bing Webmaster Tools (Tier 2)
-- **Endpoint:** `https://ssl.bing.com/webmaster/api.svc/json/`
-- **Free tier:** Unlimited for verified sites
-- **Signup:** https://www.bing.com/webmasters (Microsoft account)
-- **Comparison:** Backlink-domain gaps between two registered properties that
-  are accessible to the same API account
-- **Data:** Inbound-link source URL, target URL, anchor text, sampled link
-  counts, and referring-domain comparison totals
-- **Command:** `<plugin-root>/scripts/autoseo run bing_webmaster.py`
-- **Commands:** `links`, `counts`, `compare` (comparison requires both
-  properties to be registered to the same API account)
-- **Blind spots:** Only Bing-indexed pages (~15% of web), verified sites only,
-  no authority metrics, no spam scoring
+For every candidate source URL, fetch the public page and verify:
 
-### Common Crawl Web Graph (Always Available)
-- **Data source:** `s3://commoncrawl/projects/hyperlinkgraph/`
-- **Releases:** Quarterly (e.g., cc-main-2025-18)
-- **No auth needed:** Public data, free to download
-- **Data:** Domain-level in-degree, PageRank, harmonic centrality, referring domains
-- **Command:** `<plugin-root>/scripts/autoseo run commoncrawl_graph.py`
-- **Cache:** `~/.cache/autoseo/commoncrawl/` (90-day TTL)
-- **Blind spots:** No anchor text, no page-level data, monthly/quarterly freshness,
-  domain-level only (e.g., "nytimes.com links to example.com" but not which page)
+- target URL or target-domain link;
+- anchor text and surrounding context;
+- link attributes;
+- source status and redirects;
+- target status;
+- capture time.
 
-### Verification Crawler (Always Available)
-- **No auth needed:** Uses existing fetch_page.py + parse_html.py
-- **Data:** Binary verification (link exists/lost/moved), anchor text, rel attributes
-- **Command:** `<plugin-root>/scripts/autoseo run verify_backlinks.py`
-- **Input:** JSON file with `[{"source_url": "..."}]` entries
-- **Polite crawling:** 1-second delay between requests to same domain
-- **Best for:** Checking if known backlinks still exist, monitoring link health
+## Local change history
 
-## When to Recommend DataForSEO Upgrade
+Save a baseline with `backlink_history.py snapshot`, then compare a later capture.
+New and lost labels apply only to those snapshots. A missing record can reflect
+discovery coverage, so verify before acting.
 
-Suggest the paid DataForSEO extension when:
-- User needs **toxic link detection** beyond Moz's basic Spam Score
-- User needs **competitor gap analysis** at scale or against an unregistered
-  domain (Bing comparison is limited to properties accessible to the account)
-- User needs **link velocity trends** (new/lost links over time)
-- User needs **real-time data** (free sources update monthly at best)
-- User manages **multiple client sites** (free tier limits are per-account)
-- User needs **disavow file generation** with confidence scoring
+## Reporting rule
 
-## Data Quality Reality Check
-
-- Commercial tools index **35-45 trillion links** across 500M+ referring domains
-- Free sources combined capture **20-40% of raw backlink data**
-- But **60-70% of actionable intelligence** since highest-authority links appear in free samples
-- For sites with <500 backlinks, free sources can capture **50%+ of the meaningful profile**
-- **Referring domain count matters more than raw backlink count** for SEO
-- Top 50-100 referring domains capture the majority of link authority
-
-## Five Systematic Biases in Free Data
-
-1. **Popularity bias:** Free tools crawl popular sites more, underrepresenting niche sites
-2. **Truncation bias:** All free tools cap at 100-1,000 links, hiding the long tail
-3. **Own-site restriction:** GSC and Ahrefs Webmaster Tools only work for verified properties
-4. **Missing quality metrics:** Raw CC data lacks authority/toxicity scores
-5. **Freshness lag:** Free sources update monthly at best vs. minutes for commercial
+Keep graph rank, discovered link sample, verified links, first-party evidence, and
+historical changes in separate sections. Missing data is `not measured`, never zero.

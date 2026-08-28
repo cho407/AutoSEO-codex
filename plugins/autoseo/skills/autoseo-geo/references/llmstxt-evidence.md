@@ -15,8 +15,6 @@ it as a Google ranking or citation lever in any autoseo report.
 | **John Mueller** (Google) | 2026 | Called the llms.txt discovery/differentiation use case "a dead end." |
 | **John Mueller** (Google) — Reddit + Bluesky | 2025 | "No AI system currently uses llms.txt." Compared the file to deprecated meta keywords. |
 | **Gary Illyes** (Google) — Search Central Live | July 2025 | Google has no plans to support llms.txt. |
-| **SE Ranking** — 300k-domain study | November 2025 | Among the 50 most AI-cited domains, **only one** had an `/llms.txt`. |
-| **OtterlyAI** — server-log audit | 2025 | **0.1%** of AI-bot traffic targets `/llms.txt` (84 of 62,100 requests). |
 | **OpenAI, Stripe, Cloudflare, NVIDIA** — published files | 2024–2025 | All publish `llms.txt`. **None** have stated their crawlers consume third-party `llms.txt` files. |
 
 ## Where it does matter
@@ -48,8 +46,8 @@ Update this file (and the autoseo-geo audit copy) when:
 - Any major AI search system (Google AI Overviews, ChatGPT Search,
   Perplexity, Bing Copilot) publishes documentation confirming
   `llms.txt` consumption.
-- OtterlyAI or SE Ranking publish a follow-up study showing a measurable
-  inflection in `/llms.txt` request rate.
+- A major answer system publishes primary documentation confirming consumption
+  of third-party `/llms.txt` files.
 - John Mueller / Gary Illyes / equivalent retract their 2025 statements.
 
 Last verified: 2026-06-21.

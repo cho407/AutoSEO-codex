@@ -4,10 +4,12 @@ This directory is the distributable AutoSEO Codex plugin. It contains only
 Skills-only workflows, local helper scripts, references, and brand assets. It
 does not include a hosted service, embedded credentials, or an MCP server.
 
-Version 0.2.0 covers all 32 user-facing capability groups in the 2.2.5 reference
-baseline and ships 41 guided workflow playbooks. Host-specific invocation,
-connector authorization, and installation follow Codex conventions; user-facing
-SEO/GEO outcomes are mapped through AutoSEO skills and bounded helpers.
+Version 0.3.0 covers 32 user-facing capability groups and ships 41 guided
+workflow playbooks. Every workflow has a no-subscription path through Codex-native
+research, public web data, local analysis, or optional no-cost first-party data.
+Commercial-only metrics and live monitoring outcomes are excluded instead of being
+replaced with fabricated values. Host-specific invocation, authorization, and
+installation follow Codex conventions.
 
 Resolve this directory as `<plugin-root>` whenever a skill runs a bundled helper:
 

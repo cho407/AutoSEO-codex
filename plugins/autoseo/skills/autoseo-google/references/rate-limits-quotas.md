@@ -12,9 +12,6 @@
 | CrUX History API | 150 QPM (shared with CrUX) | Unlimited | Free | API Key | Per project |
 | Indexing API | 380 RPM total, 180 read/min | 200 publish/day | Free | Service Account | Per project |
 | GA4 Data API | 10 concurrent | ~25K tokens/day | Free | Service Account | Per property/project |
-| Knowledge Graph | -- | 100,000 QPD | Free | API Key | Per project |
-| Custom Search | -- | 10,000 QPD max | 100 free, $5/1K | API Key | Per project |
-| Web Risk | 6,000 QPM | 100K/month | Free tier | API Key | Per project |
 
 **Key distinction:** "Per site" quotas are scoped to a specific GSC property. "Per project" quotas are shared across all properties in a GCP project. "Per user" quotas are per authenticated user (service account).
 
@@ -63,13 +60,14 @@ GA4 uses a token system rather than simple request counts:
 
 The CrUX API and CrUX History API share the same 150 QPM quota per project. Plan accordingly if querying both APIs in the same workflow.
 
-## Cost Summary
+## No-subscription boundary
 
-**All APIs used by autoseo-google are free** at normal usage levels. No billing is required for:
+The shipped Google workflows use documented no-cost quotas. They include:
 - PSI, CrUX, CrUX History (API key, unlimited free)
 - GSC (service account, 30M QPD)
 - Indexing API (service account, 200 publish/day)
 - GA4 Data API (service account, 25K tokens/day)
-- Knowledge Graph (API key, 100K QPD)
 
-Only Custom Search and Web Risk have paid tiers at high volumes.
+AutoSEO does not ship Google search or safety-data routes that can create a monetary
+charge. If a documented quota is exhausted, stop and report the limit instead of
+switching services.

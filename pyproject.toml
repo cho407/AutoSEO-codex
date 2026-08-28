@@ -4,18 +4,18 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoseo-codex"
-version = "0.2.0"
-description = "Open-source SEO and GEO workflows packaged as a Codex plugin"
+version = "0.3.0"
+description = "No-subscription open-source SEO and GEO workflows for Codex"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-authors = [{ name = "HarrisonCho407" }]
+authors = [{ name = "cho407" }]
 keywords = ["seo", "geo", "codex", "search", "ai-visibility"]
 
 [project.urls]
-Homepage = "https://github.com/HarrisonCho407/AutoSEO-codex"
-Repository = "https://github.com/HarrisonCho407/AutoSEO-codex"
-Issues = "https://github.com/HarrisonCho407/AutoSEO-codex/issues"
+Homepage = "https://github.com/cho407/AutoSEO-codex"
+Repository = "https://github.com/cho407/AutoSEO-codex"
+Issues = "https://github.com/cho407/AutoSEO-codex/issues"
 
 [project.optional-dependencies]
 dev = [

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "policy": "Every shipped workflow must have a no-subscription execution path.",
+  "sources": [
+    {
+      "id": "codex-native-web",
+      "name": "Codex native web research",
+      "access": "codex-native",
+      "subscription_required": false,
+      "official_url": "https://openai.com/codex/",
+      "use_cases": ["current search-result evidence", "competitor discovery", "citation discovery"],
+      "limitations": ["availability depends on the active Codex environment", "results must be dated and cited"]
+    },
+    {
+      "id": "direct-public-web",
+      "name": "Direct public-page inspection",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://www.rfc-editor.org/rfc/rfc9110",
+      "use_cases": ["page fetching", "render comparison", "link verification"],
+      "limitations": ["respect robots and site terms", "bounded crawling only"]
+    },
+    {
+      "id": "sitemaps-robots",
+      "name": "Sitemaps and robots declarations",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://www.sitemaps.org/protocol.html",
+      "use_cases": ["URL discovery", "crawl directives", "indexability evidence"],
+      "limitations": ["declared URLs are not proof of indexation"]
+    },
+    {
+      "id": "common-crawl",
+      "name": "Common Crawl",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://commoncrawl.org/get-started",
+      "use_cases": ["crawl history", "domain graph rank", "public link evidence"],
+      "limitations": ["coverage is incomplete", "graph releases are periodic", "bulk use requires offline datasets"]
+    },
+    {
+      "id": "rdap",
+      "name": "Registration Data Access Protocol",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://www.icann.org/rdap/",
+      "use_cases": ["domain registration status", "registrar and nameserver evidence"],
+      "limitations": ["registries may redact fields", "registration data is not an authority score"]
+    },
+    {
+      "id": "pagespeed-insights",
+      "name": "PageSpeed Insights API",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://developers.google.com/speed/docs/insights/v5/get-started",
+      "use_cases": ["Lighthouse lab checks", "performance recommendations"],
+      "limitations": ["frequent automation may need a no-cost API key", "lab results vary between runs"]
+    },
+    {
+      "id": "crux",
+      "name": "Chrome UX Report API",
+      "access": "free-account",
+      "subscription_required": false,
+      "official_url": "https://developer.chrome.com/docs/crux/api",
+      "use_cases": ["field Core Web Vitals", "origin and URL performance history"],
+      "limitations": ["requires a no-cost cloud API key", "low-traffic URLs may have no record"]
+    },
+    {
+      "id": "search-console",
+      "name": "Google Search Console API",
+      "access": "free-account",
+      "subscription_required": false,
+      "official_url": "https://developers.google.com/webmaster-tools/limits",
+      "use_cases": ["first-party queries", "clicks and impressions", "URL inspection"],
+      "limitations": ["requires verified property access", "some low-volume rows are anonymized"]
+    },
+    {
+      "id": "analytics",
+      "name": "Google Analytics Data API",
+      "access": "free-account",
+      "subscription_required": false,
+      "official_url": "https://developers.google.com/analytics/devguides/reporting/data/v1/quotas",
+      "use_cases": ["first-party landing-page traffic", "organic engagement"],
+      "limitations": ["requires property access", "tracking configuration affects completeness"]
+    },
+    {
+      "id": "bing-webmaster",
+      "name": "Bing Webmaster Tools",
+      "access": "free-account",
+      "subscription_required": false,
+      "official_url": "https://www.bing.com/webmasters/help/webmaster-api-using-45f828e8",
+      "use_cases": ["verified-site links", "crawl and search diagnostics"],
+      "limitations": ["requires verified site access", "cannot inspect arbitrary competitor properties"]
+    },
+    {
+      "id": "indexnow",
+      "name": "IndexNow",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://www.indexnow.org/documentation",
+      "use_cases": ["owner-authorized URL update notifications"],
+      "limitations": ["requires a key hosted on the target site", "receipt does not guarantee crawling or indexing"]
+    },
+    {
+      "id": "openstreetmap-data",
+      "name": "OpenStreetMap data",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://operations.osmfoundation.org/policies/nominatim/",
+      "use_cases": ["single business geocoding", "public place evidence", "local-market context"],
+      "limitations": ["public Nominatim is limited to one request per second", "systematic grids require an extract or self-hosted service", "ODbL attribution applies"]
+    },
+    {
+      "id": "local-lighthouse",
+      "name": "Local Lighthouse-compatible audit",
+      "access": "local",
+      "subscription_required": false,
+      "official_url": "https://github.com/GoogleChrome/lighthouse",
+      "use_cases": ["repeatable lab audits", "performance regression checks"],
+      "limitations": ["requires a user-installed trusted executable", "run variance must be reported"]
+    },
+    {
+      "id": "local-snapshots",
+      "name": "AutoSEO local evidence snapshots",
+      "access": "local",
+      "subscription_required": false,
+      "official_url": "https://github.com/cho407/AutoSEO-codex",
+      "use_cases": ["new and lost link tracking", "ranking evidence history", "drift comparison"],
+      "limitations": ["history starts at the first saved snapshot", "input coverage determines confidence"]
+    }
+  ]
+}

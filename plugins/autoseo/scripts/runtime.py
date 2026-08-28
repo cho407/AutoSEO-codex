@@ -25,21 +25,20 @@ LOCK_STALE_SECONDS = 30 * 60
 SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*\.py$")
 ALLOWED_CORE_SCRIPTS = frozenset(
     {
-        "agent_ux_check.py", "analyze_visual.py", "backlinks_auth.py",
+        "agent_ux_check.py", "analyze_visual.py", "backlink_history.py",
         "bing_webmaster.py", "capture_screenshot.py", "commoncrawl_graph.py",
         "content_humanize.py", "content_quality.py", "content_verify.py",
-        "crux_history.py", "dataforseo_costs.py", "dataforseo_merchant.py",
-        "dataforseo_normalize.py", "domain_history.py", "drift_baseline.py",
+        "crux_history.py", "domain_history.py", "drift_baseline.py",
         "drift_compare.py", "drift_history.py", "drift_report.py", "fetch_page.py",
-        "file_safety.py",
+        "file_safety.py", "free_source_policy.py",
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
-        "indexnow_submit.py", "iptc_ai_label.py", "keyword_planner.py",
-        "lcp_subparts.py", "moz_api.py", "nlp_analyze.py", "pagespeed_check.py",
+        "indexnow_submit.py", "iptc_ai_label.py", "lcp_subparts.py", "pagespeed_check.py",
         "parasite_risk.py", "parse_html.py", "preload_check.py", "render_page.py",
-        "schema_ecommerce_validate.py", "schema_generate.py", "autoseo_updates.py",
+        "rdap_lookup.py", "schema_ecommerce_validate.py", "schema_generate.py",
+        "autoseo_updates.py", "search_evidence.py",
         "sitemap_discovery.py", "ucp_check.py", "unlighthouse_run.py",
-        "url_safety.py", "validate_backlink_report.py", "verify_backlinks.py",
+        "url_safety.py", "verify_backlinks.py",
         "workflow_catalog.py", "youtube_search.py",
     }
 )

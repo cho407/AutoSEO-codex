@@ -59,6 +59,20 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/README.md" in names
     assert "autoseo/skills/autoseo/SKILL.md" in names
     assert "autoseo/data/feature-parity.json" in names
+    assert "autoseo/data/free-sources.json" in names
     assert "autoseo/data/workflow-playbooks.json" in names
+    assert "autoseo/scripts/backlink_history.py" in names
+    assert "autoseo/scripts/free_source_policy.py" in names
+    assert "autoseo/scripts/rdap_lookup.py" in names
+    assert "autoseo/scripts/search_evidence.py" in names
     assert "autoseo/scripts/workflow_catalog.py" in names
+    for removed in (
+        "autoseo/scripts/dataforseo_costs.py",
+        "autoseo/scripts/dataforseo_merchant.py",
+        "autoseo/scripts/dataforseo_normalize.py",
+        "autoseo/scripts/keyword_planner.py",
+        "autoseo/scripts/moz_api.py",
+        "autoseo/scripts/nlp_analyze.py",
+    ):
+        assert removed not in names
     assert all(name.startswith("autoseo/") for name in names)

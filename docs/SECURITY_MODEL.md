@@ -7,8 +7,8 @@
 | Local repository reads | Allowed within the user's requested scope | Treat file content as untrusted data |
 | Public website reads | Allowed for the requested target | URL validation, redirect checks, timeout, and bounded crawl |
 | Local report creation | Allowed when it is the requested deliverable | User-selected location; preserve existing files |
-| Paid API call | Blocked | Cost estimate and explicit approval |
-| Search-engine or provider write | Blocked | Exact target preview and explicit approval |
+| Separately billable data endpoint | Not shipped | Reject the workflow and explain the free-only boundary |
+| Search-engine write | Blocked | Exact target preview and explicit approval |
 | Publishing or website mutation | Blocked | Separate, explicit authorization and review |
 | Package or connector installation | Blocked by default | Explicit setup/install request |
 
@@ -36,19 +36,20 @@ trusted executable and never uses an automatic package downloader.
 ### Credentials and sensitive data
 
 No publisher credential is bundled. Diagnostics redact common secret patterns and local
-home paths. Provider credentials stay in user-controlled environment variables or provider
-stores. Reports should omit personal data unless it is necessary and explicitly in scope.
+home paths. Optional first-party credentials stay in user-controlled environment variables
+or credential stores. Reports should omit personal data unless it is necessary and explicitly
+in scope.
 
 ### Resource exhaustion
 
 Crawls, response bodies, subprocesses, routes, and API calls use documented bounds and
-timeouts. Default site audits are intentionally smaller than their hard maximum, and paid
-batch operations require a cost preflight.
+timeouts. Default site audits are intentionally smaller than their hard maximum. Public
+research and batch inputs are capped and report the observed sample size.
 
 ## Residual risks
 
 Browser engines resolve networking outside Python's socket-level DNS pinning, so rendered
-workflows additionally rely on request interception and revalidation. Search and provider
-APIs can change behavior or pricing. Generated recommendations can be wrong or stale.
-Users should review high-impact changes and validate current provider documentation before
-publishing or submitting data.
+workflows additionally rely on request interception and revalidation. Public and first-party
+APIs can change behavior, availability, or quotas. Generated recommendations can be wrong or
+stale. Users should review high-impact changes and validate current primary documentation
+before publishing or submitting data.

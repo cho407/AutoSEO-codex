@@ -4,8 +4,9 @@
 - [x] Listing, privacy policy, terms, security policy, icon, and logo are present.
 - [x] Skills-only operation works without an MCP server.
 - [x] At least five positive and three negative test cases are defined.
-- [x] External writes and paid provider actions require explicit consent.
-- [x] Optional providers have transparent fallbacks and no automatic installers.
+- [x] External writes require exact-target preview and explicit consent.
+- [x] Every shipped workflow has a no-subscription execution path.
+- [x] Separately billable data integrations and their credential paths are absent.
 - [x] Upstream license notice is included in the distributable README.
 - [x] The automated test suite passes locally and the supported-version CI matrix is configured.
 - [x] Codex plugin validation passes on the distributable plugin.

@@ -12,9 +12,9 @@ reviews structured data and performance, plans content and internal links, and e
 readiness for AI-assisted search surfaces.
 
 The plugin is read-only by default. It validates public URLs, bounds crawls, labels
-estimates and missing evidence, and asks before paid provider calls or external write
-actions. Optional data providers work only when the user has already connected and
-authorized them.
+estimates and missing evidence, and asks before external write actions. Every shipped
+workflow has a no-subscription path using public, local, Codex-native, or optional
+no-cost first-party evidence.
 
 ## Category
 
@@ -32,11 +32,11 @@ Productivity
 - Interactive analysis
 - Public website and user-selected file reads
 - User-requested local reports and planning artifacts
-- Consent-gated provider and indexing actions
+- Consent-gated indexing and other external write actions
 
 ## Support and policies
 
-- Website: https://github.com/HarrisonCho407/AutoSEO-codex
-- Privacy: https://github.com/HarrisonCho407/AutoSEO-codex/blob/main/PRIVACY.md
-- Terms: https://github.com/HarrisonCho407/AutoSEO-codex/blob/main/TERMS.md
-- Security: https://github.com/HarrisonCho407/AutoSEO-codex/blob/main/SECURITY.md
+- Website: https://github.com/cho407/AutoSEO-codex
+- Privacy: https://github.com/cho407/AutoSEO-codex/blob/main/PRIVACY.md
+- Terms: https://github.com/cho407/AutoSEO-codex/blob/main/TERMS.md
+- Security: https://github.com/cho407/AutoSEO-codex/blob/main/SECURITY.md

@@ -193,7 +193,7 @@ Q&A section (active where available; category/region limited), Posts (with sched
 | ChatGPT conversion rate | 15.9% | Seer Interactive |
 | Google organic conversion rate | 1.76% | Seer Interactive |
 | AI Overviews on local searches | Up to 68% | Whitespark Q2 2025 |
-| AI Overview CTR reduction for pos 1 | -58% | Ahrefs, Feb 2026 |
+| AI Overview CTR effect | Varies by query and study | Verify with current first-party Search Console evidence |
 | Brand cited in AIO = organic CTR boost | +35% | Seer Interactive |
 | ChatGPT traffic vs Google for local | ~2% | Sterling Sky, Feb 2026 |
 | Top 5 AI visibility factors: 3 are citation-related | -- | Whitespark 2026 |

@@ -13,7 +13,7 @@ Use these defaults only when the user has not supplied brand or platform rules.
 
 - Use only an image tool already available and authorized in the current Codex host.
 - Do not install a model, package, MCP server, or connector automatically.
-- Ask before spending paid credits or sending confidential brand assets externally.
+- Do not spend separately purchased credits. Ask before sending confidential brand assets externally.
 - Save into a user-approved project directory and never overwrite an existing file
   without confirmation.
 - Record the prompt, model/tool name when available, creation date, and any required

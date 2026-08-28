@@ -27,8 +27,8 @@ Collect signals without interpreting them. For a website audit this means:
 
 - Raw HTML + rendered HTML (via `<plugin-root>/scripts/autoseo run render_page.py`)
 - Schema.org markup actually present (via `autoseo-schema`)
-- SERP visibility for the site's published topics (via `autoseo-dataforseo` /
-  Google APIs when available)
+- Current search visibility for the site's published topics (via
+  `autoseo-search-data` and optional first-party search data)
 - Backlink + brand-mention landscape (via `autoseo-backlinks`)
 - Core Web Vitals field data from CrUX (via `<plugin-root>/scripts/autoseo run pagespeed_check.py`)
 - AI-search citation patterns (via `autoseo-geo`)
@@ -126,8 +126,8 @@ Wire the validated recommendations into an executable sequence:
 - Which recommendations **depend** on each other? Sequence them.
 - Which recommendations can be **parallelized**? Surface that to the
   user so they can dispatch them.
-- Which recommendations need a **tool that's not yet installed** (e.g.
-  Firecrawl for site crawl, DataForSEO for SERP data)? Flag the gap.
+- Which recommendations need an unavailable host capability or user-owned
+  property? Flag the gap and continue with the no-subscription path where possible.
 
 **Discipline:** the action plan is a dependency graph, not a list. If
 two recommendations cannot be done in either order, say so.

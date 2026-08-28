@@ -37,25 +37,25 @@ EXPECTED_CAPABILITIES = {
     "workflow",
     "google",
     "image-gen",
-    "firecrawl",
-    "dataforseo",
-    "ahrefs",
+    "crawl",
+    "search-data",
+    "authority",
     "bing",
-    "profound",
-    "seranking",
+    "ai-citations",
+    "ai-visibility",
     "unlighthouse",
 }
 
 EXPECTED_PROVIDER_COMMANDS = {
-    "ahrefs": {"metrics", "backlinks", "organic", "content"},
+    "authority": {"metrics", "backlinks", "organic", "content"},
     "bing": {"links", "compare", "submit", "submit-batch", "verify-indexnow"},
-    "dataforseo": {
+    "search-data": {
         "serp",
         "serp-images",
         "serp-youtube",
         "youtube",
         "keywords",
-        "volume",
+        "demand",
         "difficulty",
         "intent",
         "trends",
@@ -65,20 +65,20 @@ EXPECTED_PROVIDER_COMMANDS = {
         "intersection",
         "traffic",
         "subdomains",
-        "top-searches",
+        "trending",
         "onpage",
         "tech",
-        "whois",
+        "rdap",
         "content",
         "listings",
-        "ai-scrape",
+        "ai-results",
         "ai-mentions",
-        "costs",
+        "methods",
     },
-    "firecrawl": {"crawl", "map", "scrape", "search"},
+    "crawl": {"crawl", "map", "scrape", "search"},
     "image-gen": {"og", "hero", "product", "infographic", "custom", "batch"},
-    "profound": {"citations", "prompts", "competitors", "alerts"},
-    "seranking": {"ai-visibility", "serp", "backlinks", "competitors"},
+    "ai-citations": {"citations", "prompts", "competitors", "alerts"},
+    "ai-visibility": {"overview", "serp", "backlinks", "competitors"},
     "workflow": {"overview", "find", "leverage", "optimize", "win", "local", "catalog", "refresh"},
 }
 
@@ -163,3 +163,16 @@ def test_workflow_catalog_cli_validates_the_shipped_catalog() -> None:
     payload = json.loads(result.stdout)
     assert payload["valid"] is True
     assert payload["playbook_count"] == 41
+
+
+def test_every_declared_source_is_available_without_a_paid_subscription() -> None:
+    data = _load(PLUGIN / "data" / "free-sources.json")
+    assert data["schema_version"] == 1
+    assert len(data["sources"]) >= 10
+    assert all(item["subscription_required"] is False for item in data["sources"])
+    assert {item["access"] for item in data["sources"]} <= {
+        "public",
+        "codex-native",
+        "free-account",
+        "local",
+    }

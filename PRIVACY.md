@@ -13,17 +13,18 @@ generated reports, audit baselines, and configuration required for a requested
 workflow. Local runtime data is stored in the platform-appropriate AutoSEO data
 directory or a directory explicitly selected by the user.
 
-## Third-party services
+## External sources
 
-When a user chooses an optional service such as Google APIs, Bing Webmaster,
-Moz, DataForSEO, Ahrefs, Firecrawl, SE Ranking, Profound, or an image-generation
-provider, data is sent directly to that provider under the user's account and
-is governed by that provider's terms and privacy policy. AutoSEO does not proxy
-or retain those requests on publisher-controlled infrastructure.
+When a user chooses an optional no-cost first-party source such as Search Console,
+Google Analytics, CrUX, YouTube, or Bing Webmaster, data is sent directly to that
+service under the user's account and is governed by its terms and privacy policy.
+Public website, Common Crawl, RDAP, PageSpeed, and IndexNow requests likewise go
+directly from the user's environment. AutoSEO does not proxy or retain requests on
+publisher-controlled infrastructure and ships no separately billable data service.
 
 ## Credentials
 
-Credentials remain on the user's device or in the user's configured connector.
+Credentials remain on the user's device or in the user's configured connection.
 They must not be committed to this repository. AutoSEO redacts known credential
 patterns from diagnostic output but users remain responsible for revoking any
 credential that is accidentally disclosed.

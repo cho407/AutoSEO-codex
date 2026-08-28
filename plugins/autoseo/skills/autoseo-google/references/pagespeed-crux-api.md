@@ -145,7 +145,7 @@ Send the API key in the `X-Goog-Api-Key` header, not in the URL.
 
 ### Rate Limits
 - 150 QPM shared between CrUX and CrUX History APIs
-- Free, no paid increase available
+- No-cost quota; AutoSEO does not route to a higher-volume billable alternative
 
 ---
 

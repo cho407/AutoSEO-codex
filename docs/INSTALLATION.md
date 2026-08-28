@@ -3,7 +3,7 @@
 ## Install from the repository marketplace
 
 ```bash
-codex plugin marketplace add HarrisonCho407/AutoSEO-codex --ref main
+codex plugin marketplace add cho407/AutoSEO-codex --ref main
 codex plugin add autoseo@autoseo
 ```
 
@@ -39,12 +39,14 @@ Setup creates a dedicated isolated environment. Set `AUTOSEO_DATA_DIR` to a dedi
 subdirectory if you want to choose its location. Filesystem roots and the user home
 directory itself are rejected.
 
-## Optional providers
+## Optional no-cost first-party data
 
-Provider skills do not auto-install connectors. Connect and authorize a supported
-provider in Codex first, then invoke the matching AutoSEO workflow. Keep credentials in
-environment variables or user-owned provider configuration; never place them in this
-repository.
+Some workflows can add evidence from a Google Search Console, Google Analytics,
+CrUX, YouTube, or Bing Webmaster property that the user already owns. These sources
+are optional: AutoSEO still produces a bounded public-data or local analysis without
+them. Keep credentials in environment variables or user-owned configuration and never
+place them in this repository. AutoSEO does not configure a service that requires a
+separate subscription.
 
 `autoseo-unlighthouse` additionally requires an already installed `unlighthouse-ci`
 binary on `PATH`, or an absolute executable path in `AUTOSEO_UNLIGHTHOUSE_BIN`.

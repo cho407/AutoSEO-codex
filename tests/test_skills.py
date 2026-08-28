@@ -9,18 +9,19 @@ SKILLS = PLUGIN / "skills"
 
 REQUIRED_SKILLS = {
     "autoseo",
-    "autoseo-ahrefs",
+    "autoseo-ai-citations",
+    "autoseo-ai-visibility",
     "autoseo-audit",
+    "autoseo-authority",
     "autoseo-backlinks",
     "autoseo-bing",
     "autoseo-cluster",
     "autoseo-competitor-pages",
     "autoseo-content",
     "autoseo-content-brief",
-    "autoseo-dataforseo",
+    "autoseo-crawl",
     "autoseo-drift",
     "autoseo-ecommerce",
-    "autoseo-firecrawl",
     "autoseo-geo",
     "autoseo-google",
     "autoseo-hreflang",
@@ -31,10 +32,9 @@ REQUIRED_SKILLS = {
     "autoseo-page",
     "autoseo-performance",
     "autoseo-plan",
-    "autoseo-profound",
     "autoseo-programmatic",
     "autoseo-schema",
-    "autoseo-seranking",
+    "autoseo-search-data",
     "autoseo-sitemap",
     "autoseo-sxo",
     "autoseo-technical",
@@ -116,6 +116,19 @@ def test_no_stale_installers_or_cross_product_paths() -> None:
     banned = re.compile(
         r"codex-blog|nanobanana|Codex Banana|\.\.@autoseo|"
         r"extensions/(?:dataforseo|banana)|install\.(?:sh|ps1)",
+        re.IGNORECASE,
+    )
+    for path in PLUGIN.rglob("*"):
+        if path.is_file() and path.suffix.lower() in TEXT_SUFFIXES:
+            assert not banned.search(path.read_text(encoding="utf-8")), path
+
+
+def test_distributable_plugin_has_no_commercial_provider_or_billing_paths() -> None:
+    banned = re.compile(
+        r"\bdataforseo\b|\bahrefs\b|\bfirecrawl\b|\bprofound\b|"
+        r"\bse[ -]?ranking\b|\bmoz(?:scape| api)\b|confirm[_-]?cost|"
+        r"paid (?:api|request|provider|batch)|ads_developer_token|keyword_planner|"
+        r"@autoseo google (?:keywords|volume|nlp|entities|entity|safety)\b",
         re.IGNORECASE,
     )
     for path in PLUGIN.rglob("*"):

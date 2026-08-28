@@ -1,6 +1,13 @@
 {
   "schema_version": 1,
   "baseline_version": "2.2.5",
+  "distribution_policy": "no-subscription",
+  "excluded_outcomes": [
+    "proprietary search-volume and traffic estimates",
+    "proprietary authority and difficulty scores",
+    "automated commercial AI-answer monitoring",
+    "live geo-grid rank tracking that requires a commercial service or user-operated infrastructure"
+  ],
   "structural_exclusions": [
     "host invocation syntax",
     "host-specific agent profile format",
@@ -124,7 +131,7 @@
       "id": "maps",
       "skill": "autoseo-maps",
       "status": "supported",
-      "subcommands": ["audit", "grid", "gbp", "reviews", "competitors", "nap", "schema"],
+      "subcommands": ["audit", "gbp", "reviews", "competitors", "nap", "schema"],
       "helpers": []
     },
     {
@@ -132,7 +139,7 @@
       "skill": "autoseo-backlinks",
       "status": "supported",
       "subcommands": ["audit", "gap", "toxic", "new", "verify", "setup"],
-      "helpers": ["commoncrawl_graph.py", "moz_api.py", "bing_webmaster.py", "verify_backlinks.py"]
+      "helpers": ["commoncrawl_graph.py", "bing_webmaster.py", "verify_backlinks.py", "backlink_history.py"]
     },
     {
       "id": "cluster",
@@ -160,7 +167,7 @@
       "skill": "autoseo-ecommerce",
       "status": "supported",
       "subcommands": ["audit", "products", "gaps", "schema"],
-      "helpers": ["dataforseo_merchant.py", "schema_ecommerce_validate.py", "ucp_check.py"]
+      "helpers": ["search_evidence.py", "schema_ecommerce_validate.py", "ucp_check.py"]
     },
     {
       "id": "workflow",
@@ -173,8 +180,8 @@
       "id": "google",
       "skill": "autoseo-google",
       "status": "supported",
-      "subcommands": ["setup", "pagespeed", "crux", "crux-history", "gsc", "inspect", "inspect-batch", "sitemaps", "index", "index-batch", "ga4", "ga4-pages", "youtube", "youtube-video", "nlp", "entities", "keywords", "volume", "entity", "safety", "quotas", "report"],
-      "helpers": ["google_auth.py", "pagespeed_check.py", "crux_history.py", "gsc_query.py", "gsc_inspect.py", "indexing_notify.py", "ga4_report.py", "youtube_search.py", "nlp_analyze.py", "keyword_planner.py", "google_report.py"]
+      "subcommands": ["setup", "pagespeed", "crux", "crux-history", "gsc", "inspect", "inspect-batch", "sitemaps", "index", "index-batch", "ga4", "ga4-pages", "youtube", "youtube-video", "quotas", "report"],
+      "helpers": ["google_auth.py", "pagespeed_check.py", "crux_history.py", "gsc_query.py", "gsc_inspect.py", "indexing_notify.py", "ga4_report.py", "youtube_search.py", "google_report.py"]
     },
     {
       "id": "image-gen",
@@ -184,22 +191,22 @@
       "helpers": []
     },
     {
-      "id": "firecrawl",
-      "skill": "autoseo-firecrawl",
+      "id": "crawl",
+      "skill": "autoseo-crawl",
       "status": "supported",
       "subcommands": ["crawl", "map", "scrape", "search"],
       "helpers": ["fetch_page.py", "render_page.py", "sitemap_discovery.py"]
     },
     {
-      "id": "dataforseo",
-      "skill": "autoseo-dataforseo",
+      "id": "search-data",
+      "skill": "autoseo-search-data",
       "status": "supported",
-      "subcommands": ["serp", "serp-images", "serp-youtube", "youtube", "keywords", "volume", "difficulty", "intent", "trends", "backlinks", "competitors", "ranked", "intersection", "traffic", "subdomains", "top-searches", "onpage", "tech", "whois", "content", "listings", "ai-scrape", "ai-mentions", "costs"],
-      "helpers": ["dataforseo_costs.py", "dataforseo_normalize.py", "dataforseo_merchant.py"]
+      "subcommands": ["serp", "serp-images", "serp-youtube", "youtube", "keywords", "demand", "difficulty", "intent", "trends", "backlinks", "competitors", "ranked", "intersection", "traffic", "subdomains", "trending", "onpage", "tech", "rdap", "content", "listings", "ai-results", "ai-mentions", "methods"],
+      "helpers": ["search_evidence.py", "rdap_lookup.py", "commoncrawl_graph.py", "backlink_history.py"]
     },
     {
-      "id": "ahrefs",
-      "skill": "autoseo-ahrefs",
+      "id": "authority",
+      "skill": "autoseo-authority",
       "status": "supported",
       "subcommands": ["metrics", "backlinks", "organic", "content"],
       "helpers": []
@@ -212,17 +219,17 @@
       "helpers": ["bing_webmaster.py", "indexnow_submit.py"]
     },
     {
-      "id": "profound",
-      "skill": "autoseo-profound",
+      "id": "ai-citations",
+      "skill": "autoseo-ai-citations",
       "status": "supported",
       "subcommands": ["citations", "prompts", "competitors", "alerts"],
       "helpers": []
     },
     {
-      "id": "seranking",
-      "skill": "autoseo-seranking",
+      "id": "ai-visibility",
+      "skill": "autoseo-ai-visibility",
       "status": "supported",
-      "subcommands": ["ai-visibility", "serp", "backlinks", "competitors"],
+      "subcommands": ["overview", "serp", "backlinks", "competitors"],
       "helpers": []
     },
     {

@@ -10,8 +10,8 @@ Users are responsible for:
 
 - having authorization to analyze a website or connected account;
 - reviewing generated recommendations before implementation;
-- confirming external write actions and API costs;
-- complying with search engine, API provider, and website terms; and
+- confirming external write actions;
+- complying with search engine, public-data source, API, and website terms; and
 - protecting credentials and personal data.
 
 The software is provided without warranty. See [LICENSE](LICENSE) for the full

@@ -17,11 +17,12 @@ AutoSEO is a local, Skills-only plugin. It can:
 - read public web pages after URL validation;
 - read user-selected local files;
 - create local reports and analysis artifacts;
-- call third-party APIs only when the user has configured credentials; and
+- call public or no-cost first-party APIs only when the user has configured any
+  required property access; and
 - perform an external write such as IndexNow submission only after explicit consent.
 
-AutoSEO does not operate a hosted backend, collect telemetry, or require a shared
-publisher credential.
+AutoSEO does not operate a hosted backend, collect telemetry, require a shared
+publisher credential, or ship a separately billable data integration.
 
 ## Defensive controls
 

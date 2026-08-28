@@ -18,8 +18,8 @@ perform bounded parsing, validation, comparison, or report generation.
 ## Request flow
 
 1. Codex routes the request to the narrowest matching AutoSEO skill.
-2. The skill classifies the action as local read, public network read, local write,
-   paid API call, or external write.
+2. The skill classifies the action as local read, public network read, optional
+   no-cost first-party read, local write, or external write.
 3. Public URLs are normalized and checked before any request. Redirects and rendered
    subresources are checked again.
 4. A helper runs only through the runtime allowlist. The runtime never accepts an
@@ -39,13 +39,13 @@ Bundled helpers are addressed by basename and must appear in `ALLOWED_CORE_SCRIP
 Path separators, traversal segments, unknown scripts, extension loaders, and the
 runtime module itself are rejected.
 
-## Extension model
+## Evidence-source model
 
-Optional providers are represented as conditional skills, not bundled credentials or
-auto-installers. A provider skill runs only when its connector is already available and
-authorized. Paid calls require a cost estimate and consent. When a provider is absent,
-AutoSEO returns a transparent local or public-data fallback instead of silently changing
-the environment.
+`data/free-sources.json` is the policy catalog for public, local, Codex-native, and
+optional no-cost first-party evidence. `free_source_policy.py` rejects any catalog entry
+that requires a subscription. Exact commercial metrics are not approximated under a
+misleading label: relative signals carry their method, sample size, date, and limits.
+No connector auto-installer or separately billable data integration is shipped.
 
 ## Maintainer rules
 

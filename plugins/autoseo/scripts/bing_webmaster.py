@@ -28,11 +28,9 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _SCRIPTS_DIR)
 try:
-    from backlinks_auth import get_bing_api_key, get_bing_verified_sites
-    from google_auth import validate_url
-    from url_safety import URLSafetyError, read_limited_response
+    from url_safety import URLSafetyError, read_limited_response, validate_url
 except ImportError:
-    print("Error: backlinks_auth.py and google_auth.py required in scripts/", file=sys.stderr)
+    print("Error: url_safety.py is required in scripts/", file=sys.stderr)
     sys.exit(1)
 
 BING_API_BASE = "https://ssl.bing.com/webmaster/api.svc/json"
@@ -44,6 +42,26 @@ MAX_BING_RESPONSE_BYTES = 50 * 1024 * 1024
 # Polite delay between requests
 REQUEST_DELAY = 1
 _last_request_time = 0
+
+
+def get_bing_api_key() -> Optional[str]:
+    """Read the optional site-owner key without persisting it in the plugin."""
+    value = os.environ.get("BING_WEBMASTER_API_KEY", "").strip()
+    return value or None
+
+
+def get_bing_verified_sites() -> list[str]:
+    """Return the optional comma-separated host allowlist for site-owner reads."""
+    raw = os.environ.get("BING_VERIFIED_SITES", "")
+    sites: list[str] = []
+    for value in raw.split(","):
+        candidate = value.strip().lower().rstrip(".")
+        if not candidate:
+            continue
+        parsed = urlparse(candidate if "://" in candidate else f"https://{candidate}")
+        if parsed.hostname and validate_url(f"https://{parsed.hostname}"):
+            sites.append(parsed.hostname)
+    return sorted(set(sites))
 
 def _rate_limit():
     """Enforce polite 1-second delay between Bing API requests."""
@@ -565,7 +583,7 @@ def main():
         result = {
             "status": "error",
             "data": None,
-            "error": "No Bing Webmaster API key configured. Run: autoseo run backlinks_auth.py --setup",
+            "error": "No Bing Webmaster API key configured. Set BING_WEBMASTER_API_KEY for a site you own.",
             "metadata": {"source": "bing_webmaster"},
         }
         if args.json:

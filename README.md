@@ -7,15 +7,17 @@ local and international SEO, performance, and AI-search visibility.
 
 ## Status
 
-AutoSEO 0.2.0 is a functional-parity public preview and a **Skills-only** plugin.
-It maps all 32 user-facing capability groups in the 2.2.5 reference baseline,
-including the complete 41-playbook research-to-growth workflow library and the
-provider-specific command surfaces.
+AutoSEO 0.3.0 is a no-subscription public preview and a **Skills-only** plugin.
+It maps 32 user-facing capability groups and the complete 41-playbook
+research-to-growth workflow library. Every shipped workflow has an execution path
+using Codex-native research, public web data, local analysis, or optional no-cost
+data from a property the user owns.
 
-Host-level mechanics intentionally follow Codex: prompt invocation, skill discovery,
-connector authorization, and plugin installation are not copied from another host.
-Provider-backed measurements still require the respective authorized capability;
-AutoSEO gives a documented fallback and never fabricates unavailable metrics.
+Host-level mechanics follow Codex: prompt invocation, skill discovery, authorization,
+and plugin installation use Codex conventions. Outcomes that genuinely require a
+commercial dataset are excluded instead of being represented by invented numbers.
+This includes proprietary search-volume, traffic, authority and difficulty scores,
+automated commercial AI-answer monitoring, and live geo-grid rank tracking.
 
 The repository marketplace layout is ready for local development and GitHub-based
 distribution. Store screenshots and formal listing review remain before marketplace
@@ -24,7 +26,7 @@ submission.
 ## Install from GitHub
 
 ```bash
-codex plugin marketplace add HarrisonCho407/AutoSEO-codex --ref main
+codex plugin marketplace add cho407/AutoSEO-codex --ref main
 codex plugin add autoseo@autoseo
 ```
 
@@ -37,7 +39,8 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
 - `@autoseo Review this page's content, schema, and Core Web Vitals.`
 - `@autoseo Build a topic cluster and internal-link plan for this keyword.`
 - `@autoseo workflow optimize https://example.com`
-- `@autoseo dataforseo serp "technical seo"` (when authorized)
+- `@autoseo search-data serp "technical seo"`
+- `@autoseo ai-citations citations example.com`
 
 ## Safety model
 
@@ -47,6 +50,7 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
   or user-owned configuration files.
 - Indexing submissions and other external write actions require explicit confirmation.
 - Runtime dependencies are installed only when the user explicitly requests setup.
+- AutoSEO never routes a workflow to a separately billable data endpoint.
 
 See [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md) for details.
 
@@ -118,4 +122,4 @@ work retain the following notice:
 
 ## License
 
-[MIT](LICENSE) © 2026 HarrisonCho407.
+[MIT](LICENSE) © 2026 cho407.

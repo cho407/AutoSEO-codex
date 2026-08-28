@@ -1,29 +1,24 @@
 # AutoSEO Command Guide
 
-AutoSEO is prompt-driven. Start with `@autoseo`, then name the capability and the
-outcome. Natural-language details can follow any example below. Codex routes the
-request to the smallest matching skill.
+AutoSEO is prompt-driven. Start with `@autoseo`, name the capability and outcome,
+then add natural-language context. Every command below has a no-subscription path.
+Sources and limitations are included in the result.
 
 ## Core analysis and planning
 
-| Capability | Example |
-|---|---|
-| Setup | `@autoseo setup` |
-| Runtime check | `@autoseo doctor` |
-| Full audit | `@autoseo audit https://example.com` |
-| One-page review | `@autoseo page https://example.com/product` |
-| Technical SEO | `@autoseo technical https://example.com` |
-| Content review | `@autoseo content https://example.com/guide` |
-| Content humanization | `@autoseo content humanize <file-or-text>` |
-| Claim verification | `@autoseo content verify <file-or-text>` |
-| Content brief | `@autoseo content-brief brief <topic>` |
-| Content outline | `@autoseo content-brief outline <topic>` |
-| GEO review | `@autoseo geo https://example.com` |
-| Strategic plan | `@autoseo plan <business-context>` |
-
-Industry-specific plan templates are directly routable:
-
 ```text
+@autoseo setup
+@autoseo doctor
+@autoseo audit https://example.com
+@autoseo page https://example.com/product
+@autoseo technical https://example.com
+@autoseo content https://example.com/guide
+@autoseo content humanize <file-or-text>
+@autoseo content verify <file-or-text>
+@autoseo content-brief brief <topic>
+@autoseo content-brief outline <topic>
+@autoseo geo https://example.com
+@autoseo plan <business-context>
 @autoseo plan saas <context>
 @autoseo plan local <context>
 @autoseo plan ecommerce <context>
@@ -31,7 +26,7 @@ Industry-specific plan templates are directly routable:
 @autoseo plan agency <context>
 ```
 
-## Site, page, and search-experience commands
+## Site and page workflows
 
 ```text
 @autoseo schema detect <url-or-file>
@@ -49,19 +44,6 @@ Industry-specific plan templates are directly routable:
 @autoseo programmatic audit <site-or-template>
 @autoseo programmatic plan <dataset-and-market>
 @autoseo local <business-or-site>
-@autoseo maps audit <business>
-@autoseo maps grid <business-and-area>
-@autoseo maps gbp <business>
-@autoseo maps reviews <business>
-@autoseo maps competitors <business-and-area>
-@autoseo maps nap <business>
-@autoseo maps schema <business>
-@autoseo backlinks audit <domain>
-@autoseo backlinks gap <domain-and-competitors>
-@autoseo backlinks toxic <domain>
-@autoseo backlinks new <domain>
-@autoseo backlinks verify <file-or-domain>
-@autoseo backlinks setup
 @autoseo cluster plan <topic>
 @autoseo cluster execute <approved-plan>
 @autoseo cluster map <plan-or-site>
@@ -78,10 +60,138 @@ Industry-specific plan templates are directly routable:
 @autoseo unlighthouse audit <url>
 ```
 
-## Strategy workflow library
+## Public crawl and discovery
 
-The workflow library contains 41 guided playbooks across five stages. `catalog`
-lists individual playbooks; a stage command recommends and runs the best match.
+These commands use Codex web research, direct public-page reads, sitemaps, robots
+files, and bounded local rendering.
+
+```text
+@autoseo crawl crawl <url>
+@autoseo crawl map <url>
+@autoseo crawl scrape <url>
+@autoseo crawl search <query>
+```
+
+## Search evidence
+
+Search evidence is a dated, bounded sample. Relative demand and competition signals
+are transparent proxies; they are not exact search volume, traffic, rank, or difficulty.
+
+```text
+@autoseo search-data serp <query>
+@autoseo search-data serp-images <query>
+@autoseo search-data serp-youtube <query>
+@autoseo search-data youtube <query-or-video>
+@autoseo search-data keywords <seed>
+@autoseo search-data demand <keyword-list>
+@autoseo search-data difficulty <keyword-list>
+@autoseo search-data intent <keyword-list>
+@autoseo search-data trends <keyword-list>
+@autoseo search-data backlinks <domain>
+@autoseo search-data competitors <domain>
+@autoseo search-data ranked <domain>
+@autoseo search-data intersection <domains>
+@autoseo search-data traffic <domain>
+@autoseo search-data subdomains <domain>
+@autoseo search-data trending <location>
+@autoseo search-data onpage <url>
+@autoseo search-data tech <domain>
+@autoseo search-data rdap <domain>
+@autoseo search-data content <query-or-url>
+@autoseo search-data listings <business>
+@autoseo search-data ai-results <prompt>
+@autoseo search-data ai-mentions <brand>
+@autoseo search-data methods
+```
+
+## Authority and backlinks
+
+```text
+@autoseo authority metrics <domain-or-url>
+@autoseo authority backlinks <domain-or-url>
+@autoseo authority organic <domain>
+@autoseo authority content <domain-or-topic>
+@autoseo backlinks audit <domain>
+@autoseo backlinks gap <domain-and-competitors>
+@autoseo backlinks toxic <domain>
+@autoseo backlinks new <domain>
+@autoseo backlinks verify <file-or-domain>
+@autoseo backlinks setup
+```
+
+Authority results use observable evidence such as referring-domain diversity,
+verified links, indexed content, first-party performance, and cited assets. AutoSEO
+does not emit a proprietary authority score.
+
+## AI-search evidence
+
+```text
+@autoseo ai-citations citations <brand-or-domain>
+@autoseo ai-citations prompts <brand-or-domain>
+@autoseo ai-citations competitors <brand-or-domain>
+@autoseo ai-citations alerts <brand-or-domain>
+@autoseo ai-visibility overview <brand-or-domain>
+@autoseo ai-visibility serp <query>
+@autoseo ai-visibility backlinks <domain>
+@autoseo ai-visibility competitors <domain>
+```
+
+The commands sample answer surfaces available in the active Codex environment and
+can compare saved local observations. They do not claim exhaustive cross-model tracking.
+
+## Maps and local evidence
+
+```text
+@autoseo maps audit <business>
+@autoseo maps gbp <business>
+@autoseo maps reviews <business>
+@autoseo maps competitors <business-and-area>
+@autoseo maps nap <business>
+@autoseo maps schema <business>
+```
+
+Public OpenStreetMap geocoding is used only for small, policy-compliant lookups.
+Systematic live geo-grid rank tracking is not included.
+
+## Google first-party and public data
+
+```text
+@autoseo google setup
+@autoseo google pagespeed <url>
+@autoseo google crux <url>
+@autoseo google crux-history <url>
+@autoseo google gsc <property>
+@autoseo google inspect <url>
+@autoseo google inspect-batch <url-list>
+@autoseo google sitemaps <property>
+@autoseo google index <eligible-url>
+@autoseo google index-batch <eligible-url-list>
+@autoseo google ga4 <property>
+@autoseo google ga4-pages <property>
+@autoseo google youtube <query>
+@autoseo google youtube-video <video-id>
+@autoseo google quotas
+@autoseo google report <input>
+```
+
+Some commands require a no-cost cloud key, service account, or verified property.
+The Indexing API commands are restricted to eligible `JobPosting` and
+`BroadcastEvent` pages and require confirmation immediately before submission.
+
+## Bing and IndexNow
+
+```text
+@autoseo bing links <site>
+@autoseo bing compare <site>
+@autoseo bing submit <url>
+@autoseo bing submit-batch <url-list>
+@autoseo bing verify-indexnow <site>
+```
+
+`submit` and `submit-batch` preview the exact URLs and require confirmation immediately
+before the external write.
+
+## Strategy workflow library
 
 ```text
 @autoseo workflow overview
@@ -94,40 +204,8 @@ lists individual playbooks; a stage command recommends and runs the best match.
 @autoseo workflow refresh
 ```
 
-Refreshing performs a network read and writes a catalog file. AutoSEO shows the
-official source and destination and requests confirmation before proceeding. It
-does not silently replace an existing catalog.
-
-## Google services
-
-These commands use public endpoints or an already-authorized Google property. Any
-credential flow, metered request, indexing notification, or other external write
-requires the applicable confirmation.
-
-```text
-@autoseo google setup
-@autoseo google pagespeed <url>
-@autoseo google crux <url>
-@autoseo google crux-history <url>
-@autoseo google gsc <property>
-@autoseo google inspect <url>
-@autoseo google inspect-batch <url-list>
-@autoseo google sitemaps <property>
-@autoseo google index <url>
-@autoseo google index-batch <url-list>
-@autoseo google ga4 <property>
-@autoseo google ga4-pages <property>
-@autoseo google youtube <query>
-@autoseo google youtube-video <video-id>
-@autoseo google nlp <text-or-file>
-@autoseo google entities <text-or-file>
-@autoseo google keywords <seed>
-@autoseo google volume <keyword-list>
-@autoseo google entity <name>
-@autoseo google safety <text-or-url>
-@autoseo google quotas
-@autoseo google report <input>
-```
+The library contains 41 guided playbooks. Refresh shows its official source and
+destination and requests confirmation before a network read and local write.
 
 ## Image generation
 
@@ -140,103 +218,11 @@ requires the applicable confirmation.
 @autoseo image-gen batch <description> [N]
 ```
 
-The batch default is 3 and the maximum is 6. Generated assets include a visual QA,
-filename, alt text, delivery-format guidance, and relevant OG or schema metadata.
-
-## Firecrawl
-
-Use only when an authorized Firecrawl capability is available. Otherwise AutoSEO
-uses its bounded public-page and sitemap helpers when they can meet the request.
-
-```text
-@autoseo firecrawl crawl <url>
-@autoseo firecrawl map <url>
-@autoseo firecrawl scrape <url>
-@autoseo firecrawl search <query>
-```
-
-## DataForSEO
-
-AutoSEO estimates endpoint usage before a paid batch and requires explicit cost
-confirmation. Missing authorization produces a precise fallback or limitation,
-never invented data.
-
-```text
-@autoseo dataforseo serp <query>
-@autoseo dataforseo serp-images <query>
-@autoseo dataforseo serp-youtube <query>
-@autoseo dataforseo youtube <query-or-video>
-@autoseo dataforseo keywords <seed>
-@autoseo dataforseo volume <keyword-list>
-@autoseo dataforseo difficulty <keyword-list>
-@autoseo dataforseo intent <keyword-list>
-@autoseo dataforseo trends <keyword-list>
-@autoseo dataforseo backlinks <domain>
-@autoseo dataforseo competitors <domain>
-@autoseo dataforseo ranked <domain>
-@autoseo dataforseo intersection <domains>
-@autoseo dataforseo traffic <domain>
-@autoseo dataforseo subdomains <domain>
-@autoseo dataforseo top-searches <location>
-@autoseo dataforseo onpage <url>
-@autoseo dataforseo tech <domain>
-@autoseo dataforseo whois <domain>
-@autoseo dataforseo content <query-or-url>
-@autoseo dataforseo listings <business>
-@autoseo dataforseo ai-scrape <prompt>
-@autoseo dataforseo ai-mentions <brand>
-@autoseo dataforseo costs
-```
-
-## Ahrefs
-
-```text
-@autoseo ahrefs metrics <domain-or-url>
-@autoseo ahrefs backlinks <domain-or-url>
-@autoseo ahrefs organic <domain>
-@autoseo ahrefs content <domain-or-topic>
-```
-
-These commands require an authorized Ahrefs connector or API. AutoSEO states the
-unavailable fields and offers public-data alternatives when authorization is absent.
-
-## Bing and IndexNow
-
-```text
-@autoseo bing links <site>
-@autoseo bing compare <site>
-@autoseo bing submit <url>
-@autoseo bing submit-batch <url-list>
-@autoseo bing verify-indexnow <site>
-```
-
-`submit` and `submit-batch` are external writes. AutoSEO previews the exact URLs and
-requires confirmation immediately before submission.
-
-## Profound
-
-```text
-@autoseo profound citations <brand-or-domain>
-@autoseo profound prompts <brand-or-domain>
-@autoseo profound competitors <brand-or-domain>
-@autoseo profound alerts <brand-or-domain>
-```
-
-## SE Ranking
-
-```text
-@autoseo seranking ai-visibility <brand-or-domain>
-@autoseo seranking serp <query>
-@autoseo seranking backlinks <domain>
-@autoseo seranking competitors <domain>
-```
-
-Profound and SE Ranking commands require their respective authorized capabilities.
-AutoSEO distinguishes unavailable provider data from zero-valued measurements.
+These commands use only an image capability already included in the active Codex
+environment. When it is unavailable without an additional purchase, AutoSEO returns
+a production-ready creative brief instead.
 
 ## Local runtime
-
-Bundled deterministic checks run through the plugin-local launcher:
 
 ```text
 <plugin-root>/scripts/autoseo doctor --json
@@ -244,6 +230,5 @@ Bundled deterministic checks run through the plugin-local launcher:
 <plugin-root>/scripts/autoseo run <allowlisted-script.py> [arguments]
 ```
 
-The runtime accepts only bundled allowlisted helpers, not arbitrary scripts, extension
-paths, or shell commands. General audits remain read-only; external writes and paid
-requests are never implied.
+The runtime accepts only bundled allowlisted helpers. It does not accept arbitrary
+scripts, extension paths, or shell commands.

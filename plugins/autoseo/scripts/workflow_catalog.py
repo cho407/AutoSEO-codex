@@ -18,7 +18,7 @@ from url_safety import URLSafetyError, safe_requests_get
 
 CATALOG_PATH = Path(__file__).resolve().parents[1] / "data" / "workflow-playbooks.json"
 OFFICIAL_SOURCE = (
-    "https://raw.githubusercontent.com/HarrisonCho407/AutoSEO-codex/"
+    "https://raw.githubusercontent.com/cho407/AutoSEO-codex/"
     "main/plugins/autoseo/data/workflow-playbooks.json"
 )
 EXPECTED_STAGES = {"find": 5, "leverage": 1, "optimize": 21, "win": 3, "local": 11}
@@ -133,7 +133,7 @@ def _official_source(url: str) -> bool:
             and parsed.hostname == "raw.githubusercontent.com"
             and parsed.port is None
             and parsed.path
-            == "/HarrisonCho407/AutoSEO-codex/main/plugins/autoseo/data/"
+            == "/cho407/AutoSEO-codex/main/plugins/autoseo/data/"
             "workflow-playbooks.json"
             and not parsed.params
             and not parsed.query

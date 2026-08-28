@@ -6,7 +6,7 @@ Three credential types serve different APIs:
 
 | Type | Used By | Cost |
 |------|---------|------|
-| **API Key** | PageSpeed Insights, CrUX, CrUX History, Knowledge Graph | Free |
+| **API Key** | PageSpeed Insights, CrUX, CrUX History, YouTube | No-cost quota |
 | **Service Account** | Search Console, Indexing API, GA4 | Free |
 | **Both** | Full autoseo-google skill | Free |
 
@@ -28,13 +28,12 @@ Navigate to **APIs & Services > Library** and enable:
 | Chrome UX Report API | CrUX field data + History |
 | Web Search Indexing API | Indexing API v3 |
 | Google Analytics Data API | GA4 organic traffic |
-| Knowledge Graph Search API | Entity verification (optional) |
 
 ## Step 3: Create an API Key
 
 1. **APIs & Services > Credentials > Create Credentials > API key**
 2. Click **Restrict key**:
-   - Under **API restrictions**, select: PageSpeed Insights API, Chrome UX Report API, Knowledge Graph Search API
+   - Under **API restrictions**, select only the APIs needed by the chosen AutoSEO command
 3. Copy the generated API key and store it securely
 
 ## Step 4: Create a Service Account

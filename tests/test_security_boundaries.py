@@ -14,18 +14,19 @@ PLUGIN = ROOT / "plugins" / "autoseo"
 SCRIPTS = PLUGIN / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+import backlink_history  # noqa: E402
 import capture_screenshot  # noqa: E402
 import commoncrawl_graph  # noqa: E402
-import dataforseo_costs  # noqa: E402
-import dataforseo_merchant  # noqa: E402
 import domain_history  # noqa: E402
 import file_safety  # noqa: E402
+import free_source_policy  # noqa: E402
 import google_auth  # noqa: E402
 import google_report  # noqa: E402
 import indexing_notify  # noqa: E402
 import indexnow_submit  # noqa: E402
 import iptc_ai_label  # noqa: E402
-import nlp_analyze  # noqa: E402
+import rdap_lookup  # noqa: E402
+import search_evidence  # noqa: E402
 import unlighthouse_run  # noqa: E402
 import workflow_catalog  # noqa: E402
 from url_safety import URLSafetyError, read_limited_response  # noqa: E402
@@ -195,15 +196,15 @@ def test_workflow_refresh_requires_consent_before_network(
 def test_workflow_refresh_source_is_an_exact_allowlist() -> None:
     assert workflow_catalog._official_source(workflow_catalog.OFFICIAL_SOURCE)
     for source in (
-        "http://raw.githubusercontent.com/HarrisonCho407/AutoSEO-codex/main/"
+        "http://raw.githubusercontent.com/cho407/AutoSEO-codex/main/"
         "plugins/autoseo/data/workflow-playbooks.json",
-        "https://raw.githubusercontent.com.evil.invalid/HarrisonCho407/"
+        "https://raw.githubusercontent.com.evil.invalid/cho407/"
         "AutoSEO-codex/main/plugins/autoseo/data/workflow-playbooks.json",
-        "https://user@raw.githubusercontent.com/HarrisonCho407/AutoSEO-codex/"
+        "https://user@raw.githubusercontent.com/cho407/AutoSEO-codex/"
         "main/plugins/autoseo/data/workflow-playbooks.json",
-        "https://raw.githubusercontent.com:443/HarrisonCho407/AutoSEO-codex/"
+        "https://raw.githubusercontent.com:443/cho407/AutoSEO-codex/"
         "main/plugins/autoseo/data/workflow-playbooks.json",
-        "https://raw.githubusercontent.com/HarrisonCho407/AutoSEO-codex/other/"
+        "https://raw.githubusercontent.com/cho407/AutoSEO-codex/other/"
         "plugins/autoseo/data/workflow-playbooks.json",
         workflow_catalog.OFFICIAL_SOURCE + "?ref=other",
         workflow_catalog.OFFICIAL_SOURCE + "#fragment",
@@ -280,41 +281,73 @@ def test_external_indexing_writes_require_confirmation(
     assert "--confirm-submit" in result["error"]
 
 
-def test_paid_provider_requires_cost_confirmation(capsys: pytest.CaptureFixture[str]) -> None:
-    args = Namespace(confirm_cost=False)
-    assert not dataforseo_merchant._require_cost_confirmation(
-        args, ["google_products"]
-    )
-    payload = json.loads(capsys.readouterr().out)
-    assert payload["error"] == "cost_confirmation_required"
-
-    nlp_result = nlp_analyze.analyze_text(
-        "This request must not reach Google without confirmation.",
-        api_key="test-only",
-    )
-    assert nlp_result["error"] and "--confirm-cost" in nlp_result["error"]
+def test_free_source_policy_rejects_subscription_sources() -> None:
+    catalog = free_source_policy.load_catalog()
+    assert free_source_policy.validate_catalog(catalog)["valid"] is True
+    catalog["sources"][0]["subscription_required"] = True
+    result = free_source_policy.validate_catalog(catalog)
+    assert result["valid"] is False
+    assert any("subscription_required" in error for error in result["errors"])
 
 
-def test_cost_configuration_cannot_waive_per_request_confirmation(
-    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(
-        dataforseo_costs,
-        "_load_config",
-        lambda: {
-            "mode": "none",
-            "threshold": 999.0,
-            "daily_limit": 10.0,
-            "warn_endpoints": [],
-        },
-    )
-    monkeypatch.setattr(dataforseo_costs, "_load_ledger", lambda: {"entries": []})
-    dataforseo_costs.cmd_check(
-        Namespace(endpoint="merchant_google_products_search", count=1)
-    )
-    payload = json.loads(capsys.readouterr().out)
-    assert payload["status"] == "needs_approval"
-    assert payload["approval_reason"] == "explicit_confirmation_required"
+def test_search_evidence_uses_transparent_proxies_not_fake_volume() -> None:
+    evidence = {
+        "schema_version": 1,
+        "query": "technical seo audit",
+        "captured_at": "2026-08-26T00:00:00Z",
+        "market": "US",
+        "results": [
+            {
+                "position": 1,
+                "url": "https://example.com/technical-seo",
+                "title": "Technical SEO Audit Guide",
+                "result_type": "organic",
+            },
+            {
+                "position": 2,
+                "url": "https://docs.example.org/audit",
+                "title": "Run a Site Audit",
+                "result_type": "organic",
+            },
+        ],
+        "signals": {"gsc_impressions": 120, "autosuggest_count": 4},
+    }
+    result = search_evidence.analyze(evidence)
+    assert result["method"] == "transparent-public-signal-proxy"
+    assert result["exact_search_volume"] is None
+    assert 0 <= result["competition_proxy"] <= 100
+    assert result["demand_proxy"]["confidence"] in {"low", "medium", "high"}
+
+
+def test_backlink_history_compares_free_snapshots() -> None:
+    baseline = {
+        "schema_version": 1,
+        "target": "https://example.com",
+        "links": [
+            {"source_url": "https://one.example.org/a", "target_url": "https://example.com"},
+            {"source_url": "https://two.example.org/b", "target_url": "https://example.com"},
+        ],
+    }
+    current = {
+        "schema_version": 1,
+        "target": "https://example.com",
+        "links": [
+            {"source_url": "https://two.example.org/b", "target_url": "https://example.com"},
+            {"source_url": "https://three.example.org/c", "target_url": "https://example.com"},
+        ],
+    }
+    result = backlink_history.compare_snapshots(baseline, current)
+    assert result["counts"] == {"new": 1, "lost": 1, "retained": 1}
+    assert result["new"][0]["source_url"] == "https://three.example.org/c"
+    assert result["lost"][0]["source_url"] == "https://one.example.org/a"
+
+
+def test_rdap_lookup_accepts_domains_only_and_uses_fixed_bootstrap() -> None:
+    assert rdap_lookup._normalize_domain("Bücher.Example.") == "xn--bcher-kva.example"
+    assert rdap_lookup._bootstrap_url("example.com") == "https://rdap.org/domain/example.com"
+    for value in ("https://example.com", "example.com/path", "127.0.0.1", "bad..com"):
+        with pytest.raises(ValueError):
+            rdap_lookup._normalize_domain(value)
 
 
 def test_google_config_permissions_are_hardened_on_load(
