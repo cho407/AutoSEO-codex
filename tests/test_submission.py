@@ -7,6 +7,8 @@ import sys
 import zipfile
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -58,6 +60,7 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/LICENSE" in names
     assert "autoseo/README.md" in names
     assert "autoseo/skills/autoseo/SKILL.md" in names
+    assert "autoseo/skills/autoseo-audit/SKILL.md" in names
     assert "autoseo/data/feature-parity.json" in names
     assert "autoseo/data/free-sources.json" in names
     assert "autoseo/data/workflow-playbooks.json" in names
@@ -76,3 +79,25 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     ):
         assert removed not in names
     assert all(name.startswith("autoseo/") for name in names)
+
+
+def test_every_release_file_is_tracked_by_git() -> None:
+    if not (ROOT / ".git").exists():
+        pytest.skip("git metadata is intentionally absent from a git archive")
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z", "--", "plugins/autoseo"],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    ).stdout.split(b"\0")
+    tracked_paths = {
+        (ROOT / value.decode("utf-8")).resolve() for value in tracked if value
+    }
+    from scripts.build_release import release_files
+
+    missing = [
+        path.relative_to(ROOT).as_posix()
+        for path in release_files()
+        if path.resolve() not in tracked_paths
+    ]
+    assert missing == []

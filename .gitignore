@@ -24,7 +24,6 @@ build/
 coverage/
 htmlcov/
 *.coverage
-*-audit/
 autoseo-output/
 runtime-state.json
 .setup.lock
