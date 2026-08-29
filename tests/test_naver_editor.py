@@ -249,6 +249,26 @@ def test_explicit_multi_uploads_and_links_compile_without_guided_selection(
     assert gallery["payload"]["paths"] == [str(first), str(second)]
 
 
+def test_special_characters_are_direct_and_spellcheck_is_guided() -> None:
+    document = _document()
+    document["blocks"].append(
+        {"id": "symbol", "type": "special-character", "text": "※"}
+    )
+    document["editor_options"] = {"spellcheck": True}
+
+    operations = naver_document.build_operations(document)
+    symbol = next(
+        item for item in operations if item["feature_id"] == "special-character"
+    )
+    spellcheck = next(
+        item for item in operations if item["feature_id"] == "spellcheck"
+    )
+
+    assert symbol["guided"] is False
+    assert symbol["payload"]["text"] == "※"
+    assert spellcheck["guided"] is True
+
+
 def test_schedule_requires_future_timezone_aware_value() -> None:
     now = datetime(2026, 8, 28, 9, 0, tzinfo=timezone(timedelta(hours=9)))
     valid = (now + timedelta(hours=2)).isoformat()

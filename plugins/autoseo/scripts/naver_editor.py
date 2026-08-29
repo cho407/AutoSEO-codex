@@ -751,7 +751,7 @@ class PlaywrightNaverDriver:
                 return locator.input_value() == payload["text"]
             except Exception:
                 return False
-        if feature_id in {"paragraph", "heading", "quote"}:
+        if feature_id in {"paragraph", "heading", "quote", "special-character"}:
             try:
                 return self.page.get_by_text(payload["text"], exact=True).count() >= 1
             except Exception:
@@ -997,6 +997,7 @@ def _load_document(path: Path) -> dict[str, Any]:
 
 
 def _draft_preview(document: dict[str, Any]) -> dict[str, Any]:
+    document = validate_document(document)
     attachment_count = int(document["background"]["type"] == "image")
     for block in document["blocks"]:
         attachment_count += int("path" in block)
@@ -1021,6 +1022,7 @@ def _draft_preview(document: dict[str, Any]) -> dict[str, Any]:
         "attachment_count": attachment_count,
         "tags": document["tags"],
         "publish_settings": document["publish_settings"],
+        "editor_options": document["editor_options"],
         "approval_token": hashlib.sha256(token_material.encode("utf-8")).hexdigest()[:24],
     }
 

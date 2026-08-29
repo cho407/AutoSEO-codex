@@ -41,7 +41,12 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1, "maxLength": 50}
     },
-    "publish_settings": {"$ref": "#/$defs/publishSettings"}
+    "publish_settings": {"$ref": "#/$defs/publishSettings"},
+    "editor_options": {
+      "type": "object",
+      "properties": {"spellcheck": {"type": "boolean"}},
+      "additionalProperties": false
+    }
   },
   "$defs": {
     "style": {
@@ -83,6 +88,7 @@
             "paragraph",
             "heading",
             "quote",
+            "special-character",
             "divider",
             "photo",
             "group-photo",

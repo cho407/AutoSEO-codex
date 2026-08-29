@@ -29,6 +29,7 @@ BLOCK_TYPES = {
     "paragraph",
     "heading",
     "quote",
+    "special-character",
     "divider",
     "photo",
     "group-photo",
@@ -45,7 +46,7 @@ BLOCK_TYPES = {
     "library",
     "talktalk",
 }
-TEXT_BLOCK_TYPES = {"paragraph", "heading", "quote"}
+TEXT_BLOCK_TYPES = {"paragraph", "heading", "quote", "special-character"}
 PATH_BLOCK_TYPES = {"photo", "video", "file"}
 GUIDED_BLOCK_TYPES = {
     "sticker",
@@ -58,6 +59,7 @@ BLOCK_FEATURES = {
     "paragraph": "paragraph",
     "heading": "heading",
     "quote": "quote",
+    "special-character": "special-character",
     "divider": "divider",
     "photo": "photo",
     "group-photo": "group-photo",
@@ -399,6 +401,11 @@ def validate_document(
         settings["scheduled_at"] = validate_schedule(settings.get("scheduled_at"))
     elif settings.get("scheduled_at") is not None:
         raise ValueError("scheduled_at is allowed only when mode is schedule")
+    editor_options = document.get("editor_options") or {}
+    if not isinstance(editor_options, dict) or set(editor_options) - {"spellcheck"}:
+        raise ValueError("editor_options supports only spellcheck")
+    if not isinstance(editor_options.get("spellcheck", False), bool):
+        raise ValueError("editor_options.spellcheck must be boolean")
     return {
         "schema_version": SCHEMA_VERSION,
         "document_id": document_id,
@@ -407,6 +414,7 @@ def validate_document(
         "blocks": normalized_blocks,
         "tags": [tag.strip() for tag in tags],
         "publish_settings": settings,
+        "editor_options": {"spellcheck": editor_options.get("spellcheck", False)},
     }
 
 
@@ -484,6 +492,8 @@ def build_operations(document: object) -> list[dict[str, Any]]:
                 )
     if value["tags"]:
         add("tags", {"tags": value["tags"]})
+    if value["editor_options"]["spellcheck"]:
+        add("spellcheck", {}, guided=True)
     settings = value["publish_settings"]
     for feature_id, key in (
         ("category", "category"),
