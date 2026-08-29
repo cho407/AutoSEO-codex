@@ -73,6 +73,7 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/data/free-sources.json" in names
     assert "autoseo/data/workflow-playbooks.json" in names
     assert "autoseo/scripts/backlink_history.py" in names
+    assert "autoseo/scripts/benchmark_evidence.py" in names
     assert "autoseo/scripts/free_source_policy.py" in names
     assert "autoseo/scripts/rdap_lookup.py" in names
     assert "autoseo/scripts/search_evidence.py" in names
@@ -111,3 +112,28 @@ def test_every_release_file_is_tracked_by_git() -> None:
         if path.resolve() not in tracked_paths
     ]
     assert missing == []
+
+
+def test_sensitive_naver_runtime_artifacts_are_not_tracked_or_released() -> None:
+    forbidden_parts = {
+        "naver-editor-profile",
+        "naver-editor-checkpoints",
+        "naver-editor-diagnostics",
+    }
+    release_relatives = {
+        path.relative_to(ROOT / "plugins" / "autoseo")
+        for path in (ROOT / "plugins" / "autoseo").rglob("*")
+        if path.is_file()
+    }
+    assert not any(forbidden_parts & set(path.parts) for path in release_relatives)
+
+    if not (ROOT / ".git").exists():
+        return
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    ).stdout.split(b"\0")
+    tracked_paths = [Path(value.decode("utf-8")) for value in tracked if value]
+    assert not any(forbidden_parts & set(path.parts) for path in tracked_paths)

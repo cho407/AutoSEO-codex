@@ -33,7 +33,7 @@ RUNTIME_EXTRAS = {
 }
 ALLOWED_CORE_SCRIPTS = frozenset(
     {
-        "agent_ux_check.py", "analyze_visual.py", "backlink_history.py",
+        "agent_ux_check.py", "analyze_visual.py", "backlink_history.py", "benchmark_evidence.py",
         "bing_webmaster.py", "capture_screenshot.py", "commoncrawl_graph.py",
         "content_humanize.py", "content_quality.py", "content_verify.py",
         "crux_history.py", "domain_history.py", "drift_baseline.py",
