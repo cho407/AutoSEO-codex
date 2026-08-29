@@ -156,6 +156,13 @@
       "helpers": ["lane_engine.py", "korean_text.py", "naver_evidence.py"]
     },
     {
+      "id": "naver-editor",
+      "skill": "autoseo-naver-editor",
+      "status": "supported",
+      "subcommands": ["doctor", "learn", "compose", "resume", "publish", "schedule"],
+      "helpers": ["naver_document.py", "naver_editor.py"]
+    },
+    {
       "id": "backlinks",
       "skill": "autoseo-backlinks",
       "status": "supported",

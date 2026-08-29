@@ -78,6 +78,7 @@ when the request spans multiple areas.
 | Search answer readiness and answer-focused briefs | `autoseo-aeo` |
 | Closed-book brand facts and entity consistency | `autoseo-llmo` |
 | Naver Search and AI Briefing readiness | `autoseo-neo` |
+| Naver Blog SmartEditor ONE composition and guarded publication | `autoseo-naver-editor` |
 | Strategic roadmap | `autoseo-plan` |
 | Research-to-optimization operating cycle | `autoseo-workflow` |
 | Pages generated from structured data | `autoseo-programmatic` |

@@ -32,6 +32,7 @@ REQUIRED_SKILLS = {
     "autoseo-llmo",
     "autoseo-maps",
     "autoseo-neo",
+    "autoseo-naver-editor",
     "autoseo-page",
     "autoseo-performance",
     "autoseo-plan",

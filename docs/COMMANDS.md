@@ -27,6 +27,12 @@ Sources and limitations are included in the result.
 @autoseo neo audit <target>
 @autoseo neo visibility <target>
 @autoseo neo brief <target>
+@autoseo naver-editor doctor
+@autoseo naver-editor learn
+@autoseo naver-editor compose <naver-document.json>
+@autoseo naver-editor resume <naver-document.json>
+@autoseo naver-editor publish <naver-document.json>
+@autoseo naver-editor schedule <naver-document.json-and-time>
 @autoseo plan <business-context>
 @autoseo plan saas <context>
 @autoseo plan local <context>
@@ -34,6 +40,13 @@ Sources and limitations are included in the result.
 @autoseo plan publisher <context>
 @autoseo plan agency <context>
 ```
+
+The Naver editor commands use a dedicated visible Chromium profile under
+`AUTOSEO_DATA_DIR`. Login, two-factor authentication, and CAPTCHA remain manual.
+Compose and resume first show the exact draft scope and require confirmation
+before editing or saving. Publish and schedule show all final settings and require
+a new document-specific approval token for every post. An unclear result is never
+retried automatically.
 
 ## Site and page workflows
 

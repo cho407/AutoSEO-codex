@@ -27,6 +27,10 @@ htmlcov/
 autoseo-output/
 runtime-state.json
 .setup.lock
+naver-editor-profile/
+naver-editor-checkpoints/
+naver-editor-diagnostics/
+naver-editor-compatibility.json
 
 # OS and editor files
 .DS_Store

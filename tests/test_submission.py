@@ -64,8 +64,11 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/skills/autoseo-aeo/SKILL.md" in names
     assert "autoseo/skills/autoseo-llmo/SKILL.md" in names
     assert "autoseo/skills/autoseo-neo/SKILL.md" in names
+    assert "autoseo/skills/autoseo-naver-editor/SKILL.md" in names
     assert "autoseo/schema/evidence-bundle.schema.json" in names
     assert "autoseo/schema/lane-report.schema.json" in names
+    assert "autoseo/schema/naver-document.schema.json" in names
+    assert "autoseo/data/naver-editor-features.json" in names
     assert "autoseo/data/feature-parity.json" in names
     assert "autoseo/data/free-sources.json" in names
     assert "autoseo/data/workflow-playbooks.json" in names
@@ -73,6 +76,8 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/scripts/free_source_policy.py" in names
     assert "autoseo/scripts/rdap_lookup.py" in names
     assert "autoseo/scripts/search_evidence.py" in names
+    assert "autoseo/scripts/naver_document.py" in names
+    assert "autoseo/scripts/naver_editor.py" in names
     assert "autoseo/scripts/workflow_catalog.py" in names
     for removed in (
         "autoseo/scripts/dataforseo_costs.py",
