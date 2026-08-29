@@ -1,7 +1,7 @@
 {
   "name": "autoseo",
-  "version": "0.3.0",
-  "description": "No-subscription, open-source SEO and generative engine optimization workflows for Codex.",
+  "version": "0.4.0-rc.1",
+  "description": "Free, open-source SEO, AEO, GEO, LLMO, NEO, and guarded Naver Blog workflows for Codex.",
   "author": {
     "name": "cho407",
     "url": "https://github.com/cho407"
@@ -11,7 +11,11 @@
   "license": "MIT",
   "keywords": [
     "seo",
+    "aeo",
     "geo",
+    "llmo",
+    "neo",
+    "naver",
     "generative-engine-optimization",
     "technical-seo",
     "structured-data",
@@ -21,8 +25,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "AutoSEO",
-    "shortDescription": "Audit and optimize search and AI visibility",
-    "longDescription": "Audit websites, diagnose technical and content issues, improve structured data, plan search content, and optimize pages for both conventional search engines and generative answer systems. Every shipped workflow has a no-subscription execution path; AutoSEO is read-only by default and asks before any external write action.",
+    "shortDescription": "Optimize search, answer, AI, and Naver visibility",
+    "longDescription": "Collect website evidence once, run independent SEO, AEO, GEO, LLMO, and NEO readiness lanes, plan search content, and compose user-owned Naver Blog drafts in a guarded visible editor. Every shipped workflow has a no-subscription execution path; AutoSEO is read-only by default and requires per-post approval before publication.",
     "developerName": "cho407",
     "category": "Productivity",
     "capabilities": [
@@ -35,8 +39,8 @@
     "termsOfServiceURL": "https://github.com/cho407/AutoSEO-codex/blob/main/TERMS.md",
     "defaultPrompt": [
       "Audit this website for SEO and AI-search visibility",
-      "Create an SEO and GEO improvement plan for my site",
-      "Review this page's technical SEO, content, and schema"
+      "Run all five SEO, AEO, GEO, LLMO, and NEO lanes",
+      "Compose this Korean article as a Naver Blog draft"
     ],
     "brandColor": "#0F9D75",
     "composerIcon": "./assets/icon.svg",

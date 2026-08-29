@@ -1,6 +1,6 @@
 # AutoSEO Privacy Policy
 
-Effective date: 2026-08-26
+Effective date: 2026-08-29
 
 AutoSEO is an open-source, locally executed Codex plugin. The publisher does not
 operate an AutoSEO backend and does not receive prompts, analyzed pages, reports,
@@ -13,6 +13,13 @@ generated reports, audit baselines, and configuration required for a requested
 workflow. Local runtime data is stored in the platform-appropriate AutoSEO data
 directory or a directory explicitly selected by the user.
 
+For Naver Blog editing, the local data directory may contain a dedicated Chromium
+profile, Naver cookies managed by Chromium, a UI compatibility map, hash-only
+operation checkpoints, and failure screenshots. AutoSEO does not export cookies or
+store the article title/body in its checkpoint. The user-selected source document
+remains wherever the user placed it. Failure screenshots can visibly contain draft
+or account information and should be treated as sensitive local files.
+
 ## External sources
 
 When a user chooses an optional no-cost first-party source such as Search Console,
@@ -21,6 +28,12 @@ service under the user's account and is governed by its terms and privacy policy
 Public website, Common Crawl, RDAP, PageSpeed, and IndexNow requests likewise go
 directly from the user's environment. AutoSEO does not proxy or retain requests on
 publisher-controlled infrastructure and ships no separately billable data service.
+
+Optional Naver Search and DataLab requests go directly to Naver with keys read from
+`NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET`. Those keys are not written to reports,
+checkpoints, or the repository. SmartEditor automation operates only in the visible
+user-owned browser profile; login, two-factor authentication, and CAPTCHA stay with
+the user.
 
 ## Credentials
 
@@ -34,6 +47,11 @@ credential that is accidentally disclosed.
 AutoSEO retains no publisher-side data. Users can delete local reports, caches,
 audit history, configuration, and the managed runtime at any time. Removing the
 plugin does not automatically remove user-created reports.
+
+Naver editor data can be removed by deleting the dedicated profile, checkpoint,
+compatibility-map, and diagnostic paths under `AUTOSEO_DATA_DIR` after signing out
+or reviewing any draft state that still matters. Removing them ends local resume
+capability and removes the dedicated session; AutoSEO never deletes them implicitly.
 
 ## Contact
 

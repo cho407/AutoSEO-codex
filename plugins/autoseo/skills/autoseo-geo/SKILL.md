@@ -121,8 +121,10 @@ raw response with the rendered page and report platform-specific evidence.
 **Check for:**
 - Server-side rendering (SSR) vs client-only content
 - AI crawler access in robots.txt
-- llms.txt file presence and configuration
 - RSL 1.0 licensing terms
+
+`llms.txt` may be noted as optional metadata only when a named target system
+documents support. It is never an accessibility, ranking, or citation-readiness check.
 
 ---
 
@@ -215,10 +217,10 @@ must not receive readiness or citation-ranking weight by default.
 Generate `GEO-ANALYSIS.md` with:
 
 1. **GEO readiness** (`0-100` only when the lane evidence threshold is met)
-2. **Platform breakdown** (Google AIO, ChatGPT, Perplexity scores)
+2. **Platform observations** (dated Google AIO, ChatGPT, and Perplexity samples)
 3. **AI Crawler Access Status** (which crawlers allowed/blocked)
-4. **llms.txt Status** (present, missing, recommendations)
-5. **Brand Mention Analysis** (presence on Wikipedia, Reddit, YouTube, LinkedIn)
+4. **Optional metadata** (`llms.txt` only for a documented target; no score)
+5. **Entity corroboration** (genuine attributable sources, with no mention farming)
 6. **Passage-Level Citability** (self-contained claims and their supporting evidence)
 7. **Server-Side Rendering Check** (JavaScript dependency analysis)
 8. **Top 5 Highest-Impact Changes**
@@ -230,7 +232,8 @@ Generate `GEO-ANALYSIS.md` with:
 ## Quick Wins
 
 1. Put the primary answer where readers can find it without a fixed word-count rule
-2. Create self-contained claims with nearby evidence and source context
+2. Create self-contained claims with nearby evidence and source context; do not
+   split prose merely to imitate an AI-friendly style
 3. Add question-based H2/H3 headings
 4. Include specific statistics with sources
 5. Add publication/update dates
@@ -240,9 +243,9 @@ Generate `GEO-ANALYSIS.md` with:
 ## Medium Effort
 
 1. Create `/llms.txt` only when a target system documents a concrete use for it
-2. Add author bio with credentials + Wikipedia/LinkedIn links
+2. Add an accurate author bio and link only to genuine, relevant profiles
 3. Ensure server-side rendering for key content
-4. Build entity presence on Reddit, YouTube
+4. Earn independent corroboration through useful work; do not manufacture mentions
 5. Add comparison tables with data
 6. Implement FAQ sections (structured, not schema for commercial sites)
 
@@ -266,9 +269,8 @@ History begins with user-approved local snapshots; unavailable surfaces are not 
 |----------|--------|
 | URL unreachable (DNS failure, connection refused) | Report the error clearly. Do not guess site content. Suggest the user verify the URL and try again. |
 | AI crawlers blocked by robots.txt | Report exactly which crawlers are blocked and which are allowed. Provide specific robots.txt directives to add for enabling AI search visibility. |
-| No llms.txt found | Note the absence (optional file; Google Search ignores it) and provide a ready-to-use llms.txt template for non-Google AI crawlers. |
+| No llms.txt found | Treat it as no issue. Discuss a file only when the named target system documents a concrete use. |
 | No structured data detected | Report the gap and provide specific schema recommendations (Article, Organization, Person) for improving AI discoverability. |
 
-## FLOW Framework Integration
-
-For prompt-guided AI content optimization, use `@autoseo flow optimize <url>`, FLOW's 21 optimize-stage prompts complement GEO's citability and structure analysis with evidence-led AI prompts.
+For broader evidence-led optimization playbooks, use
+`@autoseo workflow optimize <url>`.

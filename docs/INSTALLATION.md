@@ -23,16 +23,24 @@ is normal until a workflow needs a Python helper.
 
 ## Optional analysis runtime
 
-Run setup only when you want the bundled deterministic helpers:
+Run setup only when you want the bundled deterministic helpers. The standard
+profile includes Playwright for conditional page rendering and Naver editing:
 
 ```bash
-<plugin-root>/scripts/autoseo setup
+<plugin-root>/scripts/autoseo setup --profile standard
 ```
 
-To omit the optional Chromium download:
+For browser-free analysis:
 
 ```bash
-<plugin-root>/scripts/autoseo setup --skip-browser
+<plugin-root>/scripts/autoseo setup --profile lite
+```
+
+Install optional integrations only when needed:
+
+```bash
+<plugin-root>/scripts/autoseo setup --profile lite --with google
+<plugin-root>/scripts/autoseo setup --profile standard --with report
 ```
 
 Setup creates a dedicated isolated environment. Set `AUTOSEO_DATA_DIR` to a dedicated
@@ -48,6 +56,13 @@ them. Keep credentials in environment variables or user-owned configuration and 
 place them in this repository. AutoSEO does not configure a service that requires a
 separate subscription.
 
+Optional Naver Search and DataLab evidence reads `NAVER_CLIENT_ID` and
+`NAVER_CLIENT_SECRET` from the environment. Naver editing requires no writing API:
+it opens PC SmartEditor ONE in a dedicated visible Chromium profile. The user logs
+in and completes two-factor authentication or CAPTCHA manually. Run
+`@autoseo naver-editor doctor`, then `@autoseo naver-editor learn` before the first
+release-candidate draft test.
+
 `autoseo-unlighthouse` additionally requires an already installed `unlighthouse-ci`
 binary on `PATH`, or an absolute executable path in `AUTOSEO_UNLIGHTHOUSE_BIN`.
 
@@ -56,3 +71,6 @@ binary on `PATH`, or an absolute executable path in `AUTOSEO_UNLIGHTHOUSE_BIN`.
 Remove the plugin through Codex. Reports and runtime data are intentionally retained so
 an uninstall cannot silently delete user work. Delete those user-owned directories only
 after reviewing their contents.
+
+The Naver profile, checkpoints, compatibility map, and diagnostics also remain under
+`AUTOSEO_DATA_DIR`. Review drafts and sign-in state before deleting them.

@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoseo-codex"
-version = "0.3.0"
-description = "No-subscription open-source SEO and GEO workflows for Codex"
+version = "0.4.0rc1"
+description = "Free open-source SEO, AEO, GEO, LLMO, NEO, and Naver workflows for Codex"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "cho407" }]
-keywords = ["seo", "geo", "codex", "search", "ai-visibility"]
+keywords = ["seo", "aeo", "geo", "llmo", "neo", "naver", "codex", "search"]
 
 [project.urls]
 Homepage = "https://github.com/cho407/AutoSEO-codex"

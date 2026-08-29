@@ -12,4 +12,11 @@
 - [x] Codex plugin validation passes on the distributable plugin.
 - [x] Standard Codex Security scan is complete with no reportable finding.
 - [x] The release archive builds deterministically and has been manually inspected.
+- [x] Five readiness lanes reuse `EvidenceBundle v1` and keep outcomes separate.
+- [x] Naver editor profile, checkpoint, approval, no-retry, and test-publish boundaries are regression tested.
+- [x] Every SmartEditor feature is classified automatic, guided, or unavailable.
+- [x] The 20-page local benchmark meets the 30% multi-page and 10% single-page targets.
+- [ ] A user-owned live Naver draft passes ordinary formatting and media checks.
+- [ ] A user-owned live Naver draft passes advanced component and guided-choice checks.
+- [ ] A separately approved live publish and schedule each succeed once without duplication.
 - [ ] Public listing details and screenshots are finalized before submission.

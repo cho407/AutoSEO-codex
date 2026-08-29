@@ -1,28 +1,35 @@
 # AutoSEO plugin bundle
 
-This directory is the distributable AutoSEO Codex plugin. It contains only
-Skills-only workflows, local helper scripts, references, and brand assets. It
-does not include a hosted service, embedded credentials, or an MCP server.
+This directory is the distributable AutoSEO Codex plugin. It contains skills,
+local helpers, schemas, references, and brand assets, with no hosted service,
+embedded credential, separately billable data integration, or MCP server.
 
-Version 0.3.0 covers 32 user-facing capability groups and ships 41 guided
-workflow playbooks. Every workflow has a no-subscription path through Codex-native
-research, public web data, local analysis, or optional no-cost first-party data.
-Commercial-only metrics and live monitoring outcomes are excluded instead of being
-replaced with fabricated values. Host-specific invocation, authorization, and
-installation follow Codex conventions.
+Version 0.4.0-rc.1 covers 36 user-facing capability groups, five independent
+SEO/AEO/GEO/LLMO/NEO readiness lanes, and 41 guided workflow playbooks. A shared
+`EvidenceBundle v1` prevents repeated page collection across lanes. Commercial-only
+metrics and live monitoring outcomes are excluded instead of being fabricated.
+
+The PC Naver Blog SmartEditor ONE adapter uses a dedicated visible Playwright
+profile. Draft writes and every publish/schedule action have separate approval
+boundaries. Candidate-based controls are guided, ambiguous UI stops safely, and an
+unclear publication result is never retried. Live-editor verification is still
+required before promoting this release candidate to 0.4.0.
 
 Resolve this directory as `<plugin-root>` whenever a skill runs a bundled helper:
 
 ```text
 <plugin-root>/scripts/autoseo doctor --json
-<plugin-root>/scripts/autoseo run <script.py> [arguments]
+<plugin-root>/scripts/autoseo run <allowlisted-script.py> [arguments]
 ```
 
 Dependency setup is explicit:
 
 ```text
-<plugin-root>/scripts/autoseo setup
+<plugin-root>/scripts/autoseo setup --profile standard
 ```
+
+Use `--profile lite` for browser-free analysis. Google and PDF/Excel integrations
+are separate opt-ins through `--with google` and `--with report`.
 
 AutoSEO is distributed under the MIT License in `LICENSE`.
 

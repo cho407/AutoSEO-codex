@@ -31,7 +31,7 @@ catalog offers blog search but no rich blog-post writing endpoint.
 |---|---|
 | `@autoseo naver-editor doctor` | Read-only runtime, catalog, and profile-permission check |
 | `@autoseo naver-editor learn` | Local compatibility map of roles, Korean labels, shortcuts, and DOM fallbacks |
-| `@autoseo naver-editor compose <topic-or-document>` | Build/apply `NaverDocument v1`, then save a confirmed draft |
+| `@autoseo naver-editor compose <topic-or-document>` | Build or validate `NaverDocument v1`, then save a confirmed draft |
 | `@autoseo naver-editor resume <draft>` | Resume only unfinished operation IDs for the same source hash |
 | `@autoseo naver-editor publish <draft>` | Preview settings, request approval, click publish once, verify once |
 | `@autoseo naver-editor schedule <draft-and-time>` | Preview time/settings, request approval, schedule once, verify once |
@@ -46,9 +46,16 @@ Use the standard profile because the editor requires Playwright and Chromium:
 <plugin-root>/scripts/autoseo run naver_editor.py learn
 ```
 
-Pass a validated JSON document to compose or resume. The first run without the
+For a topic, first use the relevant AEO/NEO/content evidence to draft a complete
+Korean article, show the user the claims and sources needing review, and serialize
+it as `NaverDocument v1` in a user-approved local path. For an existing document,
+validate it without silently rewriting the content.
+
+Pass the validated JSON document to the internal compose or resume helper. The first run without the
 matching `--approval-token` prints the draft-write preview and makes no account
 change. After the user approves that exact scope, rerun with the returned token.
+Use `examples/naver-document-v1.json` from the plugin root as a minimal editable
+starting point; never overwrite the bundled example.
 
 Publish and schedule likewise print an `approval_token` when called without the
 matching token. Ask the user immediately, then use that token once. Never infer
@@ -67,6 +74,9 @@ Features that require personal candidate selection—such as a place result,
 sticker, template, or library item—are guided. The feature catalog labels every
 official editor feature `automatic`, `guided`, or `unavailable`; a missing or
 ambiguous control stops the run instead of guessing.
+
+Read `references/feature-compatibility.md` for the complete classification and
+the live-editor release checklist.
 
 ## Learn and resume semantics
 

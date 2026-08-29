@@ -29,10 +29,10 @@ Sources and limitations are included in the result.
 @autoseo neo brief <target>
 @autoseo naver-editor doctor
 @autoseo naver-editor learn
-@autoseo naver-editor compose <naver-document.json>
-@autoseo naver-editor resume <naver-document.json>
-@autoseo naver-editor publish <naver-document.json>
-@autoseo naver-editor schedule <naver-document.json-and-time>
+@autoseo naver-editor compose <topic-or-document>
+@autoseo naver-editor resume <draft>
+@autoseo naver-editor publish <draft>
+@autoseo naver-editor schedule <draft-and-time>
 @autoseo plan <business-context>
 @autoseo plan saas <context>
 @autoseo plan local <context>

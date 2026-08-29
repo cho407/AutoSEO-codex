@@ -1,8 +1,8 @@
 # AutoSEO Architecture
 
-AutoSEO is a Skills-only Codex plugin. Codex selects a focused skill, the skill
-collects only the evidence needed for the request, and deterministic Python helpers
-perform bounded parsing, validation, comparison, or report generation.
+AutoSEO is a Skills-only Codex plugin. Codex selects focused workflows while
+deterministic helpers collect bounded evidence, normalize it once, and run pure
+analysis over versioned contracts.
 
 ## Components
 
@@ -14,26 +14,46 @@ perform bounded parsing, validation, comparison, or report generation.
 | Runtime boundary | Explicit setup, isolated environment, script allowlist | `plugins/autoseo/scripts/runtime.py` |
 | Deterministic helpers | URL safety, crawling, parsing, API clients, scoring, exports | `plugins/autoseo/scripts/` |
 | Static knowledge | Schemas, templates, update records, and skill references | `plugins/autoseo/schema/`, `data/`, and skill-local folders |
+| Naver editor boundary | Versioned document, local feature map, checkpointed Playwright adapter | `naver_document.py`, `naver_editor.py`, `data/naver-editor-features.json` |
 
 ## Request flow
 
-1. Codex routes the request to the narrowest matching AutoSEO skill.
-2. The skill classifies the action as local read, public network read, optional
-   no-cost first-party read, local write, or external write.
-3. Public URLs are normalized and checked before any request. Redirects and rendered
-   subresources are checked again.
-4. A helper runs only through the runtime allowlist. The runtime never accepts an
-   arbitrary path or shell command.
-5. Findings include evidence, severity, impact, recommendation, and confidence.
-6. Local files are written only when the requested workflow needs an artifact.
+1. Codex routes the request and selects SEO by default for a URL, then adds AEO,
+   GEO, LLMO, or NEO from topic, brand, market, language, and explicit intent.
+2. The collector performs low-cost HTTP first, decides whether the response is a
+   sparse application shell, and renders only when required.
+3. One audit permits one raw request and at most one render per canonical URL.
+   A single Chromium instance is reused across rendered pages.
+4. The collector emits `EvidenceBundle v1`; all selected lanes analyze that same
+   bounded record without another page request.
+5. Each lane emits `LaneReport v1` with pass/fail/unmeasured checks, coverage,
+   readiness, observations, confidence, and limitations.
+6. Findings include evidence, severity, impact, recommendation, and confidence.
    Existing files and external systems are not changed without explicit approval.
+
+```text
+URL(s) -> safe HTTP -> SPA decision -> optional shared render -> EvidenceBundle v1
+                                                        |-> SEO LaneReport v1
+                                                        |-> AEO LaneReport v1
+                                                        |-> GEO LaneReport v1
+                                                        |-> LLMO LaneReport v1
+                                                        `-> NEO LaneReport v1
+```
+
+Readiness and observed outcomes are separate. A lane shows a 0-100 score only
+when required eligibility was measured and at least 70% of applicable evidence is
+available. Missing evidence stays `unmeasured` rather than becoming a failure.
 
 ## Runtime lifecycle
 
 The repository itself has no import-time installer. `autoseo doctor` is read-only.
 Only an explicit `autoseo setup` creates an isolated Python environment in a dedicated
-AutoSEO data directory and installs the reviewed dependency set. Browser support is
-optional and can be skipped.
+AutoSEO data directory and installs a reviewed profile:
+
+- `lite`: core analysis without a browser;
+- `standard`: core analysis plus Playwright;
+- `google`: optional Google integrations;
+- `report`: optional PDF and spreadsheet tooling.
 
 Bundled helpers are addressed by basename and must appear in `ALLOWED_CORE_SCRIPTS`.
 Path separators, traversal segments, unknown scripts, extension loaders, and the
@@ -46,6 +66,25 @@ optional no-cost first-party evidence. `free_source_policy.py` rejects any catal
 that requires a subscription. Exact commercial metrics are not approximated under a
 misleading label: relative signals carry their method, sample size, date, and limits.
 No connector auto-installer or separately billable data integration is shipped.
+
+## Naver editor boundary
+
+Analysis and account mutation are separate skills. `NaverDocument v1` validates
+the title, blocks, formatting, links, attachments, tags, and publication settings
+before a visible browser opens. The editor uses a dedicated persistent profile under
+`AUTOSEO_DATA_DIR`; login, two-factor authentication, and CAPTCHA stay manual.
+
+The local feature registry labels every editor control `automatic`, `guided`, or
+`unavailable`. Resolution is fixed to accessibility role/name, Korean label,
+documented shortcut, then a versioned DOM fallback. A duplicate or missing control
+stops the operation. Checkpoints retain only the document hash, completed operation
+IDs, verified draft URL, state, and diagnostic filenames, so resume does not duplicate
+completed blocks or persist the article body.
+
+Draft saving and final publication use different document-bound approval tokens.
+Before publishing or scheduling, AutoSEO previews category, visibility, search,
+comments, sympathy, CCL, sharing, tags, and time. An unclear result enters an
+`unknown` state and cannot be automatically retried.
 
 ## Maintainer rules
 

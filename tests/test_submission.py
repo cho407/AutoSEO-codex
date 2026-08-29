@@ -65,10 +65,12 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/skills/autoseo-llmo/SKILL.md" in names
     assert "autoseo/skills/autoseo-neo/SKILL.md" in names
     assert "autoseo/skills/autoseo-naver-editor/SKILL.md" in names
+    assert "autoseo/skills/autoseo-naver-editor/references/feature-compatibility.md" in names
     assert "autoseo/schema/evidence-bundle.schema.json" in names
     assert "autoseo/schema/lane-report.schema.json" in names
     assert "autoseo/schema/naver-document.schema.json" in names
     assert "autoseo/data/naver-editor-features.json" in names
+    assert "autoseo/examples/naver-document-v1.json" in names
     assert "autoseo/data/feature-parity.json" in names
     assert "autoseo/data/free-sources.json" in names
     assert "autoseo/data/workflow-playbooks.json" in names

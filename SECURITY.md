@@ -20,6 +20,8 @@ AutoSEO is a local, Skills-only plugin. It can:
 - call public or no-cost first-party APIs only when the user has configured any
   required property access; and
 - perform an external write such as IndexNow submission only after explicit consent.
+- compose a draft in a visible, user-owned Naver Blog editor after a scoped draft
+  approval, and publish or schedule only after a separate per-post approval.
 
 AutoSEO does not operate a hosted backend, collect telemetry, require a shared
 publisher credential, or ship a separately billable data integration.
@@ -34,6 +36,23 @@ publisher credential, or ship a separately billable data integration.
 - The managed runtime executes only allowlisted bundled scripts.
 - Credential output and common secret patterns are redacted.
 - OAuth token files are written with owner-only permissions where supported.
+- Naver editor profiles use a dedicated owner-only directory. AutoSEO does not
+  export, print, or copy browser cookies outside it.
+- Naver checkpoints contain hashes and operation IDs rather than article text;
+  missing or ambiguous controls stop instead of triggering a guessed click.
+- Automated test environments block Naver publish and schedule actions before any
+  editor setting or publish control is touched.
+- An unclear publication result is recorded as unknown and is never retried
+  automatically, preventing duplicate posts.
+
+## Naver editor artifacts
+
+The visible editor can show private drafts, account names, and personal library
+items. A failure screenshot can therefore be sensitive even though it stays local.
+Profiles, checkpoints, compatibility maps, and diagnostics are excluded from Git
+and release archives. Users should review and delete diagnostics after resolving a
+failure. AutoSEO does not support bulk publishing, login bypass, automatic comments,
+sympathy, or neighbor actions.
 
 ## Supported versions
 

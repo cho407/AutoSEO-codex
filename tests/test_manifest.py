@@ -10,14 +10,14 @@ PLUGIN = ROOT / "plugins" / "autoseo"
 def test_plugin_manifest_and_assets() -> None:
     manifest = json.loads((PLUGIN / ".codex-plugin" / "plugin.json").read_text())
     assert manifest["name"] == "autoseo"
-    assert manifest["version"] == "0.3.0"
+    assert manifest["version"] == "0.4.0-rc.1"
     assert manifest["license"] == "MIT"
     assert manifest["repository"] == "https://github.com/cho407/AutoSEO-codex"
     assert manifest["skills"] == "./skills/"
 
     interface = manifest["interface"]
     assert interface["displayName"] == "AutoSEO"
-    assert 1 <= len(interface["defaultPrompt"]) <= 5
+    assert 1 <= len(interface["defaultPrompt"]) <= 3
     assert interface["capabilities"] == ["Interactive", "Read", "Write"]
     for key in ("composerIcon", "logo"):
         asset = (PLUGIN / interface[key]).resolve()

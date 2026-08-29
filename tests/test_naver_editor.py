@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import stat
 import sys
 from datetime import datetime, timedelta, timezone
@@ -423,3 +424,35 @@ def test_document_schema_and_checkpoint_ignore_rules_exist() -> None:
         "naver-editor-compatibility.json",
     ):
         assert value in ignore
+
+    example = json.loads(
+        (PLUGIN / "examples" / "naver-document-v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert naver_document.validate_document(example)["schema_version"] == 1
+
+
+def test_human_compatibility_matrix_matches_machine_catalog() -> None:
+    catalog = naver_editor.FeatureCatalog.load()
+    text = (
+        PLUGIN
+        / "skills"
+        / "autoseo-naver-editor"
+        / "references"
+        / "feature-compatibility.md"
+    ).read_text(encoding="utf-8")
+    automatic = text.split("## Automatic", 1)[1].split("## Guided", 1)[0]
+    guided = text.split("## Guided", 1)[1].split("## Unavailable", 1)[0]
+    pattern = re.compile(r"^\| `([^`]+)` \|", re.MULTILINE)
+
+    assert set(pattern.findall(automatic)) == {
+        identifier
+        for identifier, feature in catalog.features.items()
+        if feature["status"] == "automatic"
+    }
+    assert set(pattern.findall(guided)) == {
+        identifier
+        for identifier, feature in catalog.features.items()
+        if feature["status"] == "guided"
+    }
