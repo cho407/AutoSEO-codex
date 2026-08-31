@@ -3,11 +3,13 @@
 AutoSEO is a free, open-source Codex plugin for SEO, AEO, GEO, LLMO, and NEO.
 It collects each page once, reuses the same normalized evidence across independent
 readiness lanes, and includes guarded PC Naver Blog SmartEditor ONE composition.
+It also exports and composes Tistory posts as Markdown or HTML and can create local
+privacy derivatives that mosaic detected bystanders while preserving a clear main person.
 
 ## Status
 
-AutoSEO 0.4.0-rc.1 is a no-subscription release candidate and a **Skills-only**
-plugin. It maps 36 user-facing capability groups and the complete 41-playbook
+AutoSEO 0.5.0-rc.1 is a no-subscription release candidate and a **Skills-only**
+plugin. It maps 37 user-facing capability groups and the complete 41-playbook
 research-to-growth library. Every shipped workflow uses Codex-native research,
 public web data, local analysis, or optional no-cost data from a property the user
 owns. No paid dataset or subscription API is included.
@@ -36,6 +38,13 @@ the manual, user-owned-account checklist is completed against the live PC editor
 The default action is a confirmed draft save. Publish and schedule require a fresh,
 document-specific approval and are never retried when the result is unclear.
 
+The Tistory adapter follows the same publication boundary. Local Markdown/HTML
+export is deterministic and account-free; browser selectors remain release-candidate
+until checked against a user-owned live editor. Static attachments default to local
+face privacy processing. The original image is preserved, EXIF/GPS is stripped from
+the derivative, and a group with no clear main person is flagged and mosaicked
+privacy-first rather than choosing one person arbitrarily.
+
 ## Install from GitHub
 
 ```bash
@@ -51,6 +60,9 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
 - `@autoseo audit all https://example.com`
 - `@autoseo neo visibility "서울 성수동 카페"`
 - `@autoseo naver-editor compose ./article.naver-document.json`
+- `@autoseo tistory-editor export-markdown ./article.tistory-document.json`
+- `@autoseo tistory-editor compose ./article.tistory-document.json`
+- `@autoseo images mosaic ./people.jpg`
 - `@autoseo Create a technical SEO remediation plan for this site.`
 - `@autoseo Review this page's content, schema, and Core Web Vitals.`
 - `@autoseo Build a topic cluster and internal-link plan for this keyword.`
@@ -68,6 +80,10 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
 - Naver login, two-factor authentication, and CAPTCHA remain manual in a dedicated
   headed browser profile; cookies are never exported by AutoSEO.
 - Naver publish and schedule actions require a new exact approval for every post.
+- Tistory uploads, draft writes, publish, and schedule actions use separate guarded
+  states; unclear upload or publication results are never retried.
+- Face detection and mosaicing run locally through an optional free image profile;
+  image pixels are not sent to a hosted recognition provider.
 - Runtime dependencies are installed only when the user explicitly requests setup.
 - AutoSEO never routes a workflow to a separately billable data endpoint.
 
@@ -79,6 +95,7 @@ See [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md) for details.
 - [Command guide](docs/COMMANDS.md)
 - [Feature coverage](docs/FEATURE_COVERAGE.md)
 - [Naver editor compatibility](plugins/autoseo/skills/autoseo-naver-editor/references/feature-compatibility.md)
+- [Tistory editor compatibility](plugins/autoseo/skills/autoseo-tistory-editor/references/feature-compatibility.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security model](docs/SECURITY_MODEL.md)
 
@@ -111,7 +128,8 @@ plugins/autoseo/scripts/autoseo setup --profile standard
 
 Setup creates an isolated environment outside the repository. It does not install
 packages globally. Use `--profile lite` for browser-free analysis and add
-`--with google` or `--with report` only when those optional workflows are needed.
+`--with google`, `--with image`, or `--with report` only when those optional
+workflows are needed.
 
 Run the reproducible collection benchmark with:
 

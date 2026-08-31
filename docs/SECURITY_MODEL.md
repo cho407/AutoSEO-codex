@@ -12,6 +12,9 @@
 | Publishing or website mutation | Blocked | Separate, explicit authorization and review |
 | Naver draft write | Preview only | Exact document-bound approval, visible headed browser |
 | Naver publish or schedule | Blocked | Fresh final-settings preview and per-post approval token |
+| Tistory draft write | Preview only | Exact document and image-plan approval, visible headed browser |
+| Tistory publish or schedule | Blocked | Fresh final-settings preview and per-post approval token |
+| Privacy image derivative | Preview only | Source-bound plan, new private file, no original overwrite |
 | Package or connector installation | Blocked by default | Explicit setup/install request |
 
 ## Primary threats and controls
@@ -67,6 +70,21 @@ exact normalized document. Publication is disabled in automated tests. Once a cl
 has an unclear result, the state becomes `unknown` and automatic retry is refused.
 This reduces duplicate-post risk but cannot eliminate platform-side failure or UI
 change risk; live-editor validation remains required for each release candidate.
+
+### Stateful Tistory browser and local image privacy
+
+Tistory uses a separate owner-only persistent profile and accepts only HTTPS Tistory
+management pages plus the required Kakao login hosts. Markdown/HTML export stays
+browser-independent. Each upload is marked `attempting` before the click, stores one
+allowlisted hosted-media URL after verification, and becomes `unknown` on ambiguity;
+unknown uploads are not automatically repeated.
+
+Static image privacy processing is an optional local dependency profile. It detects
+frontal and profile faces without network calls, selects a main person only when the
+prominence difference is clear, and allows exact face or rectangle overrides. Output
+is a new owner-only file, destination symlinks and original overwrite are refused,
+and EXIF/GPS is stripped by default. Detection remains fallible, so the approval
+preview includes ambiguity and review status rather than claiming complete anonymization.
 
 ## Residual risks
 

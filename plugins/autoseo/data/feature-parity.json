@@ -89,8 +89,8 @@
       "id": "images",
       "skill": "autoseo-images",
       "status": "supported",
-      "subcommands": ["audit", "serp", "optimize"],
-      "helpers": ["iptc_ai_label.py"]
+      "subcommands": ["audit", "serp", "optimize", "mosaic"],
+      "helpers": ["iptc_ai_label.py", "privacy_mosaic.py"]
     },
     {
       "id": "sitemap",
@@ -161,6 +161,13 @@
       "status": "supported",
       "subcommands": ["doctor", "learn", "compose", "resume", "publish", "schedule"],
       "helpers": ["naver_document.py", "naver_editor.py"]
+    },
+    {
+      "id": "tistory-editor",
+      "skill": "autoseo-tistory-editor",
+      "status": "supported",
+      "subcommands": ["doctor", "learn", "export-markdown", "export-html", "compose", "resume", "publish", "schedule"],
+      "helpers": ["tistory_document.py", "tistory_editor.py", "privacy_mosaic.py"]
     },
     {
       "id": "backlinks",

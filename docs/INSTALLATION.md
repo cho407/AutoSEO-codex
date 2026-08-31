@@ -24,7 +24,8 @@ is normal until a workflow needs a Python helper.
 ## Optional analysis runtime
 
 Run setup only when you want the bundled deterministic helpers. The standard
-profile includes Playwright for conditional page rendering and Naver editing:
+profile includes Playwright for conditional page rendering, Naver editing, and
+Tistory editing:
 
 ```bash
 <plugin-root>/scripts/autoseo setup --profile standard
@@ -40,6 +41,7 @@ Install optional integrations only when needed:
 
 ```bash
 <plugin-root>/scripts/autoseo setup --profile lite --with google
+<plugin-root>/scripts/autoseo setup --profile standard --with image
 <plugin-root>/scripts/autoseo setup --profile standard --with report
 ```
 
@@ -63,6 +65,16 @@ in and completes two-factor authentication or CAPTCHA manually. Run
 `@autoseo naver-editor doctor`, then `@autoseo naver-editor learn` before the first
 release-candidate draft test.
 
+Tistory's former posting API is not used. Local Markdown/HTML export needs only the
+core runtime. Account composition opens the user's own `*.tistory.com/manage/...`
+editor in a second dedicated visible profile. Run `@autoseo tistory-editor doctor`,
+then `@autoseo tistory-editor learn` before the first live draft test.
+
+The optional `image` profile installs free local Pillow and OpenCV dependencies.
+It is required only when an attached image uses automatic face privacy processing.
+Image pixels remain local; derivatives are stored under `AUTOSEO_DATA_DIR/privacy-images`
+with user-only permissions, and originals are never overwritten.
+
 `autoseo-unlighthouse` additionally requires an already installed `unlighthouse-ci`
 binary on `PATH`, or an absolute executable path in `AUTOSEO_UNLIGHTHOUSE_BIN`.
 
@@ -72,5 +84,6 @@ Remove the plugin through Codex. Reports and runtime data are intentionally reta
 an uninstall cannot silently delete user work. Delete those user-owned directories only
 after reviewing their contents.
 
-The Naver profile, checkpoints, compatibility map, and diagnostics also remain under
-`AUTOSEO_DATA_DIR`. Review drafts and sign-in state before deleting them.
+The Naver and Tistory profiles, checkpoints, compatibility maps, privacy derivatives,
+and diagnostics also remain under `AUTOSEO_DATA_DIR`. Review drafts and sign-in state
+before deleting them.

@@ -15,6 +15,7 @@ analysis over versioned contracts.
 | Deterministic helpers | URL safety, crawling, parsing, API clients, scoring, exports | `plugins/autoseo/scripts/` |
 | Static knowledge | Schemas, templates, update records, and skill references | `plugins/autoseo/schema/`, `data/`, and skill-local folders |
 | Naver editor boundary | Versioned document, local feature map, checkpointed Playwright adapter | `naver_document.py`, `naver_editor.py`, `data/naver-editor-features.json` |
+| Tistory editor boundary | Markdown/HTML document, privacy derivatives, hosted-media map, checkpointed Playwright adapter | `tistory_document.py`, `tistory_editor.py`, `privacy_mosaic.py` |
 
 ## Request flow
 
@@ -53,6 +54,7 @@ AutoSEO data directory and installs a reviewed profile:
 - `lite`: core analysis without a browser;
 - `standard`: core analysis plus Playwright;
 - `google`: optional Google integrations;
+- `image`: optional local Pillow/OpenCV privacy processing;
 - `report`: optional PDF and spreadsheet tooling.
 
 Bundled helpers are addressed by basename and must appear in `ALLOWED_CORE_SCRIPTS`.
@@ -85,6 +87,25 @@ Draft saving and final publication use different document-bound approval tokens.
 Before publishing or scheduling, AutoSEO previews category, visibility, search,
 comments, sympathy, CCL, sharing, tags, and time. An unclear result enters an
 `unknown` state and cannot be automatically retried.
+
+## Tistory editor and privacy boundary
+
+`TistoryDocument v1` is independent of the browser and deterministically renders
+structured blocks as Markdown or escaped HTML. Browser composition uses a dedicated
+Tistory profile and selects one source mode for the complete body. Local export
+therefore remains usable even when the live editor selector map needs maintenance.
+
+Before account access, each static attachment receives a local face plan. Frontal
+and profile detections are ranked by area and prominence. One main face is retained
+only when unambiguous; other faces are mosaicked, and explicit face IDs or rectangular
+regions override the default. Original files are never overwritten and metadata is
+stripped from private derivatives by default.
+
+Uploads run from an empty basic editor, accept exactly one new allowlisted Kakao or
+Tistory CDN URL, and persist only that URL and its state. An interrupted or ambiguous
+upload enters `unknown` so resume cannot duplicate it. The final Markdown/HTML buffer,
+title, tags, and draft save use checked operation hashes. Publish and schedule remain
+separate one-click, per-document approval boundaries.
 
 ## Maintainer rules
 

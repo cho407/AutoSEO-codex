@@ -66,11 +66,17 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/skills/autoseo-neo/SKILL.md" in names
     assert "autoseo/skills/autoseo-naver-editor/SKILL.md" in names
     assert "autoseo/skills/autoseo-naver-editor/references/feature-compatibility.md" in names
+    assert "autoseo/skills/autoseo-tistory-editor/SKILL.md" in names
+    assert "autoseo/skills/autoseo-tistory-editor/references/feature-compatibility.md" in names
     assert "autoseo/schema/evidence-bundle.schema.json" in names
     assert "autoseo/schema/lane-report.schema.json" in names
     assert "autoseo/schema/naver-document.schema.json" in names
+    assert "autoseo/schema/tistory-document.schema.json" in names
     assert "autoseo/data/naver-editor-features.json" in names
+    assert "autoseo/data/tistory-editor-features.json" in names
     assert "autoseo/examples/naver-document-v1.json" in names
+    assert "autoseo/examples/tistory-document-v1.json" in names
+    assert "autoseo/requirements-image.txt" in names
     assert "autoseo/data/feature-parity.json" in names
     assert "autoseo/data/free-sources.json" in names
     assert "autoseo/data/workflow-playbooks.json" in names
@@ -81,6 +87,9 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/scripts/search_evidence.py" in names
     assert "autoseo/scripts/naver_document.py" in names
     assert "autoseo/scripts/naver_editor.py" in names
+    assert "autoseo/scripts/privacy_mosaic.py" in names
+    assert "autoseo/scripts/tistory_document.py" in names
+    assert "autoseo/scripts/tistory_editor.py" in names
     assert "autoseo/scripts/workflow_catalog.py" in names
     for removed in (
         "autoseo/scripts/dataforseo_costs.py",
@@ -116,11 +125,19 @@ def test_every_release_file_is_tracked_by_git() -> None:
     assert missing == []
 
 
-def test_sensitive_naver_runtime_artifacts_are_not_tracked_or_released() -> None:
+def test_sensitive_editor_runtime_artifacts_are_not_tracked_or_released() -> None:
     forbidden_parts = {
         "naver-editor-profile",
         "naver-editor-checkpoints",
         "naver-editor-diagnostics",
+        "tistory-editor-profile",
+        "tistory-editor-checkpoints",
+        "tistory-editor-diagnostics",
+        "privacy-images",
+    }
+    forbidden_names = {
+        "naver-editor-compatibility.json",
+        "tistory-editor-compatibility.json",
     }
     release_relatives = {
         path.relative_to(ROOT / "plugins" / "autoseo")
@@ -128,6 +145,7 @@ def test_sensitive_naver_runtime_artifacts_are_not_tracked_or_released() -> None
         if path.is_file()
     }
     assert not any(forbidden_parts & set(path.parts) for path in release_relatives)
+    assert not any(path.name in forbidden_names for path in release_relatives)
 
     if not (ROOT / ".git").exists():
         return
@@ -139,3 +157,4 @@ def test_sensitive_naver_runtime_artifacts_are_not_tracked_or_released() -> None
     ).stdout.split(b"\0")
     tracked_paths = [Path(value.decode("utf-8")) for value in tracked if value]
     assert not any(forbidden_parts & set(path.parts) for path in tracked_paths)
+    assert not any(path.name in forbidden_names for path in tracked_paths)

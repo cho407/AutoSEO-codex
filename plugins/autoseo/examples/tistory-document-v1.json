@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "document_id": "tistory-draft-example",
+  "title": "검색 사용자를 위한 정확한 안내",
+  "format": "markdown",
+  "blocks": [
+    {
+      "id": "intro",
+      "type": "paragraph",
+      "text": "핵심 답변과 적용 조건을 먼저 설명합니다."
+    },
+    {
+      "id": "evidence-heading",
+      "type": "heading",
+      "level": 2,
+      "text": "확인 근거"
+    },
+    {
+      "id": "evidence-list",
+      "type": "unordered-list",
+      "items": [
+        "확인 가능한 원본 자료를 연결합니다.",
+        "관측 결과와 해석을 구분합니다."
+      ]
+    },
+    {
+      "id": "summary",
+      "type": "quote",
+      "text": "실제 결과는 게시 전 미리보기에서 다시 확인합니다."
+    }
+  ],
+  "media": [],
+  "tags": ["검색", "콘텐츠"],
+  "publish_settings": {
+    "mode": "draft",
+    "category": null,
+    "visibility": "public",
+    "comments_allowed": true,
+    "scheduled_at": null
+  }
+}

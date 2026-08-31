@@ -33,6 +33,14 @@ Sources and limitations are included in the result.
 @autoseo naver-editor resume <draft>
 @autoseo naver-editor publish <draft>
 @autoseo naver-editor schedule <draft-and-time>
+@autoseo tistory-editor doctor
+@autoseo tistory-editor learn
+@autoseo tistory-editor export-markdown <document>
+@autoseo tistory-editor export-html <document>
+@autoseo tistory-editor compose <topic-or-document>
+@autoseo tistory-editor resume <draft>
+@autoseo tistory-editor publish <draft>
+@autoseo tistory-editor schedule <draft-and-time>
 @autoseo plan <business-context>
 @autoseo plan saas <context>
 @autoseo plan local <context>
@@ -48,6 +56,13 @@ before editing or saving. Publish and schedule show all final settings and requi
 a new document-specific approval token for every post. An unclear result is never
 retried automatically.
 
+Tistory export commands are local and require no login. Compose uses one Markdown
+or HTML source-buffer write in a separate visible profile. Attached static images
+default to local bystander mosaicing: a clear main face is kept, other detected
+faces are mosaicked, and ambiguous group photos mosaic all detected faces for
+review. Upload and publication each use one-attempt, approval-bound state; unclear
+results are not retried.
+
 ## Site and page workflows
 
 ```text
@@ -57,6 +72,7 @@ retried automatically.
 @autoseo images audit <url>
 @autoseo images serp <query>
 @autoseo images optimize <image-or-directory>
+@autoseo images mosaic <image>
 @autoseo sitemap analyze <url-or-file>
 @autoseo sitemap generate <site-or-url-list>
 @autoseo competitor-pages audit <url>
@@ -248,7 +264,7 @@ a production-ready creative brief instead.
 
 ```text
 <plugin-root>/scripts/autoseo doctor --json
-<plugin-root>/scripts/autoseo setup [--profile standard|lite] [--with google] [--with report]
+<plugin-root>/scripts/autoseo setup [--profile standard|lite] [--with google] [--with image] [--with report]
 <plugin-root>/scripts/autoseo run <allowlisted-script.py> [arguments]
 ```
 

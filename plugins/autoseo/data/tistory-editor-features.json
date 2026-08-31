@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "catalog_version": "2026-08-31",
+  "editor": "Tistory PC editor",
+  "features": [
+    {
+      "id": "title",
+      "status": "automatic",
+      "handler": "fill-title",
+      "locator": {
+        "role": "textbox",
+        "names": ["제목", "제목을 입력하세요"],
+        "labels": ["제목"],
+        "dom_fallback": "textarea[placeholder*='제목'], input[placeholder*='제목'], textarea[name='title']"
+      }
+    },
+    {
+      "id": "editor-mode",
+      "status": "automatic",
+      "handler": "select-mode",
+      "locator": {
+        "role": "button",
+        "names": ["에디터 모드", "기본모드", "마크다운", "HTML"],
+        "labels": ["기본모드", "마크다운", "HTML"],
+        "dom_fallback": "button[id*='mode'], button[class*='mode']"
+      }
+    },
+    {
+      "id": "mode-basic",
+      "status": "automatic",
+      "handler": "select-mode",
+      "locator": {
+        "role": "menuitem",
+        "names": ["기본모드"],
+        "labels": ["기본모드"],
+        "dom_fallback": "button[data-mode='basic'], [role='menuitem'][data-value='basic']"
+      }
+    },
+    {
+      "id": "mode-markdown",
+      "status": "automatic",
+      "handler": "select-mode",
+      "locator": {
+        "role": "menuitem",
+        "names": ["마크다운", "Markdown"],
+        "labels": ["마크다운", "Markdown"],
+        "dom_fallback": "button[data-mode='markdown'], [role='menuitem'][data-value='markdown']"
+      }
+    },
+    {
+      "id": "mode-html",
+      "status": "automatic",
+      "handler": "select-mode",
+      "locator": {
+        "role": "menuitem",
+        "names": ["HTML"],
+        "labels": ["HTML"],
+        "dom_fallback": "button[data-mode='html'], [role='menuitem'][data-value='html']"
+      }
+    },
+    {
+      "id": "body-source",
+      "status": "automatic",
+      "handler": "fill-body",
+      "locator": {
+        "role": "textbox",
+        "names": ["본문", "내용"],
+        "labels": ["본문"],
+        "dom_fallback": ".CodeMirror, .cm-content[contenteditable='true'], textarea[name='content']"
+      }
+    },
+    {
+      "id": "image-upload",
+      "status": "automatic",
+      "handler": "upload-image",
+      "locator": {
+        "role": "button",
+        "names": ["사진", "이미지", "사진 첨부"],
+        "labels": ["사진", "이미지"],
+        "dom_fallback": "button[aria-label*='사진'], button[title*='사진']",
+        "file_input": "input[type='file'][accept*='image']"
+      }
+    },
+    {
+      "id": "tags",
+      "status": "automatic",
+      "handler": "set-tags",
+      "locator": {
+        "role": "textbox",
+        "names": ["태그", "태그 입력"],
+        "labels": ["태그"],
+        "dom_fallback": "input[placeholder*='태그'], input[name='tag']"
+      }
+    },
+    {
+      "id": "category",
+      "status": "automatic",
+      "handler": "set-publish-option",
+      "locator": {
+        "role": "combobox",
+        "names": ["카테고리"],
+        "labels": ["카테고리"],
+        "dom_fallback": "select[name='category'], button[aria-label*='카테고리']"
+      }
+    },
+    {
+      "id": "visibility",
+      "status": "automatic",
+      "handler": "set-publish-option",
+      "locator": {
+        "role": "group",
+        "names": ["공개 설정", "공개"],
+        "labels": ["공개", "비공개"],
+        "dom_fallback": "[class*='visibility'], [class*='open-type']"
+      }
+    },
+    {
+      "id": "comments-allowed",
+      "status": "automatic",
+      "handler": "set-publish-option",
+      "locator": {
+        "role": "checkbox",
+        "names": ["댓글 허용", "댓글"],
+        "labels": ["댓글 허용", "댓글"],
+        "dom_fallback": "input[type='checkbox'][name*='comment']"
+      }
+    },
+    {
+      "id": "draft-save",
+      "status": "automatic",
+      "handler": "save-draft",
+      "locator": {
+        "role": "button",
+        "names": ["임시저장"],
+        "labels": ["임시저장"],
+        "shortcut": "Control+S",
+        "dom_fallback": "button[class*='save'], button[data-action='draft']"
+      }
+    },
+    {
+      "id": "publish-dialog",
+      "status": "automatic",
+      "handler": "guarded-publish",
+      "locator": {
+        "role": "button",
+        "names": ["완료", "발행 설정"],
+        "labels": ["완료"],
+        "dom_fallback": "button[class*='publish'], button[data-action='publish']"
+      }
+    },
+    {
+      "id": "publish",
+      "status": "automatic",
+      "handler": "guarded-publish",
+      "locator": {
+        "role": "button",
+        "names": ["공개 발행", "발행"],
+        "labels": ["공개 발행", "발행"],
+        "dom_fallback": "button[data-action='publish-confirm'], button[class*='publish-confirm']"
+      }
+    },
+    {
+      "id": "schedule-option",
+      "status": "automatic",
+      "handler": "set-publish-option",
+      "locator": {
+        "role": "radio",
+        "names": ["예약"],
+        "labels": ["예약"],
+        "dom_fallback": "input[type='radio'][value*='schedule'], button[data-action='schedule-option']"
+      }
+    },
+    {
+      "id": "schedule-publish",
+      "status": "automatic",
+      "handler": "guarded-publish",
+      "locator": {
+        "role": "button",
+        "names": ["예약 발행"],
+        "labels": ["예약 발행"],
+        "dom_fallback": "button[data-action='schedule'], button[class*='schedule-confirm']"
+      }
+    }
+  ]
+}

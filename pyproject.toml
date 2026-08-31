@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoseo-codex"
-version = "0.4.0rc1"
-description = "Free open-source SEO, AEO, GEO, LLMO, NEO, and Naver workflows for Codex"
+version = "0.5.0rc1"
+description = "Free open-source SEO, AEO, GEO, LLMO, NEO, Naver, and Tistory workflows for Codex"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "cho407" }]
-keywords = ["seo", "aeo", "geo", "llmo", "neo", "naver", "codex", "search"]
+keywords = ["seo", "aeo", "geo", "llmo", "neo", "naver", "tistory", "codex", "search"]
 
 [project.urls]
 Homepage = "https://github.com/cho407/AutoSEO-codex"
@@ -20,6 +20,7 @@ Issues = "https://github.com/cho407/AutoSEO-codex/issues"
 [project.optional-dependencies]
 dev = [
   "beautifulsoup4>=4.12.0,<5",
+  "Pillow>=11.3.0,<13",
   "pytest>=9.1.1,<10",
   "PyYAML>=6.0.3,<7",
   "requests>=2.32.4,<3",

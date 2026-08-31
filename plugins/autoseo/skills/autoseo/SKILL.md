@@ -1,6 +1,6 @@
 ---
 name: autoseo
-description: Route end-to-end SEO, AEO, GEO, LLMO, and NEO work through shared evidence and independent readiness reports. Use for website audits, answer readiness, AI citations, brand facts, Naver visibility, technical SEO, content, and multi-lane requests.
+description: Route end-to-end SEO, AEO, GEO, LLMO, and NEO work through shared evidence and independent readiness reports. Use for website audits, answer readiness, AI citations, brand facts, Naver visibility, technical SEO, content, publishing, and multi-lane requests.
 ---
 
 ## Safety Boundaries
@@ -72,13 +72,14 @@ when the request spans multiple areas.
 | Search-focused writing brief | `autoseo-content-brief` |
 | Structured data detection or generation | `autoseo-schema` |
 | Sitemap analysis or generation | `autoseo-sitemap` |
-| Existing image optimization | `autoseo-images` |
+| Existing image optimization or face privacy mosaic | `autoseo-images` |
 | Create an SEO image asset | `autoseo-image-gen` |
 | AI Overviews and generative search visibility | `autoseo-geo` |
 | Search answer readiness and answer-focused briefs | `autoseo-aeo` |
 | Closed-book brand facts and entity consistency | `autoseo-llmo` |
 | Naver Search and AI Briefing readiness | `autoseo-neo` |
 | Naver Blog SmartEditor ONE composition and guarded publication | `autoseo-naver-editor` |
+| Tistory Markdown/HTML export, composition, and guarded publication | `autoseo-tistory-editor` |
 | Strategic roadmap | `autoseo-plan` |
 | Research-to-optimization operating cycle | `autoseo-workflow` |
 | Pages generated from structured data | `autoseo-programmatic` |

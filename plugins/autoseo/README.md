@@ -4,7 +4,7 @@ This directory is the distributable AutoSEO Codex plugin. It contains skills,
 local helpers, schemas, references, and brand assets, with no hosted service,
 embedded credential, separately billable data integration, or MCP server.
 
-Version 0.4.0-rc.1 covers 36 user-facing capability groups, five independent
+Version 0.5.0-rc.1 covers 37 user-facing capability groups, five independent
 SEO/AEO/GEO/LLMO/NEO readiness lanes, and 41 guided workflow playbooks. A shared
 `EvidenceBundle v1` prevents repeated page collection across lanes. Commercial-only
 metrics and live monitoring outcomes are excluded instead of being fabricated.
@@ -12,8 +12,14 @@ metrics and live monitoring outcomes are excluded instead of being fabricated.
 The PC Naver Blog SmartEditor ONE adapter uses a dedicated visible Playwright
 profile. Draft writes and every publish/schedule action have separate approval
 boundaries. Candidate-based controls are guided, ambiguous UI stops safely, and an
-unclear publication result is never retried. Live-editor verification is still
-required before promoting this release candidate to 0.4.0.
+unclear publication result is never retried. Live Naver and Tistory editor
+verification is still required before promoting this release candidate to 0.5.0.
+
+The Tistory adapter renders `TistoryDocument v1` to Markdown or HTML without a
+browser, or composes it in a separate guarded visible profile. Static attachments
+can be processed locally with a privacy-first bystander mosaic: one unambiguous main
+face is kept, other detected faces are mosaicked, and explicit face/region overrides
+remain available. Live Tistory selector validation is required before stable release.
 
 Resolve this directory as `<plugin-root>` whenever a skill runs a bundled helper:
 
@@ -29,7 +35,7 @@ Dependency setup is explicit:
 ```
 
 Use `--profile lite` for browser-free analysis. Google and PDF/Excel integrations
-are separate opt-ins through `--with google` and `--with report`.
+are separate opt-ins through `--with google`, `--with image`, and `--with report`.
 
 AutoSEO is distributed under the MIT License in `LICENSE`.
 

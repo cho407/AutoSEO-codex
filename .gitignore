@@ -31,6 +31,11 @@ naver-editor-profile/
 naver-editor-checkpoints/
 naver-editor-diagnostics/
 naver-editor-compatibility.json
+tistory-editor-profile/
+tistory-editor-checkpoints/
+tistory-editor-diagnostics/
+tistory-editor-compatibility.json
+privacy-images/
 
 # OS and editor files
 .DS_Store

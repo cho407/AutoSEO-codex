@@ -29,6 +29,7 @@ RUNTIME_PROFILES = {
 }
 RUNTIME_EXTRAS = {
     "google": "requirements-google.txt",
+    "image": "requirements-image.txt",
     "report": "requirements-report.txt",
 }
 ALLOWED_CORE_SCRIPTS = frozenset(
@@ -42,10 +43,10 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
         "indexnow_submit.py", "iptc_ai_label.py", "korean_text.py", "lane_engine.py", "lcp_subparts.py", "naver_document.py", "naver_editor.py", "naver_evidence.py", "pagespeed_check.py",
-        "parasite_risk.py", "parse_html.py", "preload_check.py", "render_page.py",
+        "parasite_risk.py", "parse_html.py", "preload_check.py", "privacy_mosaic.py", "render_page.py",
         "rdap_lookup.py", "schema_ecommerce_validate.py", "schema_generate.py",
         "autoseo_updates.py", "search_evidence.py",
-        "sitemap_discovery.py", "ucp_check.py", "unlighthouse_run.py",
+        "sitemap_discovery.py", "tistory_document.py", "tistory_editor.py", "ucp_check.py", "unlighthouse_run.py",
         "url_safety.py", "verify_backlinks.py",
         "workflow_catalog.py", "youtube_search.py",
     }
@@ -342,6 +343,8 @@ def command_setup(args: argparse.Namespace) -> int:
                 imports.append("playwright")
             if "google" in extras:
                 imports.extend(("google.auth", "google.analytics.data", "googleapiclient"))
+            if "image" in extras:
+                imports.extend(("PIL", "cv2"))
             if "report" in extras:
                 imports.extend(("matplotlib", "numpy", "openpyxl", "weasyprint"))
             _run_checked(

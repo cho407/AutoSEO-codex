@@ -80,6 +80,14 @@ def test_runtime_dependency_profiles_are_explicit_and_composable() -> None:
         "requirements-google.txt",
         "requirements-report.txt",
     ]
+    assert [
+        path.name
+        for path in runtime._requirement_files(PLUGIN, "standard", ("image",))
+    ] == [
+        "requirements-core.txt",
+        "requirements-browser.txt",
+        "requirements-image.txt",
+    ]
 
     with pytest.raises(ValueError):
         runtime._requirement_files(PLUGIN, "unknown", ())

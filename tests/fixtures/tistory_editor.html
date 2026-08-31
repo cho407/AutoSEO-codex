@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Local Tistory editor fixture</title>
+  <style>
+    [hidden] { display: none !important; }
+    .ProseMirror { min-height: 120px; border: 1px solid #aaa; }
+    textarea[aria-label="본문"] { width: 600px; height: 180px; }
+  </style>
+</head>
+<body>
+  <textarea aria-label="제목" placeholder="제목을 입력하세요"></textarea>
+  <button id="mode-button" type="button">기본모드</button>
+  <div id="mode-menu" hidden>
+    <button role="menuitem" data-mode="basic" type="button">기본모드</button>
+    <button role="menuitem" data-mode="markdown" type="button">마크다운</button>
+    <button role="menuitem" data-mode="html" type="button">HTML</button>
+  </div>
+  <div id="basic-body" class="ProseMirror" contenteditable="true"></div>
+  <textarea id="source-body" aria-label="본문" name="content" hidden></textarea>
+  <button aria-label="사진" type="button">사진</button>
+  <input id="image-input" type="file" accept="image/*" hidden>
+  <input aria-label="태그" placeholder="태그 입력">
+  <div id="tags"></div>
+  <button id="draft-save" type="button">임시저장</button>
+  <div id="status"></div>
+  <script>
+    const modeButton = document.querySelector('#mode-button');
+    const menu = document.querySelector('#mode-menu');
+    const basic = document.querySelector('#basic-body');
+    const source = document.querySelector('#source-body');
+    modeButton.addEventListener('click', () => { menu.hidden = false; });
+    document.querySelectorAll('[data-mode]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.mode;
+        modeButton.textContent = button.textContent;
+        basic.hidden = mode !== 'basic';
+        source.hidden = mode === 'basic';
+        menu.hidden = true;
+      });
+    });
+    document.querySelector('button[aria-label="사진"]').addEventListener('click', () => {
+      document.querySelector('#image-input').click();
+    });
+    document.querySelector('#image-input').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      const image = document.createElement('img');
+      image.alt = file ? file.name : 'image';
+      image.src = 'https://blog.kakaocdn.net/dn/local-fixture/uploaded.jpg';
+      basic.appendChild(image);
+    });
+    const tagInput = document.querySelector('input[aria-label="태그"]');
+    tagInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && tagInput.value) {
+        event.preventDefault();
+        const tag = document.createElement('span');
+        tag.textContent = tagInput.value;
+        document.querySelector('#tags').appendChild(tag);
+        tagInput.value = '';
+      }
+    });
+    document.querySelector('#draft-save').addEventListener('click', () => {
+      document.querySelector('#status').textContent = '임시저장 완료';
+    });
+  </script>
+</body>
+</html>

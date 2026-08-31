@@ -1,7 +1,7 @@
-# AutoSEO 0.4.0-rc.1
+# AutoSEO 0.5.0-rc.1
 
 Free, local-first release candidate with independent SEO, AEO, GEO, LLMO, and
-NEO lanes plus guarded PC Naver Blog SmartEditor ONE automation.
+NEO lanes plus guarded PC Naver Blog and Tistory editor automation.
 
 ## Added
 
@@ -17,7 +17,13 @@ NEO lanes plus guarded PC Naver Blog SmartEditor ONE automation.
 - Dedicated headed Naver profile with manual login, two-factor authentication,
   and CAPTCHA
 - Document-bound draft approval and fresh per-post publish/schedule approval
-- Runtime profiles for `lite`, `standard`, optional `google`, and optional `report`
+- `TistoryDocument v1` with deterministic GitHub-style Markdown and escaped HTML
+  rendering, tags, categories, visibility, comments, media, draft, and schedule data
+- Dedicated Tistory profile, local UI learning map, duplicate-safe hosted-media
+  checkpoints, one-buffer source insertion, and guarded publish/schedule actions
+- Free local frontal/profile face detection with a privacy-first main-person policy,
+  explicit face/region overrides, private derivatives, and metadata stripping
+- Runtime profiles for `lite`, `standard`, optional `google`, optional `image`, and optional `report`
 - Reproducible 20-page collection benchmark and editor safety regression suite
 
 ## Changed
@@ -40,6 +46,10 @@ NEO lanes plus guarded PC Naver Blog SmartEditor ONE automation.
   article bodies are not exported or stored in checkpoints.
 - Ambiguous UI stops without guessing. An unclear publication result is never retried.
 - Automated tests disable Naver publish/schedule before any mutation.
+- Automated tests also disable Tistory publish/schedule and verify that unclear
+  uploads cannot be retried.
+- Image pixels and face boxes stay local. Originals are never overwritten; automatic
+  detection is fallible and sensitive images still require visual review.
 - Bulk posts, automatic comments/sympathy/neighbors, login bypass, Cafe, Place,
   Smart Store, and mobile editors are out of scope.
 - Rankings, indexation, citations, model learning, and Naver exposure are not guaranteed.
@@ -47,7 +57,8 @@ NEO lanes plus guarded PC Naver Blog SmartEditor ONE automation.
 ## Release-candidate gate
 
 The full automated suite and clean release archive must pass before tagging. Promote
-to `0.4.0` only after a user-owned live Naver draft verifies ordinary formatting,
-media, advanced components, draft save, separately approved publish, and separately
-approved schedule once each. Until then the feature classifications document
-implemented and mock-verified behavior, not a live-platform guarantee.
+to `0.5.0` only after the existing Naver checklist and a user-owned live Tistory
+checklist verify Markdown, HTML, privacy-image upload, draft save, separately approved
+publish, and separately approved schedule once each. Until then editor feature
+classifications document implemented and mock-verified behavior, not a live-platform
+guarantee.

@@ -4,9 +4,10 @@ description: >
   Image optimization analysis for SEO and performance. Checks alt text, file
   sizes, formats, responsive images, lazy loading, CLS prevention, public image-result
   evidence, and image file optimization (WebP/AVIF conversion,
-  IPTC/XMP metadata injection). Use when user says "image optimization",
+  IPTC/XMP metadata injection), plus local face-aware privacy mosaics. Use when user says "image optimization",
   "alt text", "image SEO", "image size", "image audit", "optimize images",
-  "image metadata", "image SERP", "convert to webp", or "image file optimize".
+  "image metadata", "image SERP", "convert to webp", "image file optimize",
+  "mosaic people", "blur faces", or "hide bystanders".
 ---
 
 ## Safety Boundaries
@@ -21,8 +22,8 @@ description: >
 ## Command alias
 
 `@autoseo images audit <url>` runs the complete existing-image audit. The
-`serp` and `optimize` commands below remain available for live result analysis
-and consent-gated local file optimization respectively.
+`serp`, `optimize`, and `mosaic` commands below remain available for live result
+analysis and consent-gated local file processing.
 
 ## Checks
 
@@ -431,6 +432,45 @@ For maximum image SEO, run this pipeline on each image:
 | IPTC Creator/Copyright | **LOW** (display only) | Image file metadata |
 | EXIF camera data | NONE | Irrelevant for SEO |
 | IPTC Keywords | NONE | Google ignores these |
+
+---
+
+## Local face privacy mosaic
+
+### `@autoseo images mosaic <path>`
+
+Create a private derivative without overwriting the original. Install the free
+local image profile first:
+
+```text
+<plugin-root>/scripts/autoseo setup --profile lite --with image
+<plugin-root>/scripts/autoseo run privacy_mosaic.py analyze ./people.jpg
+```
+
+The default `background-people` policy keeps one main detected face only when it
+is clearly larger or more prominent, and mosaics other detected frontal/profile
+faces. If similar-sized faces make the main person ambiguous, mosaic all detected
+faces and flag the plan for review. This privacy-first ambiguity rule is intentional.
+
+Translate user instructions into the versioned plan rather than guessing:
+
+- `main_face_id` selects the intended main face;
+- `keep_face_ids` preserves named faces;
+- `mosaic_face_ids` adds named faces to the mosaic set;
+- `regions` covers a missed face, license plate, screen, or other explicit area;
+- `all`, `none`, and `selected` replace the default policy when requested.
+
+First show the detection count, numbered face boxes, kept/mosaicked IDs, custom
+regions, destination, metadata policy, and approval token. Only after immediate
+confirmation run `privacy_mosaic.py apply` with that exact token. A changed source
+file or plan invalidates approval. Store the derivative under `AUTOSEO_DATA_DIR`
+unless the user approved another path, set user-only permissions, strip EXIF/GPS by
+default, and never upload pixels or face data to a hosted recognition service.
+
+Face detection can miss profiles, occluded faces, reflections, or very small people.
+Do not claim the photo is privacy-complete solely because automatic detection returned
+zero. When visual review indicates a miss, add an explicit region and regenerate the
+plan. Animated GIF mosaicing is unavailable.
 
 ---
 

@@ -10,15 +10,18 @@ AutoSEO is a free, open-source SEO, AEO, GEO, LLMO, and NEO plugin for Codex.
 It collects each page once, runs independent readiness lanes, explains technical
 and content findings, reviews structured data and performance, plans content and
 internal links, evaluates Naver Search and AI Briefing readiness, and can compose a
-user-owned PC Naver Blog draft in a guarded visible editor.
+user-owned PC Naver Blog draft in a guarded visible editor. It also exports Tistory
+posts as Markdown/HTML, composes guarded Tistory drafts, and creates free local image
+privacy derivatives that mosaic detected bystanders without overwriting originals.
 
 The plugin is read-only by default. It validates public URLs, bounds crawls, labels
 estimates and missing evidence, and asks before external write actions. Every shipped
 workflow has a no-subscription path using public, local, Codex-native, or optional
 no-cost first-party evidence.
 
-Naver login and security challenges stay manual. Draft saving and final publication
-use separate exact approvals, and publish/schedule never retries an unclear result.
+Naver and Tistory login and security challenges stay manual. Draft saving and final
+publication use separate exact approvals, and upload/publish/schedule never retries an
+unclear result. Face detection is local and always presented as reviewable assistance.
 
 ## Category
 
@@ -31,6 +34,8 @@ Productivity
 - Create a prioritized SEO/GEO plan for the next 90 days.
 - Audit all five SEO, AEO, GEO, LLMO, and NEO lanes for this site.
 - Compose this Korean article as a Naver Blog draft for my review.
+- Export this article for Tistory as Markdown, then prepare a draft for my review.
+- Mosaic the surrounding people in this image while keeping the clear main person.
 - Build a SERP-informed topic cluster and internal-link plan.
 
 ## Capabilities
@@ -40,6 +45,8 @@ Productivity
 - User-requested local reports and planning artifacts
 - Consent-gated indexing and other external write actions
 - Consent-gated, user-owned Naver Blog draft and publication actions
+- Consent-gated, user-owned Tistory draft and publication actions
+- Local, original-preserving image privacy derivatives
 
 ## Support and policies
 

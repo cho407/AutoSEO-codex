@@ -1,6 +1,6 @@
 # Feature Coverage
 
-AutoSEO 0.4.0-rc.1 exposes 36 routable capability groups and 41 guided
+AutoSEO 0.5.0-rc.1 exposes 37 routable capability groups and 41 guided
 research-to-growth playbooks. Every shipped workflow has a no-subscription path.
 The inventory is enforced by `data/feature-parity.json`, the evidence-source policy
 in `data/free-sources.json`, and regression tests.
@@ -24,13 +24,14 @@ safety boundary, documentation, and fallback behavior validate together.
 | `autoseo-content-brief` | Search-focused briefs and page-type templates |
 | `autoseo-schema` | Structured-data detection, validation, and generation |
 | `autoseo-sitemap` | Sitemap discovery, analysis, and safe generation guidance |
-| `autoseo-images` | Image performance, accessibility, metadata, and AI-label audits |
+| `autoseo-images` | Image performance, accessibility, metadata, AI-label audits, and local face privacy mosaics |
 | `autoseo-image-gen` | Host-native creation briefs and SEO-ready image assets |
 | `autoseo-aeo` | Question intent, direct answers, claim/source support, and answer readiness |
 | `autoseo-geo` | Generative-search access, attribution, citation readiness, and observed sources |
 | `autoseo-llmo` | Brand fact ledger, entity consistency, external corroboration, and closed-book limits |
 | `autoseo-neo` | Korean intent, Yeti, Naver Search, and AI Briefing readiness and observations |
 | `autoseo-naver-editor` | Guarded PC SmartEditor ONE draft composition, resume, publication, and scheduling |
+| `autoseo-tistory-editor` | Markdown/HTML export and guarded Tistory draft composition, image upload, resume, publication, and scheduling |
 | `autoseo-plan` | SEO/GEO strategy, prioritization, roadmaps, and industry templates |
 | `autoseo-workflow` | 41 playbooks across discovery, authority, optimization, conversion, and local stages |
 | `autoseo-programmatic` | Template and data-quality controls for generated page collections |
@@ -80,6 +81,16 @@ scope. The machine-readable source is `data/naver-editor-features.json`; the com
 human-readable status and live validation checklist are in the distributable
 [feature compatibility reference](../plugins/autoseo/skills/autoseo-naver-editor/references/feature-compatibility.md).
 
+## Tistory editor and image privacy compatibility
+
+`TistoryDocument v1` renders locally to Markdown or HTML. Account writes use the
+visible PC editor because Tistory's official posting API is discontinued. Static
+attachments default to a local privacy derivative: a clearly prominent main face
+is preserved and surrounding detected faces are mosaicked. Similar-sized groups are
+treated as ambiguous and all detected faces are mosaicked until the user overrides
+the plan. The complete live validation gate is in the distributable
+[Tistory compatibility reference](../plugins/autoseo/skills/autoseo-tistory-editor/references/feature-compatibility.md).
+
 ## Deliberate exclusions
 
 These outcomes do not have a trustworthy no-subscription equivalent and are not
@@ -99,7 +110,8 @@ never relabels a proxy as a proprietary measurement.
 
 The bundle includes helpers for SSRF-safe fetching, a shared `EvidenceBundle v1`,
 single-browser rendered-page capture, five independent lane reports, Korean text and
-Naver evidence, guarded SmartEditor automation, HTML parsing, sitemap discovery,
+Naver evidence, guarded Naver and Tistory editor automation, local face privacy
+derivatives, HTML parsing, sitemap discovery,
 structured data, performance evidence, authorized
 first-party reports, Common Crawl link discovery, direct backlink verification, local
 snapshot comparison, RDAP, content checks, image metadata, and report generation.

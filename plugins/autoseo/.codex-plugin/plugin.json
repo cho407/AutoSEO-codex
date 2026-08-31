@@ -1,7 +1,7 @@
 {
   "name": "autoseo",
-  "version": "0.4.0-rc.1",
-  "description": "Free, open-source SEO, AEO, GEO, LLMO, NEO, and guarded Naver Blog workflows for Codex.",
+  "version": "0.5.0-rc.1",
+  "description": "Free, open-source SEO, AEO, GEO, LLMO, NEO, Naver, Tistory, and image-privacy workflows for Codex.",
   "author": {
     "name": "cho407",
     "url": "https://github.com/cho407"
@@ -16,6 +16,8 @@
     "llmo",
     "neo",
     "naver",
+    "tistory",
+    "image-privacy",
     "generative-engine-optimization",
     "technical-seo",
     "structured-data",
@@ -25,8 +27,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "AutoSEO",
-    "shortDescription": "Optimize search, answer, AI, and Naver visibility",
-    "longDescription": "Collect website evidence once, run independent SEO, AEO, GEO, LLMO, and NEO readiness lanes, plan search content, and compose user-owned Naver Blog drafts in a guarded visible editor. Every shipped workflow has a no-subscription execution path; AutoSEO is read-only by default and requires per-post approval before publication.",
+    "shortDescription": "Optimize search and publish guarded blog drafts",
+    "longDescription": "Collect website evidence once, run independent SEO, AEO, GEO, LLMO, and NEO readiness lanes, plan search content, and compose user-owned Naver or Tistory drafts in guarded visible editors. Tistory supports local Markdown/HTML export and free local bystander mosaics. Every shipped workflow has a no-subscription path and requires per-post approval before publication.",
     "developerName": "cho407",
     "category": "Productivity",
     "capabilities": [
@@ -40,7 +42,7 @@
     "defaultPrompt": [
       "Audit this website for SEO and AI-search visibility",
       "Run all five SEO, AEO, GEO, LLMO, and NEO lanes",
-      "Compose this Korean article as a Naver Blog draft"
+      "Compose this Korean article as a guarded Naver or Tistory draft"
     ],
     "brandColor": "#0F9D75",
     "composerIcon": "./assets/icon.svg",
