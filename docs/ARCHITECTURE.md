@@ -16,6 +16,8 @@ analysis over versioned contracts.
 | Static knowledge | Schemas, templates, update records, and skill references | `plugins/autoseo/schema/`, `data/`, and skill-local folders |
 | Naver editor boundary | Versioned document, local feature map, checkpointed Playwright adapter | `naver_document.py`, `naver_editor.py`, `data/naver-editor-features.json` |
 | Tistory editor boundary | Markdown/HTML document, privacy derivatives, hosted-media map, checkpointed Playwright adapter | `tistory_document.py`, `tistory_editor.py`, `privacy_mosaic.py` |
+| Writing identity boundary | Confirmed writer basis, audience, tone, and terms without draft storage | `writing_identity.py`, `schema/writing-identity.schema.json` |
+| Current-topic evidence | Dated, deduplicated, corroborated relative trend observations | `trend_evidence.py`, `schema/trend-evidence.schema.json` |
 
 ## Request flow
 
@@ -29,7 +31,9 @@ analysis over versioned contracts.
    bounded record without another page request.
 5. Each lane emits `LaneReport v1` with pass/fail/unmeasured checks, coverage,
    readiness, observations, confidence, and limitations.
-6. Findings include evidence, severity, impact, recommendation, and confidence.
+6. Scoreable lane reports are combined as `OptimizationReport v1`; observed outcomes
+   remain outside readiness points.
+7. Findings include evidence, severity, impact, recommendation, and confidence.
    Existing files and external systems are not changed without explicit approval.
 
 ```text
@@ -39,6 +43,8 @@ URL(s) -> safe HTTP -> SPA decision -> optional shared render -> EvidenceBundle 
                                                         |-> GEO LaneReport v1
                                                         |-> LLMO LaneReport v1
                                                         `-> NEO LaneReport v1
+                                                               |
+                                                               `-> OptimizationReport v1
 ```
 
 Readiness and observed outcomes are separate. A lane shows a 0-100 score only
@@ -68,6 +74,20 @@ optional no-cost first-party evidence. `free_source_policy.py` rejects any catal
 that requires a subscription. Exact commercial metrics are not approximated under a
 misleading label: relative signals carry their method, sample size, date, and limits.
 No connector auto-installer or separately billable data integration is shipped.
+
+## Writing and trend flow
+
+Natural writing requests enter `autoseo-writing` without requiring command syntax.
+The read-only profile check runs first. If preferences are missing, Codex asks only
+the unresolved planning questions and may continue one-off without saving. A confirmed
+`WritingIdentity v1` is atomically stored with owner-only permissions and never
+contains a draft body.
+
+Current-topic research records `TrendEvidence v1` before drafting. The deterministic
+helper validates timezone-aware dates and finite relative metrics, canonicalizes URLs,
+deduplicates same-source copies, counts independent source groups, computes refresh
+status, and exposes component coverage. It fetches nothing itself; Codex-native web
+research or an explicitly safe no-cost provider supplies the cited observations.
 
 ## Naver editor boundary
 

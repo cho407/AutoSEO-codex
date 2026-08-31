@@ -1,6 +1,6 @@
 # Feature Coverage
 
-AutoSEO 0.5.0-rc.1 exposes 37 routable capability groups and 41 guided
+AutoSEO 0.6.0-rc.1 exposes 38 routable capability groups and 41 guided
 research-to-growth playbooks. Every shipped workflow has a no-subscription path.
 The inventory is enforced by `data/feature-parity.json`, the evidence-source policy
 in `data/free-sources.json`, and regression tests.
@@ -22,6 +22,7 @@ safety boundary, documentation, and fallback behavior validate together.
 | `autoseo-visual` | Mobile, desktop, above-the-fold, accessibility-tree, and visual review |
 | `autoseo-content` | Quality, E-E-A-T, factual support, citability, and human-review checks |
 | `autoseo-content-brief` | Search-focused briefs and page-type templates |
+| `autoseo-writing` | First-run writing identity, selectable Korean tone, natural drafting, translationese polishing, current trend handoff, and measured scores |
 | `autoseo-schema` | Structured-data detection, validation, and generation |
 | `autoseo-sitemap` | Sitemap discovery, analysis, and safe generation guidance |
 | `autoseo-images` | Image performance, accessibility, metadata, AI-label audits, and local face privacy mosaics |
@@ -72,6 +73,25 @@ Every lane uses `critical=4`, `high=3`, `medium=2`, and `low=1` weights. A score
 shown only after required eligibility is measured and at least 70% of applicable
 evidence is present. Rankings, citations, model training, and Naver exposure are
 never guaranteed.
+
+`OptimizationReport v1` combines selected lanes only when every lane is scoreable.
+It uses the same measured severity weights, publishes aggregate evidence coverage,
+lists failed checks in priority order, and keeps real clicks, ranks, mentions, and
+citations in a separate outcome panel.
+
+## Writing and trend research
+
+`WritingIdentity v1` stores only the confirmed writer basis, reader, outcome, tone,
+preferred terms, and platform defaults in an owner-only local file. It never stores
+draft bodies or credentials. Korean polishing changes only deterministic safe
+patterns automatically; context-dependent calques and passive constructions are
+flagged for semantic review.
+
+`TrendEvidence v1` records market, language, time window, observation time,
+publication time, source group, and optional relative trend values. The helper
+removes tracking-URL duplicates, requires independent source groups for a confirmed
+trend, and computes a transparent research-priority score from measured freshness,
+relevance, corroboration, and relative velocity. Exact search volume remains null.
 
 ## Naver editor compatibility
 

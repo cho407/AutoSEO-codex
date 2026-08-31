@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cho407/AutoSEO-codex/schema/writing-identity-v1.json",
+  "title": "WritingIdentity v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "profile_name",
+    "identity",
+    "audience",
+    "voice",
+    "lexicon",
+    "content_defaults",
+    "confirmed_at"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "WritingIdentity"},
+    "profile_name": {"type": "string", "minLength": 1, "maxLength": 80},
+    "identity": {
+      "type": "object",
+      "required": ["role", "expertise", "experience_claims"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1, "maxLength": 240},
+        "expertise": {"type": "array", "maxItems": 30, "items": {"type": "string", "minLength": 1, "maxLength": 120}},
+        "experience_claims": {"type": "array", "maxItems": 30, "items": {"type": "string", "minLength": 1, "maxLength": 120}}
+      },
+      "additionalProperties": false
+    },
+    "audience": {
+      "type": "object",
+      "required": ["primary", "knowledge_level", "needs"],
+      "properties": {
+        "primary": {"type": "string", "minLength": 1, "maxLength": 240},
+        "knowledge_level": {"enum": ["beginner", "intermediate", "advanced", "mixed"]},
+        "needs": {"type": "array", "maxItems": 30, "items": {"type": "string", "minLength": 1, "maxLength": 120}}
+      },
+      "additionalProperties": false
+    },
+    "voice": {
+      "type": "object",
+      "required": ["preset", "sentence_ending", "warmth", "directness", "humor", "emoji", "custom_instructions"],
+      "properties": {
+        "preset": {"enum": ["friendly", "professional", "expert-friendly", "conversational", "warm", "concise", "persuasive", "custom"]},
+        "sentence_ending": {"enum": ["haeyo", "hamnida", "mixed-intentional", "custom"]},
+        "warmth": {"type": "integer", "minimum": 0, "maximum": 5},
+        "directness": {"type": "integer", "minimum": 0, "maximum": 5},
+        "humor": {"type": "integer", "minimum": 0, "maximum": 5},
+        "emoji": {"enum": ["none", "light", "moderate"]},
+        "custom_instructions": {"type": "string", "maxLength": 500}
+      },
+      "additionalProperties": false
+    },
+    "lexicon": {
+      "type": "object",
+      "required": ["preferred_terms", "avoid_terms"],
+      "properties": {
+        "preferred_terms": {"type": "array", "maxItems": 30, "items": {"type": "string", "minLength": 1, "maxLength": 120}},
+        "avoid_terms": {"type": "array", "maxItems": 30, "items": {"type": "string", "minLength": 1, "maxLength": 120}}
+      },
+      "additionalProperties": false
+    },
+    "content_defaults": {
+      "type": "object",
+      "required": ["goal", "cta_style", "market", "language", "platforms"],
+      "properties": {
+        "goal": {"type": "string", "minLength": 1, "maxLength": 300},
+        "cta_style": {"enum": ["none", "soft", "direct"]},
+        "market": {"type": "string", "minLength": 1, "maxLength": 20},
+        "language": {"type": "string", "minLength": 1, "maxLength": 20},
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"enum": ["web", "naver", "tistory", "newsletter", "social", "other"]}
+        }
+      },
+      "additionalProperties": false
+    },
+    "confirmed_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

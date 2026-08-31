@@ -82,6 +82,39 @@ Only include signals actually observed. Analyze or compare captures with:
 The helper intentionally returns `exact_search_volume: null`. It produces a
 relative demand proxy and a result-competition proxy with their inputs.
 
+## Current and trending topics
+
+When the user asks for issues, latest information, trend keywords, or a current
+article, do not rely on model memory. Use current Codex-native web research and
+primary sources, then normalize the observations as `TrendEvidence v1`.
+
+1. Fix the market, language, and window before collection. Default to `24h` for
+   breaking topics and `7d` for sustained interest; `4h`, `48h`, and `30d` are also
+   supported when the request warrants them.
+2. Use Google Trends Trending Now export or RSS as an optional relative signal. Its
+   official interface supports 4-hour, 24-hour, 48-hour, and 7-day views and related
+   news; it is not exact search volume. Do not depend on the limited-access Trends API.
+3. Search the exact topic, core entities, and one disambiguating phrase. Keep the
+   query set small and reproducible, and record observed and published timestamps.
+4. Prefer an official or first-party source for the event itself, then corroborate
+   it with an independent source. Deduplicate tracking URLs and same-publisher copies.
+5. Mark a one-source item `emerging` or `measured-single-source`; do not call it a
+   confirmed trend. Separate event date, publication date, and observation date.
+6. Run the deterministic normalizer:
+
+```text
+<plugin-root>/scripts/autoseo run trend_evidence.py validate <trend-evidence.json>
+<plugin-root>/scripts/autoseo run trend_evidence.py analyze <trend-evidence.json>
+```
+
+The resulting opportunity score averages only measured freshness, topic relevance,
+source corroboration, and relative velocity. It exposes component coverage and
+always returns `exact_search_volume: null`. A stale or uncorroborated topic must be
+refreshed before it becomes the factual basis of a content brief.
+
+Official reference for Trending Now:
+https://support.google.com/trends/answer/3076011?hl=en
+
 ## Public domain and link evidence
 
 ```text

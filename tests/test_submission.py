@@ -64,6 +64,7 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/skills/autoseo-aeo/SKILL.md" in names
     assert "autoseo/skills/autoseo-llmo/SKILL.md" in names
     assert "autoseo/skills/autoseo-neo/SKILL.md" in names
+    assert "autoseo/skills/autoseo-writing/SKILL.md" in names
     assert "autoseo/skills/autoseo-naver-editor/SKILL.md" in names
     assert "autoseo/skills/autoseo-naver-editor/references/feature-compatibility.md" in names
     assert "autoseo/skills/autoseo-tistory-editor/SKILL.md" in names
@@ -72,10 +73,15 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/schema/lane-report.schema.json" in names
     assert "autoseo/schema/naver-document.schema.json" in names
     assert "autoseo/schema/tistory-document.schema.json" in names
+    assert "autoseo/schema/writing-identity.schema.json" in names
+    assert "autoseo/schema/optimization-report.schema.json" in names
+    assert "autoseo/schema/trend-evidence.schema.json" in names
     assert "autoseo/data/naver-editor-features.json" in names
     assert "autoseo/data/tistory-editor-features.json" in names
     assert "autoseo/examples/naver-document-v1.json" in names
     assert "autoseo/examples/tistory-document-v1.json" in names
+    assert "autoseo/examples/writing-identity-v1.json" in names
+    assert "autoseo/examples/trend-evidence-v1.json" in names
     assert "autoseo/requirements-image.txt" in names
     assert "autoseo/data/feature-parity.json" in names
     assert "autoseo/data/free-sources.json" in names
@@ -85,6 +91,9 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/scripts/free_source_policy.py" in names
     assert "autoseo/scripts/rdap_lookup.py" in names
     assert "autoseo/scripts/search_evidence.py" in names
+    assert "autoseo/scripts/trend_evidence.py" in names
+    assert "autoseo/scripts/optimization_report.py" in names
+    assert "autoseo/scripts/writing_identity.py" in names
     assert "autoseo/scripts/naver_document.py" in names
     assert "autoseo/scripts/naver_editor.py" in names
     assert "autoseo/scripts/privacy_mosaic.py" in names

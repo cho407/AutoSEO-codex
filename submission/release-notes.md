@@ -1,9 +1,19 @@
-# AutoSEO 0.5.0-rc.1
+# AutoSEO 0.6.0-rc.1
 
 Free, local-first release candidate with independent SEO, AEO, GEO, LLMO, and
 NEO lanes plus guarded PC Naver Blog and Tistory editor automation.
 
 ## Added
+
+- Natural Korean drafting and polishing with a confirmed local `WritingIdentity v1`
+- Friendly, professional, expert-friendly, conversational, warm, concise,
+  persuasive, and custom tone presets with sentence-ending consistency checks
+- First-run planning intake that asks only missing identity, audience, outcome, and
+  tone questions and does not require command knowledge
+- `OptimizationReport v1` with aggregate coverage, withheld-score reasons,
+  prioritized failed checks, and a separate observed-results panel
+- `TrendEvidence v1` with strict timestamps, source-group corroboration, URL
+  deduplication, refresh windows, and transparent opportunity components
 
 - `EvidenceBundle v1`: one HTTP collection and at most one render per URL and audit
 - One reused Chromium instance for all pages that actually need rendering
@@ -35,6 +45,9 @@ NEO lanes plus guarded PC Naver Blog and Tistory editor automation.
   affect readiness scores.
 - Missing evidence is `unmeasured`; it is not converted to zero.
 - Observed ranks, clicks, citations, and answer samples stay outside readiness scores.
+- Naver legacy keys and API HUB use are now explicit provider modes. Legacy support
+  is dated to 2027-06-30; API HUB stays disabled until the user confirms a no-billing
+  account because Naver describes the current free plan as temporary.
 - CI now runs a single Python 3.12 PR/main validation plus a clean `git archive`
   check. Python 3.10 and 3.14 compatibility runs only for tags or manual releases.
 
@@ -57,7 +70,7 @@ NEO lanes plus guarded PC Naver Blog and Tistory editor automation.
 ## Release-candidate gate
 
 The full automated suite and clean release archive must pass before tagging. Promote
-to `0.5.0` only after the existing Naver checklist and a user-owned live Tistory
+to `0.6.0` only after the existing Naver checklist and a user-owned live Tistory
 checklist verify Markdown, HTML, privacy-image upload, draft save, separately approved
 publish, and separately approved schedule once each. Until then editor feature
 classifications document implemented and mock-verified behavior, not a live-platform

@@ -21,6 +21,15 @@
       "limitations": ["respect robots and site terms", "bounded crawling only"]
     },
     {
+      "id": "google-trends-trending-now",
+      "name": "Google Trends Trending Now export and RSS",
+      "access": "public",
+      "subscription_required": false,
+      "official_url": "https://support.google.com/trends/answer/3076011?hl=en",
+      "use_cases": ["current topic discovery", "relative trend direction", "related news evidence"],
+      "limitations": ["relative signal rather than exact volume", "market and time window must match", "one trend feed alone is not cross-source confirmation"]
+    },
+    {
       "id": "sitemaps-robots",
       "name": "Sitemaps and robots declarations",
       "access": "public",
@@ -133,18 +142,18 @@
       "name": "Naver Search API",
       "access": "free-account",
       "subscription_required": false,
-      "official_url": "https://developers.naver.com/docs/common/openapiguide/apilist.md",
+      "official_url": "https://developers.naver.com/notice/article/32530",
       "use_cases": ["Naver blog results", "web documents", "Knowledge iN", "cafe articles", "local results"],
-      "limitations": ["requires no-cost client credentials", "daily quotas apply", "API samples may differ from personalized integrated search"]
+      "limitations": ["legacy keys issued before 2026-07-31 are supported only through 2027-06-30", "API HUB is temporarily free and disabled unless the user confirms a no-billing account", "daily quotas apply", "API samples may differ from personalized integrated search"]
     },
     {
       "id": "naver-datalab",
-      "name": "Naver DataLab Search Trends",
+      "name": "Naver Search Trend API",
       "access": "free-account",
       "subscription_required": false,
-      "official_url": "https://developers.naver.com/docs/serviceapi/datalab/search/search.md",
+      "official_url": "https://api.ncloud-docs.com/docs/naver-api-hub-search-trend",
       "use_cases": ["relative Korean query trends", "like-for-like cohort comparison"],
-      "limitations": ["requires no-cost client credentials", "values are relative trends rather than exact search volume"]
+      "limitations": ["legacy and API HUB keys are different", "API HUB stays disabled without explicit no-billing confirmation", "values are relative trends rather than exact search volume"]
     },
     {
       "id": "naver-search-advisor",

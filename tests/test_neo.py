@@ -121,6 +121,88 @@ def test_naver_api_rejects_missing_keys_and_unknown_surfaces(
         naver_evidence.search("검색", vertical="news-paywalled")
 
 
+def test_naver_api_hub_requires_explicit_no_billing_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NAVER_API_HUB_CLIENT_ID", "hub-id")
+    monkeypatch.setenv("NAVER_API_HUB_CLIENT_SECRET", "hub-secret")
+    monkeypatch.delenv("AUTOSEO_CONFIRM_NAVER_API_HUB_NO_BILLING", raising=False)
+
+    with pytest.raises(ValueError, match="no-billing"):
+        naver_evidence.search("검색", provider="api-hub-free")
+
+
+def test_naver_api_hub_uses_migrated_endpoint_only_after_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NAVER_API_HUB_CLIENT_ID", "hub-id")
+    monkeypatch.setenv("NAVER_API_HUB_CLIENT_SECRET", "hub-secret")
+    monkeypatch.setenv("AUTOSEO_CONFIRM_NAVER_API_HUB_NO_BILLING", "1")
+    captured: dict = {}
+
+    class Response:
+        @staticmethod
+        def raise_for_status() -> None:
+            pass
+
+        @staticmethod
+        def json() -> dict:
+            return {"total": 0, "start": 1, "display": 0, "items": []}
+
+    def fake_get(url: str, **kwargs: object) -> Response:
+        captured["url"] = url
+        captured.update(kwargs)
+        return Response()
+
+    result = naver_evidence.search(
+        "검색", provider="api-hub-free", request_get=fake_get
+    )
+
+    assert captured["url"] == "https://naverapihub.apigw.ntruss.com/search/v1/blog"
+    assert captured["headers"] == {
+        "X-NCP-APIGW-API-KEY-ID": "hub-id",
+        "X-NCP-APIGW-API-KEY": "hub-secret",
+    }
+    assert result["provider"] == "api-hub-free-confirmed"
+    assert result["exact_search_volume"] is None
+    assert "hub-secret" not in repr(result)
+
+
+def test_naver_local_search_enforces_the_official_small_result_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NAVER_CLIENT_ID", "legacy-id")
+    monkeypatch.setenv("NAVER_CLIENT_SECRET", "legacy-secret")
+    with pytest.raises(ValueError, match="between 1 and 5"):
+        naver_evidence.search("카페", vertical="local", display=6)
+    with pytest.raises(ValueError, match="start must be 1"):
+        naver_evidence.search("카페", vertical="local", display=5, start=2)
+
+
+def test_naver_local_search_uses_the_official_default_display(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NAVER_CLIENT_ID", "legacy-id")
+    monkeypatch.setenv("NAVER_CLIENT_SECRET", "legacy-secret")
+    captured: dict = {}
+
+    class Response:
+        @staticmethod
+        def raise_for_status() -> None:
+            pass
+
+        @staticmethod
+        def json() -> dict:
+            return {"total": 0, "start": 1, "display": 0, "items": []}
+
+    def fake_get(url: str, **kwargs: object) -> Response:
+        captured.update(kwargs)
+        return Response()
+
+    naver_evidence.search("카페", vertical="local", request_get=fake_get)
+    assert captured["params"]["display"] == 1
+
+
 def test_naver_datalab_returns_relative_trends_without_secrets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

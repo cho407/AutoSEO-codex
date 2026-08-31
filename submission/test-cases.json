@@ -40,6 +40,25 @@
       ]
     },
     {
+      "id": "positive-natural-korean-writing",
+      "prompt": "처음 쓰는 사람도 이해할 수 있게 이 주제로 네이버 글을 써줘. 번역투는 빼고 전문가가 친절하게 설명하는 말투로 해줘.",
+      "expectedBehavior": [
+        "Routes naturally to the writing workflow without requiring command knowledge",
+        "Reuses known context and asks only missing identity, audience, outcome, or tone questions",
+        "Preserves facts while polishing Korean and reports unresolved claims",
+        "Does not save a profile or write to Naver without separate confirmation"
+      ]
+    },
+    {
+      "id": "positive-current-trend-brief",
+      "prompt": "한국에서 오늘 이슈가 되는 검색 키워드를 확인해서 최신 근거로 글감과 최적화 점수를 알려줘.",
+      "expectedBehavior": [
+        "Uses dated current web and trend evidence rather than model memory",
+        "Deduplicates sources and distinguishes emerging from independently corroborated topics",
+        "Reports a transparent research-priority score and coverage, not exact search volume or predicted ranking"
+      ]
+    },
+    {
       "id": "positive-cluster",
       "prompt": "Build a topic cluster and internal-link matrix for Korean ecommerce SEO.",
       "expectedBehavior": [

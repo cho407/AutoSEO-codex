@@ -26,6 +26,8 @@ AutoSEO is a local, Skills-only plugin. It can:
   separate visible profile, and publish or schedule only after per-post approval.
 - create a new local privacy derivative that mosaics selected detected faces or
   explicit regions without overwriting the original.
+- save a user-confirmed writing identity and tone profile in an owner-only local
+  file, without storing article bodies or credentials.
 
 AutoSEO does not operate a hosted backend, collect telemetry, require a shared
 publisher credential, or ship a separately billable data integration.
@@ -52,6 +54,12 @@ publisher credential, or ship a separately billable data integration.
   URLs; an unclear upload is never retried automatically.
 - Face processing is local and optional. Originals are immutable, output paths reject
   symlinks, and derived files strip metadata by default.
+- Writing identity files use a dedicated directory, atomic replacement, symlink
+  rejection, bounded fields, owner-only permissions, and explicit save/reset consent.
+- Current-topic evidence requires timezone-aware timestamps, bounded records, public
+  URLs, finite relative metrics, source deduplication, and visible refresh status.
+- NAVER API HUB is never selected automatically. Its temporary-free provider path
+  requires separate keys and an explicit no-billing guard before any request.
 
 ## Naver editor artifacts
 

@@ -6,7 +6,8 @@ direct prose. Conservative by design: only replaces phrases listed in
 
 Use case: a content editor running last-mile cleanup on a draft. This
 is NOT a paraphraser or a translation tool; it does not introduce new
-content. Every replacement is a deterministic 1:1 swap.
+content. English cleanup and conservative Korean calque cleanup are
+deterministic. Ambiguous Korean phrasing is reported rather than guessed.
 
 The replacement table is an AutoSEO-maintained set of conservative editorial
 rules for common filler and promotional phrasing. It is intentionally small,
@@ -83,10 +84,67 @@ _REPLACEMENTS: tuple[tuple[str, str, str], ...] = (
 )
 
 
-_PATTERNS = [
+_ENGLISH_PATTERNS = [
     (re.compile(p, re.IGNORECASE), repl, label)
     for p, repl, label in _REPLACEMENTS
 ]
+
+_KOREAN_REPLACEMENTS: tuple[tuple[str, str, str], ...] = (
+    (
+        r"(확인|설정|사용|진행|제공|결정|고려|설명)(?:을|를)\s+하는 것이 가능합니다",
+        r"\1할 수 있습니다",
+        "명사화-가능합니다",
+    ),
+    (r"하는 것이 가능합니다", "할 수 있습니다", "가능합니다-번역투"),
+    (
+        r"(확인|설정|사용|진행|제공|결정|고려|설명)(?:을|를)\s+하",
+        r"\1하",
+        "불필요한-명사화",
+    ),
+    (r"되어집니다", "됩니다", "이중피동-되어집니다"),
+    (r"되어지는", "되는", "이중피동-되어지는"),
+    (r"되어질", "될", "이중피동-되어질"),
+    (r"되어졌", "됐", "이중피동-되어졌"),
+    (r"필요로 합니다", "필요합니다", "필요로-합니다"),
+)
+_KOREAN_PATTERNS = [
+    (re.compile(pattern), replacement, label)
+    for pattern, replacement, label in _KOREAN_REPLACEMENTS
+]
+
+_KOREAN_REVIEW_PATTERNS: tuple[tuple[re.Pattern[str], str, str], ...] = (
+    (
+        re.compile(r"에 있어서"),
+        "에-있어서",
+        "문맥에 따라 '에서', '에는', 또는 문장 재구성이 자연스러울 수 있습니다.",
+    ),
+    (
+        re.compile(r"에 의해"),
+        "에-의해",
+        "행위 주체가 중요하면 능동문으로 바꿀 수 있지만 사실관계를 먼저 확인하세요.",
+    ),
+    (
+        re.compile(r"(?:이것|그것)은"),
+        "지시대명사",
+        "무엇을 가리키는지 명사로 밝혀야 하는지 확인하세요.",
+    ),
+    (
+        re.compile(r"라는 것을 알 수 있(?:습니다|어요)"),
+        "라는-것을-알-수",
+        "근거가 명확하면 결론을 직접 말하는 편이 자연스러울 수 있습니다.",
+    ),
+)
+
+_TONE_ENDINGS: dict[str, str] = {
+    "friendly": "haeyo",
+    "expert-friendly": "haeyo",
+    "conversational": "haeyo",
+    "warm": "haeyo",
+    "persuasive": "haeyo",
+    "professional": "hamnida",
+    "concise": "hamnida",
+    "custom": "custom",
+}
 
 
 def _preserve_case(match_text: str, replacement: str) -> str:
@@ -98,15 +156,96 @@ def _preserve_case(match_text: str, replacement: str) -> str:
     return replacement
 
 
-def humanize(text: str) -> dict:
-    """Apply every replacement; return the cleaned text plus a change log."""
+def _language(text: str, requested: str) -> str:
+    if requested != "auto":
+        return requested
+    korean = sum("가" <= char <= "힣" for char in text)
+    latin = sum(char.isascii() and char.isalpha() for char in text)
+    return "ko" if korean > latin else "en"
+
+
+def _review_findings(text: str) -> list[dict]:
+    findings: list[dict] = []
+    for pattern, label, guidance in _KOREAN_REVIEW_PATTERNS:
+        matches = list(pattern.finditer(text))
+        if matches:
+            findings.append(
+                {
+                    "label": label,
+                    "count": len(matches),
+                    "examples": [match.group(0) for match in matches[:3]],
+                    "guidance": guidance,
+                    "automatic": False,
+                }
+            )
+    return findings
+
+
+def _tone_validation(text: str, tone: str | None) -> dict:
+    requested_ending = _TONE_ENDINGS.get(tone or "")
+    if not tone:
+        return {
+            "requested": None,
+            "expected_ending": None,
+            "compliant": None,
+            "matching_endings": 0,
+            "conflicting_endings": 0,
+            "note": "No tone preset was requested.",
+        }
+    if requested_ending == "custom":
+        return {
+            "requested": tone,
+            "expected_ending": "custom",
+            "compliant": None,
+            "matching_endings": 0,
+            "conflicting_endings": 0,
+            "note": "Custom tone requires semantic review against the confirmed profile.",
+        }
+    sentences = [
+        item.strip()
+        for item in re.split(r"(?<=[.!?])\s+|\n+", text)
+        if item.strip()
+    ]
+    friendly = sum(bool(re.search(r"요[.!?]?$", item)) for item in sentences)
+    formal = sum(
+        bool(re.search(r"(?:니다|십시오)[.!?]?$", item))
+        for item in sentences
+    )
+    matching = friendly if requested_ending == "haeyo" else formal
+    conflicting = formal if requested_ending == "haeyo" else friendly
+    compliant = matching > 0 and conflicting == 0
+    note = (
+        "Sentence endings match the requested preset."
+        if compliant
+        else "Review mixed or unmatched sentence endings before publication."
+    )
+    return {
+        "requested": tone,
+        "expected_ending": requested_ending,
+        "compliant": compliant,
+        "matching_endings": matching,
+        "conflicting_endings": conflicting,
+        "note": note,
+    }
+
+
+def humanize(text: str, *, language: str = "auto", tone: str | None = None) -> dict:
+    """Apply safe replacements and return cleanup plus Korean diagnostics."""
+    if language not in {"auto", "en", "ko"}:
+        raise ValueError("language must be auto, en, or ko")
+    if tone is not None and tone not in _TONE_ENDINGS:
+        raise ValueError(f"unsupported tone preset: {tone}")
     changes: list[dict] = []
     cleaned = text
+    detected_language = _language(text, language)
+    patterns = list(_ENGLISH_PATTERNS)
+    if detected_language == "ko":
+        patterns.extend(_KOREAN_PATTERNS)
 
-    for pattern, replacement, label in _PATTERNS:
+    for pattern, replacement, label in patterns:
         def _repl(match):
             original = match.group(0)
-            new = _preserve_case(original, replacement)
+            new = _preserve_case(original, match.expand(replacement))
             changes.append({
                 "label": label,
                 "from": original,
@@ -124,11 +263,22 @@ def humanize(text: str) -> dict:
         "cleaned": cleaned,
         "changes": changes,
         "change_count": len(changes),
+        "language": detected_language,
+        "translationese_findings": (
+            _review_findings(cleaned) if detected_language == "ko" else []
+        ),
+        "tone_validation": _tone_validation(cleaned, tone),
+        "limitations": [
+            "Only meaning-preserving deterministic replacements are automatic.",
+            "Natural Korean flow and custom voice still require semantic editorial review.",
+        ],
     }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="AI-pattern remover for drafts.")
+    parser = argparse.ArgumentParser(
+        description="Conservative draft polish and Korean tone diagnostic."
+    )
     parser.add_argument(
         "source",
         nargs="?",
@@ -143,6 +293,17 @@ def main() -> int:
     )
     parser.add_argument("--json", action="store_true",
                         help="Emit JSON with cleaned text + change log.")
+    parser.add_argument(
+        "--language",
+        choices=("auto", "en", "ko"),
+        default="auto",
+        help="Language used for deterministic cleanup (default: auto).",
+    )
+    parser.add_argument(
+        "--tone",
+        choices=tuple(_TONE_ENDINGS),
+        help="Validate Korean sentence endings against a writing tone preset.",
+    )
     args = parser.parse_args()
 
     if args.source == "-":
@@ -154,10 +315,14 @@ def main() -> int:
             print(f"Error: {exc}", file=sys.stderr)
             return 2
 
-    result = humanize(text)
+    try:
+        result = humanize(text, language=args.language, tone=args.tone)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
 
     if args.json:
-        json.dump(result, sys.stdout, indent=2)
+        json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         return 0
 

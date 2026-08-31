@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "TrendEvidence",
+  "topic": "AI 검색 최적화",
+  "market": "KR",
+  "language": "ko",
+  "window": "24h",
+  "observed_at": "2026-08-31T12:00:00+00:00",
+  "evidence": [
+    {
+      "source_type": "official-trend",
+      "source_group": "trend-source",
+      "url": "https://example.com/trends/ai-search",
+      "title": "AI 검색 최적화 관심 증가",
+      "published_at": "2026-08-31T11:00:00+00:00",
+      "metrics": {"velocity_index": 82}
+    },
+    {
+      "source_type": "primary-source",
+      "source_group": "product-source",
+      "url": "https://example.org/releases/ai-search",
+      "title": "AI 검색 최적화 기능 공개",
+      "published_at": "2026-08-31T10:00:00+00:00",
+      "is_primary": true
+    }
+  ]
+}

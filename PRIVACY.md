@@ -13,6 +13,12 @@ generated reports, audit baselines, and configuration required for a requested
 workflow. Local runtime data is stored in the platform-appropriate AutoSEO data
 directory or a directory explicitly selected by the user.
 
+An optional `writing-identity.json` file can store the user-confirmed writer basis,
+audience, content goal, tone, preferred and avoided terms, and platform defaults.
+It is owner-readable only where the operating system supports permissions. It does
+not store article bodies, research pages, credentials, or account cookies. AutoSEO
+shows the proposed profile and requires confirmation before saving or replacing it.
+
 For Naver Blog editing, the local data directory may contain a dedicated Chromium
 profile, Naver cookies managed by Chromium, a UI compatibility map, hash-only
 operation checkpoints, and failure screenshots. AutoSEO does not export cookies or
@@ -38,9 +44,12 @@ Public website, Common Crawl, RDAP, PageSpeed, and IndexNow requests likewise go
 directly from the user's environment. AutoSEO does not proxy or retain requests on
 publisher-controlled infrastructure and ships no separately billable data service.
 
-Optional Naver Search and DataLab requests go directly to Naver with keys read from
-`NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET`. Those keys are not written to reports,
-checkpoints, or the repository. SmartEditor automation operates only in the visible
+Optional legacy Naver Search and DataLab requests go directly to Naver with keys read
+from `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET`. NAVER API HUB uses separate
+`NAVER_API_HUB_CLIENT_ID` and `NAVER_API_HUB_CLIENT_SECRET` values and remains
+disabled unless the user confirms a no-billing account through the documented local
+guard. Those keys and the guard are not written to reports, checkpoints, or the
+repository. SmartEditor automation operates only in the visible
 user-owned browser profile; login, two-factor authentication, and CAPTCHA stay with
 the user.
 
@@ -56,6 +65,9 @@ credential that is accidentally disclosed.
 AutoSEO retains no publisher-side data. Users can delete local reports, caches,
 audit history, configuration, and the managed runtime at any time. Removing the
 plugin does not automatically remove user-created reports.
+
+The writing identity can be reviewed or deleted separately. Deleting it only removes
+future default preferences; it does not delete user-created drafts or editor data.
 
 Naver editor data can be removed by deleting the dedicated profile, checkpoint,
 compatibility-map, and diagnostic paths under `AUTOSEO_DATA_DIR` after signing out

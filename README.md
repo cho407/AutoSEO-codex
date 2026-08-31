@@ -8,11 +8,18 @@ privacy derivatives that mosaic detected bystanders while preserving a clear mai
 
 ## Status
 
-AutoSEO 0.5.0-rc.1 is a no-subscription release candidate and a **Skills-only**
-plugin. It maps 37 user-facing capability groups and the complete 41-playbook
+AutoSEO 0.6.0-rc.1 is a no-subscription release candidate and a **Skills-only**
+plugin. It maps 38 user-facing capability groups and the complete 41-playbook
 research-to-growth library. Every shipped workflow uses Codex-native research,
 public web data, local analysis, or optional no-cost data from a property the user
 owns. No paid dataset or subscription API is included.
+
+Korean writing now starts with an optional local identity and tone profile. If the
+profile is missing, AutoSEO asks only a few unanswered planning questions, then can
+draft or polish without translationese in friendly, professional, expert-friendly,
+conversational, warm, concise, persuasive, or custom voice. Current topics use
+dated, corroborated trend evidence; scores expose their measured coverage and never
+stand in for Google or Naver ranking data.
 
 The five lanes answer different questions:
 
@@ -57,6 +64,10 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
 ## Example prompts
 
 - `@autoseo Audit https://example.com for SEO and AI-search visibility.`
+- `@autoseo 이 주제로 네이버 글을 자연스러운 전문가 말투로 써줘.`
+- `@autoseo writing polish ./draft.md`
+- `@autoseo writing score https://example.com/guide`
+- `@autoseo search-data trending KR`
 - `@autoseo audit all https://example.com`
 - `@autoseo neo visibility "서울 성수동 카페"`
 - `@autoseo naver-editor compose ./article.naver-document.json`
@@ -86,6 +97,8 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
   image pixels are not sent to a hosted recognition provider.
 - Runtime dependencies are installed only when the user explicitly requests setup.
 - AutoSEO never routes a workflow to a separately billable data endpoint.
+- Writing identity preferences stay in an owner-only local file and are saved or
+  replaced only after confirmation; article bodies are not stored in that profile.
 
 See [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md) for details.
 

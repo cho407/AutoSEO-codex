@@ -22,6 +22,12 @@ local Markdown and HTML export remains available without a browser or login.
 | `@autoseo tistory-editor publish <draft>` | Preview final settings, require approval, click once, verify once |
 | `@autoseo tistory-editor schedule <draft-and-time>` | Preview the time and settings, require approval, schedule once |
 
+When `compose` receives a topic instead of a ready `TistoryDocument v1`, first route
+through `autoseo-writing`: apply the confirmed identity and tone, verify current
+claims, remove Korean translationese, and complete draft-quality checks. Convert the
+approved text to `TistoryDocument v1` only after that writing pass. This does not
+authorize account access, upload, draft save, or publication.
+
 ## Runtime and document flow
 
 Use the standard browser profile. Add the free local image profile when attached

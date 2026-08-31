@@ -22,13 +22,18 @@ from url_safety import (
 )
 
 SCHEMA_VERSION = 1
-SEARCH_ENDPOINTS = {
+LEGACY_SEARCH_ENDPOINTS = {
     "blog": "https://openapi.naver.com/v1/search/blog.json",
     "webkr": "https://openapi.naver.com/v1/search/webkr.json",
     "kin": "https://openapi.naver.com/v1/search/kin.json",
     "cafearticle": "https://openapi.naver.com/v1/search/cafearticle.json",
     "local": "https://openapi.naver.com/v1/search/local.json",
 }
+API_HUB_SEARCH_ENDPOINTS = {
+    vertical: f"https://naverapihub.apigw.ntruss.com/search/v1/{vertical}"
+    for vertical in LEGACY_SEARCH_ENDPOINTS
+}
+SEARCH_ENDPOINTS = LEGACY_SEARCH_ENDPOINTS
 SEARCH_SORTS = {
     "blog": {"sim", "date"},
     "webkr": {"sim", "date"},
@@ -36,7 +41,13 @@ SEARCH_SORTS = {
     "cafearticle": {"sim", "date"},
     "local": {"random", "comment"},
 }
-DATALAB_ENDPOINT = "https://openapi.naver.com/v1/datalab/search"
+LEGACY_DATALAB_ENDPOINT = "https://openapi.naver.com/v1/datalab/search"
+API_HUB_DATALAB_ENDPOINT = (
+    "https://naverapihub.apigw.ntruss.com/search-trend/v1/search"
+)
+DATALAB_ENDPOINT = LEGACY_DATALAB_ENDPOINT
+PROVIDERS = {"legacy", "api-hub-free"}
+LEGACY_SUPPORT_END = "2027-06-30"
 AI_BRIEFING_SURFACES = {
     "official",
     "multi-source",
@@ -55,17 +66,45 @@ def _captured_at() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _credentials() -> dict[str, str]:
+def _provider_config(provider: str) -> tuple[dict[str, str], str, str]:
+    if provider not in PROVIDERS:
+        raise ValueError(f"provider must be one of: {sorted(PROVIDERS)}")
+    if provider == "api-hub-free":
+        if os.environ.get("AUTOSEO_CONFIRM_NAVER_API_HUB_NO_BILLING") != "1":
+            raise ValueError(
+                "api-hub-free requires explicit no-billing confirmation through "
+                "AUTOSEO_CONFIRM_NAVER_API_HUB_NO_BILLING=1; AutoSEO will not "
+                "assume a temporarily free account cannot incur future charges"
+            )
+        client_id = os.environ.get("NAVER_API_HUB_CLIENT_ID")
+        client_secret = os.environ.get("NAVER_API_HUB_CLIENT_SECRET")
+        if not client_id or not client_secret:
+            raise ValueError(
+                "NAVER_API_HUB_CLIENT_ID and NAVER_API_HUB_CLIENT_SECRET "
+                "environment variables are required"
+            )
+        return (
+            {
+                "X-NCP-APIGW-API-KEY-ID": client_id,
+                "X-NCP-APIGW-API-KEY": client_secret,
+            },
+            "api-hub-free-confirmed",
+            "caller-confirmed-no-billing",
+        )
     client_id = os.environ.get("NAVER_CLIENT_ID")
     client_secret = os.environ.get("NAVER_CLIENT_SECRET")
     if not client_id or not client_secret:
         raise ValueError(
             "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET environment variables are required"
         )
-    return {
-        "X-Naver-Client-Id": client_id,
-        "X-Naver-Client-Secret": client_secret,
-    }
+    return (
+        {
+            "X-Naver-Client-Id": client_id,
+            "X-Naver-Client-Secret": client_secret,
+        },
+        "developers-legacy",
+        "legacy-key-only-until-2027-06-30",
+    )
 
 
 def _query(value: str) -> str:
@@ -83,25 +122,35 @@ def search(
     query: str,
     *,
     vertical: str = "blog",
-    display: int = 10,
+    display: int | None = None,
     start: int = 1,
     sort: str | None = None,
+    provider: str = "legacy",
     request_get: Callable[..., Any] = safe_requests_get,
 ) -> dict[str, Any]:
     """Read one free Naver Search API vertical without persisting credentials."""
     if vertical not in SEARCH_ENDPOINTS:
         raise ValueError(f"vertical must be one of: {sorted(SEARCH_ENDPOINTS)}")
-    if not 1 <= display <= 100:
-        raise ValueError("display must be between 1 and 100")
-    if not 1 <= start <= 1_000:
+    if display is None:
+        display = 1 if vertical == "local" else 10
+    maximum_display = 5 if vertical == "local" else 100
+    if not 1 <= display <= maximum_display:
+        raise ValueError(f"display must be between 1 and {maximum_display}")
+    if vertical == "local" and start != 1:
+        raise ValueError("local search start must be 1")
+    if vertical != "local" and not 1 <= start <= 1_000:
         raise ValueError("start must be between 1 and 1000")
     sort = sort or ("random" if vertical == "local" else "sim")
     if sort not in SEARCH_SORTS[vertical]:
         raise ValueError(f"sort for {vertical} must be one of: {sorted(SEARCH_SORTS[vertical])}")
     normalized_query = _query(query)
+    headers, provider_label, cost_guard = _provider_config(provider)
+    endpoints = (
+        API_HUB_SEARCH_ENDPOINTS if provider == "api-hub-free" else LEGACY_SEARCH_ENDPOINTS
+    )
     response = request_get(
-        SEARCH_ENDPOINTS[vertical],
-        headers=_credentials(),
+        endpoints[vertical],
+        headers=headers,
         params={
             "query": normalized_query,
             "display": display,
@@ -142,11 +191,16 @@ def search(
         "total": payload.get("total"),
         "start": payload.get("start", start),
         "display": len(items),
+        "provider": provider_label,
+        "cost_guard": cost_guard,
+        "legacy_support_end": LEGACY_SUPPORT_END if provider == "legacy" else None,
         "items": items,
         "subscription_required": False,
+        "exact_search_volume": None,
         "limitations": [
             "Results are a dated API sample and may differ from personalized Naver Search.",
             "The API response does not prove indexing, ranking stability, or AI Briefing citation.",
+            "NAVER API HUB is used only after the caller confirms the configured account has no billing path.",
         ],
     }
 
@@ -176,6 +230,7 @@ def datalab_search(
     device: str | None = None,
     gender: str | None = None,
     ages: list[str] | None = None,
+    provider: str = "legacy",
     request_post: Callable[..., Any] | None = None,
 ) -> dict[str, Any]:
     """Read free relative Naver query trends; values are not exact volume."""
@@ -201,11 +256,15 @@ def datalab_search(
     if ages:
         payload["ages"] = ages
 
+    headers, provider_label, cost_guard = _provider_config(provider)
+    endpoint = (
+        API_HUB_DATALAB_ENDPOINT if provider == "api-hub-free" else LEGACY_DATALAB_ENDPOINT
+    )
     if request_post is None:
-        with safe_requests_session(DATALAB_ENDPOINT) as session:
+        with safe_requests_session(endpoint) as session:
             response = session.post(
-                DATALAB_ENDPOINT,
-                headers={**_credentials(), "Content-Type": "application/json"},
+                endpoint,
+                headers={**headers, "Content-Type": "application/json"},
                 json=payload,
                 timeout=20,
                 stream=True,
@@ -213,8 +272,8 @@ def datalab_search(
             response = read_limited_response(response, max_bytes=2 * 1024 * 1024)
     else:
         response = request_post(
-            DATALAB_ENDPOINT,
-            headers={**_credentials(), "Content-Type": "application/json"},
+            endpoint,
+            headers={**headers, "Content-Type": "application/json"},
             json=payload,
             timeout=20,
         )
@@ -230,11 +289,15 @@ def datalab_search(
         "language": "ko",
         "period": {"start": start_date, "end": end_date, "unit": time_unit},
         "results": value.get("results", []),
+        "provider": provider_label,
+        "cost_guard": cost_guard,
+        "legacy_support_end": LEGACY_SUPPORT_END if provider == "legacy" else None,
         "subscription_required": False,
         "exact_search_volume": None,
         "limitations": [
             "DataLab values are normalized relative trends, not exact search volume.",
             "Compare cohorts only when periods, filters, and keyword groups match.",
+            "API HUB is used only after the caller confirms the configured account has no billing path.",
         ],
     }
 
@@ -312,18 +375,25 @@ def main(argv: list[str] | None = None) -> int:
     search_parser = sub.add_parser("search")
     search_parser.add_argument("query")
     search_parser.add_argument("--vertical", choices=tuple(SEARCH_ENDPOINTS), default="blog")
-    search_parser.add_argument("--display", type=int, default=10)
+    search_parser.add_argument("--display", type=int)
+    search_parser.add_argument("--provider", choices=tuple(sorted(PROVIDERS)), default="legacy")
     trend_parser = sub.add_parser("datalab")
     trend_parser.add_argument("input", type=Path, help="JSON keyword group list")
     trend_parser.add_argument("--start-date", required=True)
     trend_parser.add_argument("--end-date", required=True)
     trend_parser.add_argument("--time-unit", choices=("date", "week", "month"), default="date")
+    trend_parser.add_argument("--provider", choices=tuple(sorted(PROVIDERS)), default="legacy")
     briefing_parser = sub.add_parser("ai-briefing")
     briefing_parser.add_argument("input", type=Path, help="JSON sample list")
     args = parser.parse_args(argv)
     try:
         if args.command == "search":
-            result = search(args.query, vertical=args.vertical, display=args.display)
+            result = search(
+                args.query,
+                vertical=args.vertical,
+                display=args.display,
+                provider=args.provider,
+            )
         elif args.command == "datalab":
             groups = _load_json(args.input)
             if not isinstance(groups, list):
@@ -333,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
                 start_date=args.start_date,
                 end_date=args.end_date,
                 time_unit=args.time_unit,
+                provider=args.provider,
             )
         else:
             samples = _load_json(args.input)

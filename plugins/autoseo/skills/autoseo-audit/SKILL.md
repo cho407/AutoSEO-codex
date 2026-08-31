@@ -114,6 +114,17 @@ Use the category weights defined by the `autoseo` orchestrator. Mark categories
 without sufficient evidence as `not measured` and renormalize the remaining
 weights. Show the calculation so the score is auditable.
 
+For the selected SEO/AEO/GEO/LLMO/NEO readiness lanes, combine the exact generated
+reports separately:
+
+```text
+<plugin-root>/scripts/autoseo run optimization_report.py <lane-reports.json>
+```
+
+Do not mix the full-audit category score, lane readiness, draft quality, or observed
+click/rank/citation outcomes into one opaque number. `OptimizationReport v1` appears
+only when every selected lane is scoreable and always displays evidence coverage.
+
 ### 7. Deliver
 
 Return:

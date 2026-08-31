@@ -1,7 +1,7 @@
 {
   "name": "autoseo",
-  "version": "0.5.0-rc.1",
-  "description": "Free, open-source SEO, AEO, GEO, LLMO, NEO, Naver, Tistory, and image-privacy workflows for Codex.",
+  "version": "0.6.0-rc.1",
+  "description": "Free SEO, AEO, GEO, LLMO, NEO, natural Korean writing, trend research, Naver, Tistory, and image-privacy workflows for Codex.",
   "author": {
     "name": "cho407",
     "url": "https://github.com/cho407"
@@ -22,13 +22,15 @@
     "technical-seo",
     "structured-data",
     "content-strategy",
+    "korean-writing",
+    "trend-research",
     "search-visibility"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "AutoSEO",
-    "shortDescription": "Optimize search and publish guarded blog drafts",
-    "longDescription": "Collect website evidence once, run independent SEO, AEO, GEO, LLMO, and NEO readiness lanes, plan search content, and compose user-owned Naver or Tistory drafts in guarded visible editors. Tistory supports local Markdown/HTML export and free local bystander mosaics. Every shipped workflow has a no-subscription path and requires per-post approval before publication.",
+    "shortDescription": "Research, write naturally, optimize, and prepare guarded drafts",
+    "longDescription": "Collect website evidence once, run independent SEO, AEO, GEO, LLMO, and NEO readiness lanes, research current trends, and draft natural Korean content with a confirmed local writing identity and selectable tone. Compose user-owned Naver or Tistory drafts in guarded visible editors, export Tistory Markdown/HTML, and create local bystander mosaics. Every workflow has a no-subscription path and publication requires per-post approval.",
     "developerName": "cho407",
     "category": "Productivity",
     "capabilities": [
@@ -42,7 +44,7 @@
     "defaultPrompt": [
       "Audit this website for SEO and AI-search visibility",
       "Run all five SEO, AEO, GEO, LLMO, and NEO lanes",
-      "Compose this Korean article as a guarded Naver or Tistory draft"
+      "Write a natural Korean search article in my preferred tone and prepare a guarded draft"
     ],
     "brandColor": "#0F9D75",
     "composerIcon": "./assets/icon.svg",

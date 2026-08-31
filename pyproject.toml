@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autoseo-codex"
-version = "0.5.0rc1"
-description = "Free open-source SEO, AEO, GEO, LLMO, NEO, Naver, and Tistory workflows for Codex"
+version = "0.6.0rc1"
+description = "Free open-source search optimization, Korean writing, trend research, Naver, and Tistory workflows for Codex"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

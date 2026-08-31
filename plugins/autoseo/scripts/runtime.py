@@ -43,12 +43,12 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
         "indexnow_submit.py", "iptc_ai_label.py", "korean_text.py", "lane_engine.py", "lcp_subparts.py", "naver_document.py", "naver_editor.py", "naver_evidence.py", "pagespeed_check.py",
-        "parasite_risk.py", "parse_html.py", "preload_check.py", "privacy_mosaic.py", "render_page.py",
+        "optimization_report.py", "parasite_risk.py", "parse_html.py", "preload_check.py", "privacy_mosaic.py", "render_page.py",
         "rdap_lookup.py", "schema_ecommerce_validate.py", "schema_generate.py",
         "autoseo_updates.py", "search_evidence.py",
-        "sitemap_discovery.py", "tistory_document.py", "tistory_editor.py", "ucp_check.py", "unlighthouse_run.py",
+        "sitemap_discovery.py", "tistory_document.py", "tistory_editor.py", "trend_evidence.py", "ucp_check.py", "unlighthouse_run.py",
         "url_safety.py", "verify_backlinks.py",
-        "workflow_catalog.py", "youtube_search.py",
+        "workflow_catalog.py", "writing_identity.py", "youtube_search.py",
     }
 )
 REDACTIONS = (

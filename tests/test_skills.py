@@ -20,6 +20,7 @@ REQUIRED_SKILLS = {
     "autoseo-competitor-pages",
     "autoseo-content",
     "autoseo-content-brief",
+    "autoseo-writing",
     "autoseo-crawl",
     "autoseo-drift",
     "autoseo-ecommerce",

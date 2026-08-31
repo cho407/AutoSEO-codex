@@ -18,6 +18,11 @@ Sources and limitations are included in the result.
 @autoseo content verify <file-or-text>
 @autoseo content-brief brief <topic>
 @autoseo content-brief outline <topic>
+@autoseo writing draft <topic-or-brief>
+@autoseo writing polish <draft>
+@autoseo writing tone <preset>
+@autoseo writing identity
+@autoseo writing score <draft-or-url>
 @autoseo aeo audit <target>
 @autoseo aeo brief <target>
 @autoseo geo audit <target>
@@ -48,6 +53,17 @@ Sources and limitations are included in the result.
 @autoseo plan publisher <context>
 @autoseo plan agency <context>
 ```
+
+Writing commands are optional shortcuts. Natural requests such as “이 주제로
+네이버 글 써줘”, “번역투 없이 다듬어줘”, or “전문가의 쉬운 말투로 바꿔줘”
+enter the same flow. On first use AutoSEO reuses known context, asks only the
+missing writer basis, audience, reader outcome, and tone questions, then offers a
+local profile for confirmation. A one-off tone change is not saved automatically.
+
+For a draft, `writing score` reports measured content quality. For a URL, it runs
+the selected readiness lanes and combines them as `OptimizationReport v1` only when
+every selected lane is independently scoreable; the report always shows evidence
+coverage and never predicts rank or traffic.
 
 The Naver editor commands use a dedicated visible Chromium profile under
 `AUTOSEO_DATA_DIR`. Login, two-factor authentication, and CAPTCHA remain manual.
@@ -141,6 +157,12 @@ are transparent proxies; they are not exact search volume, traffic, rank, or dif
 @autoseo search-data ai-mentions <brand>
 @autoseo search-data methods
 ```
+
+For current or trending content, the default research window is 24 hours for a
+breaking topic and 7 days for sustained interest. AutoSEO can use Google Trends
+Trending Now RSS/export as one relative signal, but it requires an independent
+dated source before calling a topic confirmed. Duplicate URLs are removed and the
+result exposes freshness, relevance, corroboration, relative velocity, and refresh time.
 
 ## Authority and backlinks
 

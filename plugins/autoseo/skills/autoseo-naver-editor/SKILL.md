@@ -36,6 +36,12 @@ catalog offers blog search but no rich blog-post writing endpoint.
 | `@autoseo naver-editor publish <draft>` | Preview settings, request approval, click publish once, verify once |
 | `@autoseo naver-editor schedule <draft-and-time>` | Preview time/settings, request approval, schedule once, verify once |
 
+When `compose` receives a topic instead of a ready `NaverDocument v1`, first route
+through `autoseo-writing`: resolve the confirmed writing identity, research any
+current claims, draft in the selected tone, remove Korean translationese, and show
+the measured content checks. Only then convert it to `NaverDocument v1`. This handoff
+does not authorize an editor write or publication.
+
 ## Runtime
 
 Use the standard profile because the editor requires Playwright and Chromium:

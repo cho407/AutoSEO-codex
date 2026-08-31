@@ -70,6 +70,7 @@ when the request spans multiple areas.
 | Mobile, above-the-fold, and rendered visual review | `autoseo-visual` |
 | Content quality, E-E-A-T, and citability | `autoseo-content` |
 | Search-focused writing brief | `autoseo-content-brief` |
+| Natural Korean drafting, polishing, tone, and writing identity | `autoseo-writing` |
 | Structured data detection or generation | `autoseo-schema` |
 | Sitemap analysis or generation | `autoseo-sitemap` |
 | Existing image optimization or face privacy mosaic | `autoseo-images` |
@@ -101,6 +102,19 @@ when the request spans multiple areas.
 | Multi-surface AI visibility evidence | `autoseo-ai-visibility` |
 | Local multi-page Lighthouse | `autoseo-unlighthouse` |
 
+### Natural entry without command knowledge
+
+Route ordinary writing requests directly instead of asking the user to choose a
+feature. “글 써줘”, “블로그 글 만들어줘”, “번역투 없이 다듬어줘”, “말투 바꿔줘”,
+“내 스타일로 써줘”, and Korean Naver/Tistory article requests start with
+`autoseo-writing`. If the input is a topic, finish research and drafting before an
+editor handoff. If it is an existing draft, preserve meaning and run polishing first.
+
+When the writing identity is missing, ask only the short unresolved identity,
+audience, outcome, and tone questions. Reuse context already provided, offer a
+proposed profile, and save it only after confirmation. Do not require the user to
+learn the command catalog or expose every optional feature up front.
+
 ## Full audit workflow
 
 When the user asks for a comprehensive audit:
@@ -125,7 +139,9 @@ When the user asks for a comprehensive audit:
    - drift comparison when a prior AutoSEO baseline exists.
 8. Separate measured facts, source-backed observations, and recommendations.
 9. Deduplicate findings by root cause and affected URL pattern.
-10. Produce the score, evidence ledger, prioritized actions, and verification plan.
+10. Combine selected `LaneReport v1` files with `optimization_report.py`. Produce
+    the readiness score only when every selected lane is scoreable, then include the
+    evidence ledger, prioritized actions, and verification plan.
 
 ## Scoring
 
@@ -145,6 +161,10 @@ Score only categories with sufficient evidence. Mark missing categories as
 
 For a partial audit, renormalize measured weights and clearly label the result as
 a partial score.
+
+This category score is for a full website audit. A multi-lane readiness request uses
+`OptimizationReport v1`, and a local draft uses the content-quality score. Label each
+score by kind; never blend them or present any of them as a search-engine prediction.
 
 ## Finding format
 

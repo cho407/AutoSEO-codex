@@ -4,16 +4,22 @@ This directory is the distributable AutoSEO Codex plugin. It contains skills,
 local helpers, schemas, references, and brand assets, with no hosted service,
 embedded credential, separately billable data integration, or MCP server.
 
-Version 0.5.0-rc.1 covers 37 user-facing capability groups, five independent
+Version 0.6.0-rc.1 covers 38 user-facing capability groups, five independent
 SEO/AEO/GEO/LLMO/NEO readiness lanes, and 41 guided workflow playbooks. A shared
 `EvidenceBundle v1` prevents repeated page collection across lanes. Commercial-only
 metrics and live monitoring outcomes are excluded instead of being fabricated.
+
+The natural Korean writing workflow keeps a confirmed identity and tone profile in
+an owner-only local file, asks only missing planning questions on first use, and
+performs a fact-preserving semantic polish plus conservative translationese checks.
+`OptimizationReport v1` combines only scoreable lane readiness, while
+`TrendEvidence v1` deduplicates and corroborates dated current-topic sources.
 
 The PC Naver Blog SmartEditor ONE adapter uses a dedicated visible Playwright
 profile. Draft writes and every publish/schedule action have separate approval
 boundaries. Candidate-based controls are guided, ambiguous UI stops safely, and an
 unclear publication result is never retried. Live Naver and Tistory editor
-verification is still required before promoting this release candidate to 0.5.0.
+verification is still required before promoting this release candidate to 0.6.0.
 
 The Tistory adapter renders `TistoryDocument v1` to Markdown or HTML without a
 browser, or composes it in a separate guarded visible profile. Static attachments

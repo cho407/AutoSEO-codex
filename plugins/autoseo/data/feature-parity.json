@@ -34,7 +34,7 @@
       "skill": "autoseo-audit",
       "status": "supported",
       "subcommands": [],
-      "helpers": ["evidence_engine.py", "lane_engine.py", "sitemap_discovery.py", "google_report.py"]
+      "helpers": ["evidence_engine.py", "lane_engine.py", "optimization_report.py", "sitemap_discovery.py", "google_report.py"]
     },
     {
       "id": "aeo",
@@ -70,6 +70,13 @@
       "status": "supported",
       "subcommands": ["brief", "outline"],
       "helpers": []
+    },
+    {
+      "id": "writing",
+      "skill": "autoseo-writing",
+      "status": "supported",
+      "subcommands": ["draft", "polish", "tone", "identity", "score"],
+      "helpers": ["writing_identity.py", "content_humanize.py", "content_quality.py", "optimization_report.py", "trend_evidence.py"]
     },
     {
       "id": "schema",
@@ -237,7 +244,7 @@
       "skill": "autoseo-search-data",
       "status": "supported",
       "subcommands": ["serp", "serp-images", "serp-youtube", "youtube", "keywords", "demand", "difficulty", "intent", "trends", "backlinks", "competitors", "ranked", "intersection", "traffic", "subdomains", "trending", "onpage", "tech", "rdap", "content", "listings", "ai-results", "ai-mentions", "methods"],
-      "helpers": ["search_evidence.py", "rdap_lookup.py", "commoncrawl_graph.py", "backlink_history.py"]
+      "helpers": ["search_evidence.py", "trend_evidence.py", "rdap_lookup.py", "commoncrawl_graph.py", "backlink_history.py"]
     },
     {
       "id": "authority",

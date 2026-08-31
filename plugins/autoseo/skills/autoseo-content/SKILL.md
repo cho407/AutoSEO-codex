@@ -25,6 +25,11 @@ description: >
 Without a subcommand, run the complete content quality, E-E-A-T, readability,
 intent, and citation-readiness review.
 
+For Korean drafting, translationese removal, selectable voice, and first-run writing
+identity, route to `autoseo-writing`. `content_humanize.py --language ko --tone
+<preset>` is a conservative final diagnostic: it automatically changes only safe
+patterns and leaves context-dependent phrasing for semantic editorial review.
+
 ## Google's "Who / How / Why" Test (canonical heuristic)
 
 Before scoring E-E-A-T sub-factors, every page audit should pass Google's

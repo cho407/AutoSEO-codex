@@ -15,6 +15,8 @@
 | Tistory draft write | Preview only | Exact document and image-plan approval, visible headed browser |
 | Tistory publish or schedule | Blocked | Fresh final-settings preview and per-post approval token |
 | Privacy image derivative | Preview only | Source-bound plan, new private file, no original overwrite |
+| Writing identity save/reset | Read-only status by default | Exact profile preview and explicit confirmation |
+| Temporarily free API provider | Blocked | Explicit provider selection, separate keys, and local no-billing guard |
 | Package or connector installation | Blocked by default | Explicit setup/install request |
 
 ## Primary threats and controls
@@ -50,6 +52,19 @@ in scope.
 Crawls, response bodies, subprocesses, routes, and API calls use documented bounds and
 timeouts. Default site audits are intentionally smaller than their hard maximum. Public
 research and batch inputs are capped and report the observed sample size.
+
+### Writing identity and current-topic evidence
+
+Writing preferences use bounded schema fields, a dedicated data directory, atomic
+replacement, owner-only permissions, and final-path symlink rejection. Saving or
+resetting requires explicit confirmation. The profile does not store article text,
+credentials, cookies, or research history.
+
+Trend records accept at most 100 public-source items. Dates must carry a timezone;
+relative metrics must be finite and between 0 and 100. Duplicate tracking URLs and
+same-publisher headline copies do not inflate corroboration. A single feed remains
+unconfirmed, and stale records expose a refresh requirement instead of silently
+feeding a “latest” article.
 
 ### Stateful Naver browser automation
 

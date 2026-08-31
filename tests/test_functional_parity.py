@@ -20,6 +20,7 @@ EXPECTED_CAPABILITIES = {
     "technical",
     "content",
     "content-brief",
+    "writing",
     "schema",
     "geo",
     "images",
@@ -53,6 +54,7 @@ EXPECTED_CAPABILITIES = {
 
 EXPECTED_PROVIDER_COMMANDS = {
     "aeo": {"audit", "brief"},
+    "writing": {"draft", "polish", "tone", "identity", "score"},
     "authority": {"metrics", "backlinks", "organic", "content"},
     "bing": {"links", "compare", "submit", "submit-batch", "verify-indexnow"},
     "search-data": {
