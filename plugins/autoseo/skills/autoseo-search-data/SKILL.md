@@ -55,6 +55,12 @@ result. Store reproducible observations in this shape:
   "query": "example query",
   "captured_at": "2026-08-26T00:00:00Z",
   "market": "US",
+  "language": "en",
+  "device": "desktop",
+  "surface": "google-web",
+  "method": "bounded-public-sample-v1",
+  "window": "snapshot",
+  "sample_limit": 10,
   "results": [
     {
       "position": 1,
@@ -81,6 +87,9 @@ Only include signals actually observed. Analyze or compare captures with:
 
 The helper intentionally returns `exact_search_volume: null`. It produces a
 relative demand proxy and a result-competition proxy with their inputs.
+Comparisons require matching query, market, language, device, surface, method,
+window and sample limit plus a later capture. Missing/mismatched dimensions return
+`comparable=false` and null deltas, not a rise or fall.
 
 ## Current and trending topics
 
@@ -111,6 +120,10 @@ The resulting opportunity score averages only measured freshness, topic relevanc
 source corroboration, and relative velocity. It exposes component coverage and
 always returns `exact_search_volume: null`. A stale or uncorroborated topic must be
 refreshed before it becomes the factual basis of a content brief.
+Check `evaluated_at`, `refresh.needs_refresh`, `freshness.stale_for_window` and
+`opportunity.valid_for_new_content` at the current time. `stale_at_capture` and
+`score_as_of` retain historical meaning only. `refresh-before-brief` blocks a new
+brief even when the historical opportunity score was high.
 
 Official reference for Trending Now:
 https://support.google.com/trends/answer/3076011?hl=en

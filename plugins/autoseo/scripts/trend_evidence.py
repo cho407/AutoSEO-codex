@@ -273,6 +273,8 @@ def analyze_trends(
         current = datetime.now(timezone.utc)
     else:
         raise ValueError("as_of must be a timestamp")
+    if observed_at > current:
+        raise ValueError("observed_at is in the future relative to as_of")
     groups = sorted({item["source_group"] for item in evidence})
     official_trend = any(item["source_type"] == "official-trend" for item in evidence)
     if len(groups) >= 2:
@@ -304,11 +306,14 @@ def analyze_trends(
         if item.get("published_at")
     ]
     newest = max(dated) if dated else None
-    stale = newest is None or (observed_at - newest).total_seconds() / 3600 > window_hours
+    stale_at_capture = newest is None or (observed_at - newest).total_seconds() / 3600 > window_hours
+    stale = newest is None or (current - newest).total_seconds() / 3600 > window_hours
     refresh_after = observed_at + timedelta(hours=REFRESH_HOURS[value["window"]])
+    needs_refresh = current >= refresh_after
     brief_ready = (
         corroboration_status == "confirmed"
         and not stale
+        and not needs_refresh
         and opportunity_score is not None
         and opportunity_score >= 60
     )
@@ -325,6 +330,7 @@ def analyze_trends(
         "language": value["language"],
         "window": value["window"],
         "observed_at": value["observed_at"],
+        "evaluated_at": current.isoformat(),
         "evidence_count": len(evidence),
         "duplicate_count": duplicate_count,
         "independent_source_count": len(groups),
@@ -334,10 +340,13 @@ def analyze_trends(
             "newest_published_at": newest.isoformat() if newest else None,
             "oldest_published_at": min(dated).isoformat() if dated else None,
             "stale_for_window": stale,
+            "stale_at_capture": stale_at_capture,
         },
         "opportunity": {
             "score": opportunity_score,
             "score_displayed": opportunity_score is not None,
+            "valid_for_new_content": not stale and not needs_refresh,
+            "score_as_of": observed_at.isoformat(),
             "component_coverage_percent": component_coverage,
             "components": components,
             "method": "equal average of measured freshness, topic relevance, corroboration, and relative velocity",
@@ -346,9 +355,9 @@ def analyze_trends(
         },
         "refresh": {
             "refresh_after": refresh_after.isoformat(),
-            "needs_refresh": current > refresh_after,
+            "needs_refresh": needs_refresh,
         },
-        "content_action": "brief-ready" if brief_ready else "corroborate-before-brief",
+        "content_action": "refresh-before-brief" if needs_refresh or stale else "brief-ready" if brief_ready else "corroborate-before-brief",
         "evidence": normalized_evidence,
         "limitations": [
             "Trend evidence is a dated sample and can change after capture.",

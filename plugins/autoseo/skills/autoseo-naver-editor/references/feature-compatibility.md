@@ -1,8 +1,8 @@
 # Naver SmartEditor ONE Compatibility
 
-This matrix describes AutoSEO 0.4.0-rc.1 support for the PC Naver Blog
-SmartEditor ONE. `automatic` means a deterministic adapter and checked local
-regression path exist. `guided` means AutoSEO opens the exact control and waits
+This matrix describes the current AutoSEO 0.6 release-candidate adapter for PC Naver Blog
+SmartEditor ONE. `automatic` describes an implemented adapter, not a live-verified
+feature. Check each catalog row's separate `validation` field. `guided` means AutoSEO opens the exact control and waits
 for the user to choose or review a visible candidate. `unavailable` means the
 feature is deliberately not claimed.
 
@@ -50,6 +50,8 @@ at the end of this document is completed on a user-owned test draft. Run
 | `ccl` | Select the requested CCL setting |
 | `share-allowed` | Set the sharing switch to the requested value |
 | `draft-save` | Save only after a document-bound draft approval |
+| `publish-dialog` | Open configuration without clicking the final submit button |
+| `schedule-option` | Select scheduling without submitting publication |
 | `publish` | Click once only after a fresh final-settings approval |
 | `schedule-publish` | Schedule once only after time validation and fresh approval |
 
@@ -71,7 +73,7 @@ at the end of this document is completed on a user-owned test draft. Run
 ## Unavailable
 
 No feature in the current official PC Blog editor catalog is silently omitted.
-Rows that cannot be verified safely are downgraded to `guided`; a missing or
+Rows that cannot be verified safely stop for manual reconciliation; a missing or
 ambiguous control stops instead of being treated as successful. This does not
 extend support to Naver Cafe, Place, Smart Store, mobile editors, bulk posting,
 automatic comments, sympathy, neighbor actions, or login bypass.
@@ -87,7 +89,8 @@ Controls are resolved in this fixed order:
 
 Every operation has a stable ID, precondition, and postcondition. The checkpoint
 stores the source hash and completed IDs but never the title or article body. A
-stale locator is resolved once; a missing, duplicate, or changed control stops and
+stale insertion is inspected before any replay; only positively unchanged or
+idempotent operations may be retried. A missing, duplicate, or changed control stops and
 leaves a local diagnostic. Resume requires the same document hash and a verified
 Naver draft URL.
 
@@ -102,6 +105,11 @@ Naver draft URL.
 - [ ] A separately approved scheduled post preserves the requested timezone-aware time.
 - [ ] Cookies, profile data, article text, and diagnostics are absent from logs, Git, CI, and the release archive.
 
-Until all items pass against the live editor, keep the plugin version at
-`0.4.0-rc.1`; promote to `0.4.0` only after recording the date and editor surface
-used for validation.
+Keep a release-candidate designation until these checks pass. Record the date and
+actual editor version per feature before changing `live_verified` to true.
+
+Local validation (2026-09-07): the synthetic PC fixture covers title, paragraph,
+bold-to-plain restoration, alignment, tags and fresh draft acknowledgement. Separate
+tests cover map expiry, dialog/frame scoping and ambiguity. Advanced component
+controls, guided recovery, and post-publication visibility/schedule mapping are
+still live-unverified. A new save toast is not a save/reopen durability test.

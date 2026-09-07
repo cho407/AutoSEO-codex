@@ -15,6 +15,13 @@ from urllib.parse import urlsplit
 from evidence_engine import EvidenceEngine
 from file_safety import read_text_limited
 from korean_text import classify_intent
+from readiness_evidence import (
+    RULE_VERSION,
+    canonical_status,
+    dated_site_signal,
+    directives,
+    semantic_review,
+)
 
 SCHEMA_VERSION = 1
 ALL_LANES = ("seo", "aeo", "geo", "llmo", "neo")
@@ -101,9 +108,14 @@ def select_lanes(
 
 
 def _validate_check(check: dict[str, Any]) -> None:
-    if check.get("status") not in STATUSES:
+    if not isinstance(check, dict):
+        raise ValueError("lane checks must be objects")
+    for field in ("required", "applicable"):
+        if field in check and not isinstance(check[field], bool):
+            raise ValueError(f"check {field} must be a boolean")
+    if not isinstance(check.get("status"), str) or check["status"] not in STATUSES:
         raise ValueError(f"unsupported check status: {check.get('status')}")
-    if check.get("severity") not in SEVERITY_WEIGHTS:
+    if not isinstance(check.get("severity"), str) or check["severity"] not in SEVERITY_WEIGHTS:
         raise ValueError(f"unsupported severity: {check.get('severity')}")
     if not isinstance(check.get("id"), str) or not check["id"]:
         raise ValueError("each lane check requires an id")
@@ -114,6 +126,8 @@ def score_checks(checks: Iterable[dict[str, Any]]) -> dict[str, Any]:
     values = [copy.deepcopy(check) for check in checks]
     for check in values:
         _validate_check(check)
+    if len({check["id"] for check in values}) != len(values):
+        raise ValueError("duplicate check ids cannot contribute extra weight")
     applicable = [check for check in values if check.get("applicable", True)]
     measured = [check for check in applicable if check["status"] != "unmeasured"]
     denominator = sum(SEVERITY_WEIGHTS[check["severity"]] for check in applicable)
@@ -227,6 +241,7 @@ def build_lane_report(
     language: str | None = None,
     surface: str | None = None,
     measured_at: str | None = None,
+    context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if lane not in ALL_LANES:
         raise ValueError(f"unsupported lane: {lane}")
@@ -234,12 +249,27 @@ def build_lane_report(
     readiness = score_checks(check_list)
     captured_at = measured_at or _utc_now()
     lane_surface = surface or f"{lane}-readiness"
+    required = [item for item in check_list if item.get("required") and item.get("applicable", True)]
+    blockers = [item["id"] for item in required if item["status"] == "fail"]
+    unknown = [item["id"] for item in required if item["status"] == "unmeasured"]
     return {
         "schema_version": SCHEMA_VERSION,
         "kind": "LaneReport",
         "lane": lane,
         "target": target,
         "measured_at": captured_at,
+        "context": copy.deepcopy(context) if context is not None else {
+            "target_url": target if _looks_like_url(target) else None,
+            "question": None if _looks_like_url(target) else target,
+            "market": market, "language": language, "device": "unspecified",
+            "surface": "page-readiness", "collected_at": captured_at,
+            "rule_version": RULE_VERSION,
+        },
+        "eligibility": {
+            "status": "blocked" if blockers else "unmeasured" if unknown else "eligible",
+            "blockers": blockers, "unmeasured": unknown,
+            "meaning": "Observed prerequisites only; crawl permission is not index inclusion.",
+        },
         "readiness": readiness,
         "checks": check_list,
         "outcomes": _normalize_outcomes(
@@ -293,35 +323,50 @@ def _seo_checks(bundle: dict[str, Any], _: str) -> list[dict[str, Any]]:
     content = bundle.get("content", {})
     status_code = source.get("status_code")
     reachable = isinstance(status_code, int) and 200 <= status_code < 400
-    robots = str(metadata.get("meta_robots") or "").casefold()
+    robots = directives(bundle)
+    canonical, canonical_evidence = canonical_status(bundle)
     return [
         _check("http_reachable", "pass" if reachable else "fail", "critical", status_code, required=True),
         _check(
             "index_eligible",
-            "unmeasured" if not reachable else "fail" if "noindex" in robots else "pass",
+            "unmeasured" if not reachable else "fail" if robots & {"noindex", "none"} else "pass",
             "critical",
-            metadata.get("meta_robots"),
+            sorted(robots),
             required=True,
         ),
         _check("title", "pass" if metadata.get("title") else "fail", "high", metadata.get("title")),
-        _check("canonical", "pass" if metadata.get("canonical") else "fail", "medium", metadata.get("canonical")),
+        _check("canonical", canonical, "medium", canonical_evidence),
         _check("primary_heading", "pass" if metadata.get("h1") else "fail", "medium", metadata.get("h1", [])),
-        _check("substantive_content", "pass" if content.get("text_chars", 0) >= 300 else "fail", "high", content.get("text_chars", 0)),
+        _check("body_available", "pass" if content.get("text") else "fail", "high", content.get("text_chars", 0), note="Text availability, not usefulness or factual accuracy."),
+        _site_check(bundle, "googlebot", "googlebot_policy", required=True),
     ]
+
+
+def _review_check(bundle: dict, identifier: str, severity: str, *, required: bool = False) -> dict:
+    status, evidence = semantic_review(bundle, identifier)
+    return _check(identifier, status, severity, evidence, required=required,
+                  note="Requires a dated, excerpt-backed user/Codex review; markup and counts are not semantic evidence.")
+
+
+def _site_check(bundle: dict, signal: str, identifier: str, *, required: bool = False) -> dict:
+    status, evidence = dated_site_signal(bundle, signal)
+    return _check(identifier, status, "critical", evidence, required=required,
+                  note="Requires a same-origin, dated site observation; crawl permission is separate from indexing.")
 
 
 def _aeo_checks(bundle: dict[str, Any], target: str) -> list[dict[str, Any]]:
     content = bundle.get("content", {})
-    metadata = bundle.get("metadata", {})
     text = str(content.get("text") or "")
-    headings = [*metadata.get("h1", []), *metadata.get("h2", []), *metadata.get("h3", [])]
-    question_aligned = "?" in target or any("?" in str(value) for value in headings)
+    robots = directives(bundle)
+    blocked = bool(robots & {"noindex", "none", "nosnippet", "max-snippet:0"})
     return [
         _check("answerable_content", "pass" if text else "fail", "critical", len(text), required=True),
-        _check("question_intent_alignment", "pass" if question_aligned else "fail", "medium", headings),
-        _check("direct_answer", "pass" if len(text[:400].strip()) >= 20 else "fail", "high", text[:400]),
-        _check("claim_source_support", "pass" if bundle.get("links", {}).get("external") else "fail", "high", bundle.get("links", {}).get("external", [])[:5]),
-        _check("authorship", "pass" if any(item.get("type") == "Person" for item in bundle.get("entities", [])) else "fail", "medium", bundle.get("entities", [])),
+        _check("snippet_eligible", "fail" if blocked else "pass", "critical", sorted(robots), required=True,
+               note="Snippet directives only; restricted excerpts and actual answer selection need review."),
+        _review_check(bundle, "question_intent_alignment", "medium"),
+        _review_check(bundle, "direct_answer", "high"),
+        _review_check(bundle, "claim_source_support", "high"),
+        _review_check(bundle, "authorship", "medium"),
     ]
 
 
@@ -334,25 +379,18 @@ def _geo_checks(bundle: dict[str, Any], _: str) -> list[dict[str, Any]]:
     )
     return [
         _check("public_search_access", "pass" if public else "fail", "critical", source, required=True),
-        _check(
-            "search_crawler_policy",
-            "unmeasured",
-            "critical",
-            [],
-            note="Requires a dated robots.txt check for the named search crawler.",
-        ),
-        _check("source_support", "pass" if bundle.get("links", {}).get("external") else "fail", "high", bundle.get("links", {}).get("external", [])[:5]),
-        _check("entity_clarity", "pass" if bundle.get("entities") else "fail", "medium", bundle.get("entities", [])),
+        _site_check(bundle, "OAI-SearchBot", "search_crawler_policy", required=True),
+        _site_check(bundle, "PerplexityBot", "perplexity_crawler_policy", required=True),
+        _review_check(bundle, "source_support", "high"),
+        _review_check(bundle, "entity_clarity", "medium"),
         _check("render_access", "pass" if render_ok else "fail", "high", render),
     ]
 
 
 def _llmo_checks(bundle: dict[str, Any], _: str) -> list[dict[str, Any]]:
-    entities = bundle.get("entities", [])
-    external = bundle.get("links", {}).get("external", [])
     return [
-        _check("brand_fact_ledger", "pass" if entities else "fail", "critical", entities, required=True),
-        _check("external_corroboration", "pass" if external else "fail", "high", external[:5]),
+        _review_check(bundle, "brand_fact_ledger", "critical", required=True),
+        _review_check(bundle, "external_corroboration", "high"),
         _check(
             "closed_book_model_knowledge",
             "unmeasured",
@@ -367,29 +405,25 @@ def _llmo_checks(bundle: dict[str, Any], _: str) -> list[dict[str, Any]]:
 def _neo_checks(bundle: dict[str, Any], target: str) -> list[dict[str, Any]]:
     source = bundle.get("source_response", {})
     language = str(bundle.get("content", {}).get("language") or "")
-    neo_evidence = bundle.get("neo_evidence", {})
-    intent = classify_intent(target)
-    yeti = neo_evidence.get("yeti_allowed")
-    feed = neo_evidence.get("rss_or_sitemap")
+    metadata = bundle.get("metadata", {})
+    intent_text = target if not _looks_like_url(target) else " ".join(
+        [str(metadata.get("title") or ""), *metadata.get("h1", [])]
+    )
+    intent = classify_intent(intent_text)
+    feed_status, feed_evidence = dated_site_signal(bundle, "rss_or_sitemap")
     return [
         _check("public_naver_access", "pass" if source.get("status_code") == 200 else "fail", "critical", source, required=True),
         _check("korean_language", "pass" if language.startswith("ko") else "fail", "high", language),
-        _check("korean_intent", "pass" if intent["primary"] != "mixed-or-unclear" else "fail", "medium", intent),
-        _check(
-            "yeti_policy",
-            "unmeasured" if not isinstance(yeti, bool) else "pass" if yeti else "fail",
-            "critical",
-            yeti,
-            note="Requires a dated robots.txt observation.",
-        ),
+        _check("korean_intent", "pass" if intent["primary"] != "mixed-or-unclear" else "unmeasured", "medium", intent,
+               note="Dictionary intent hint, not semantic relevance or content quality."),
+        _site_check(bundle, "Yeti", "yeti_policy", required=True),
         _check(
             "rss_or_sitemap",
-            "unmeasured" if not isinstance(feed, bool) else "pass" if feed else "fail",
+            feed_status,
             "medium",
-            feed,
+            feed_evidence,
             note="Requires site-level discovery evidence.",
         ),
-        _check("naver_search_or_ai_briefing", "unmeasured", "high", [], note="Requires a reproducible Naver result sample."),
     ]
 
 
@@ -410,6 +444,9 @@ def analyze_lanes(
     market: str | None = None,
     language: str | None = None,
     outcomes: dict[str, list[dict[str, Any]]] | None = None,
+    question: str | None = None,
+    device: str = "unspecified",
+    surface: str = "page-readiness",
 ) -> dict[str, dict[str, Any]]:
     if bundle.get("schema_version") != 1 or bundle.get("kind") != "EvidenceBundle":
         raise ValueError("lane analysis requires EvidenceBundle v1")
@@ -419,15 +456,23 @@ def analyze_lanes(
         raise ValueError(f"unsupported lanes: {sorted(unknown)}")
     measured_at = str(bundle.get("collected_at") or _utc_now())
     inferred_language = language or bundle.get("content", {}).get("language")
+    context = {
+        "target_url": bundle.get("url"),
+        "question": question or (None if _looks_like_url(target) else target),
+        "market": market, "language": inferred_language,
+        "device": device, "surface": surface, "collected_at": measured_at,
+        "rule_version": RULE_VERSION,
+    }
     return {
         lane: build_lane_report(
             lane,
             target,
-            _ANALYZERS[lane](bundle, target),
+            _ANALYZERS[lane](bundle, question or target),
             outcomes=(outcomes or {}).get(lane, []),
             market=market,
             language=inferred_language,
             measured_at=measured_at,
+            context=context,
         )
         for lane in selected
     }
@@ -455,6 +500,11 @@ def main(argv: list[str] | None = None) -> int:
     audit.add_argument("--lane", choices=("auto", "all", *ALL_LANES), default="auto")
     audit.add_argument("--market")
     audit.add_argument("--language")
+    audit.add_argument("--question", help="Original search intent, separate from the URL")
+    audit.add_argument("--device", default="unspecified")
+    audit.add_argument("--surface", default="page-readiness")
+    audit.add_argument("--site-evidence", type=Path, help="Dated same-origin crawler/feed observations")
+    audit.add_argument("--review-evidence", type=Path, help="Excerpt-backed semantic reviews keyed by check id")
     args = parser.parse_args(argv)
 
     try:
@@ -476,11 +526,17 @@ def main(argv: list[str] | None = None) -> int:
                 bundle = engine.collect(args.target)
         else:
             raise ValueError("a URL or --bundle EvidenceBundle v1 is required")
+        if args.site_evidence:
+            bundle["site_evidence"] = _load_bundle(args.site_evidence)
+        if args.review_evidence:
+            bundle["review_evidence"] = _load_bundle(args.review_evidence)
         if args.lane == "all":
             lanes = ALL_LANES
         elif args.lane == "auto":
             lanes = select_lanes(
-                args.target, market=args.market, language=args.language
+                args.target, market=args.market,
+                language=args.language or bundle.get("content", {}).get("language"),
+                request=args.question,
             )
         else:
             lanes = (args.lane,)
@@ -490,6 +546,7 @@ def main(argv: list[str] | None = None) -> int:
             lanes=lanes,
             market=args.market,
             language=args.language,
+            question=args.question, device=args.device, surface=args.surface,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(str(exc))

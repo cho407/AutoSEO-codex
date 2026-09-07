@@ -211,11 +211,11 @@ def test_resume_rechecks_page_state_before_skipping_checkpointed_operations(
             return operation["operation_id"] in self.calls
 
     driver = FreshPageDriver()
-    tistory_editor.TistoryEditorAutomation(store).apply(
-        document, driver, prepared_media={}
-    )
-
-    assert operations[0]["operation_id"] in driver.calls
+    with pytest.raises(tistory_editor.EditorUIChanged, match="changed"):
+        tistory_editor.TistoryEditorAutomation(store).apply(
+            document, driver, prepared_media={}
+        )
+    assert driver.calls == []
 
 
 def test_document_rejects_a_main_face_that_is_also_mosaicked(tmp_path: Path) -> None:

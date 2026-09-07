@@ -16,6 +16,24 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+import editor_compatibility
+from editor_safety import (
+    CHECKPOINT_DEFAULTS,
+    FreshSaveReceipt,
+    attachment_stamps,
+    bind_surface,
+    digest,
+    draft_identity,
+    local_schedule,
+    locked_document,
+    locked_profile_enter,
+    locked_profile_exit,
+    locked_publication,
+    prepare_publication,
+    publication_result,
+    record_operation,
+    validate_checkpoint,
+)
 from file_safety import read_text_limited, write_text_atomically
 from naver_document import (
     build_operations,
@@ -182,6 +200,7 @@ class CheckpointStore:
         return {
             "schema_version": SCHEMA_VERSION,
             "document_id": document["document_id"],
+            **CHECKPOINT_DEFAULTS,
             "source_hash": document_hash(document),
             "completed_operation_ids": [],
             "draft_url": None,
@@ -195,19 +214,11 @@ class CheckpointStore:
     def load_or_create(self, document: object) -> dict[str, Any]:
         value = validate_document(document)
         path = self.path_for(value["document_id"])
-        expected_hash = document_hash(value)
-        checkpoint: dict[str, Any] | None = None
-        if path.is_file() and not path.is_symlink():
-            try:
-                loaded = json.loads(read_text_limited(path, extensions={".json"}))
-                if isinstance(loaded, dict) and loaded.get("schema_version") == 1:
-                    checkpoint = loaded
-            except (OSError, ValueError, json.JSONDecodeError):
-                checkpoint = None
-        if checkpoint is None or checkpoint.get("source_hash") != expected_hash:
-            checkpoint = self._new(value)
-            self.save(checkpoint)
-        return copy.deepcopy(checkpoint)
+        if path.exists() or path.is_symlink():
+            return copy.deepcopy(self.load_existing(value))
+        checkpoint = self._new(value)
+        self.save(checkpoint)
+        return checkpoint
 
     def load_existing(self, document: object) -> dict[str, Any]:
         value = validate_document(document)
@@ -220,10 +231,11 @@ class CheckpointStore:
             or checkpoint.get("source_hash") != document_hash(value)
         ):
             raise ValueError("checkpoint source hash does not match the document")
-        return checkpoint
+        return validate_checkpoint(checkpoint, value["document_id"], document_hash(value))
 
     def save(self, checkpoint: dict[str, Any]) -> None:
         allowed = {
+            *CHECKPOINT_DEFAULTS,
             "schema_version",
             "document_id",
             "source_hash",
@@ -254,16 +266,41 @@ class EditorAutomation:
     def __init__(self, store: CheckpointStore) -> None:
         self.store = store
 
+    @locked_document
     def apply(self, document: object, driver: Any) -> dict[str, Any]:
         value = validate_document(document)
         checkpoint = self.store.load_or_create(value)
+        source_stamps = attachment_stamps(value)
+        operations = build_operations(value)
+        if hasattr(driver, "prepare_operations"):
+            driver.prepare_operations(operations)
+        bind_surface(checkpoint, driver)
         completed = set(checkpoint.get("completed_operation_ids", []))
-        for operation in build_operations(value):
+        for operation in operations:
+            if attachment_stamps(value) != source_stamps:
+                raise ValueError("source attachment changed since approval; request a new document preview")
             operation_id = operation["operation_id"]
             if operation_id in completed:
+                if operation["feature_id"] != "draft-save" and not driver.verify(operation):
+                    raise EditorUIChanged("completed content changed; reconcile before resuming")
                 continue
             try:
-                if operation.get("guided"):
+                pending = checkpoint.get("pending_operation_id") == operation_id
+                already_applied = pending and driver.verify(operation)
+                unchanged = hasattr(driver, "snapshot_hash") and driver.snapshot_hash() == checkpoint.get("surface_hash")
+                if pending and not already_applied and not unchanged:
+                    raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
+                checkpoint["pending_operation_id"] = operation_id
+                checkpoint["save_state"] = "saving" if operation["feature_id"] == "draft-save" else "dirty"
+                if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
+                    raise ValueError("source attachment hash changed before saving")
+                if operation["feature_id"] == "draft-save" and hasattr(driver, "verify_document"):
+                    if not driver.verify_document(value):
+                        raise EditorUIChanged("final document differs from the approved content; reconcile before saving")
+                self.store.save(checkpoint)
+                if already_applied:
+                    pass
+                elif operation.get("guided"):
                     if not driver.guide(operation):
                         raise GuidedChoiceRequired(
                             f"guided choice is incomplete for {operation['feature_id']}"
@@ -272,7 +309,11 @@ class EditorAutomation:
                     try:
                         driver.execute(operation)
                     except StaleElementReference:
-                        driver.execute(operation)
+                        if not driver.verify(operation):
+                            # Only replacement operations are safe to repeat.
+                            if operation["feature_id"] != "title":
+                                raise
+                            driver.execute(operation)
                 if not driver.verify(operation):
                     raise EditorUIChanged(
                         f"postcondition failed for {operation['feature_id']}"
@@ -287,6 +328,7 @@ class EditorAutomation:
             completed.add(operation_id)
             checkpoint["completed_operation_ids"] = sorted(completed)
             checkpoint["last_error_type"] = None
+            record_operation(checkpoint, operation, driver)
             self.store.save(checkpoint)
         return checkpoint
 
@@ -305,7 +347,7 @@ def _publish_settings(
     if action == "schedule":
         if not scheduled_at:
             raise ValueError("scheduled_at is required for schedule")
-        settings["scheduled_at"] = validate_schedule(scheduled_at)
+        settings["scheduled_at"] = local_schedule(validate_schedule(scheduled_at))
     else:
         settings["scheduled_at"] = None
     return value, settings
@@ -316,6 +358,8 @@ def approval_preview(
     *,
     action: str,
     scheduled_at: str | None = None,
+    target_url: str | None = None,
+    saved_surface_hash: str | None = None,
 ) -> dict[str, Any]:
     value, settings = _publish_settings(
         document, action=action, scheduled_at=scheduled_at
@@ -324,6 +368,8 @@ def approval_preview(
         {
             "action": action,
             "document_hash": document_hash(value),
+            "target_url": target_url,
+            "saved_surface_hash": saved_surface_hash,
             "settings": settings,
             "tags": value["tags"],
         },
@@ -347,10 +393,15 @@ def approval_preview(
         "share_allowed": settings["share_allowed"],
         "tags": value["tags"],
         "scheduled_at": settings["scheduled_at"],
+        "scheduled_at_local": local_schedule(settings["scheduled_at"]),
+        "platform_timezone": "Asia/Seoul",
+        "target_url": target_url,
+        "saved_surface_hash": saved_surface_hash,
         "approval_token": approval_token,
     }
 
 
+@locked_publication
 def publish_or_schedule(
     document: object,
     checkpoint: dict[str, Any],
@@ -364,7 +415,9 @@ def publish_or_schedule(
     value, settings = _publish_settings(
         document, action=action, scheduled_at=scheduled_at
     )
-    preview = approval_preview(value, action=action, scheduled_at=scheduled_at)
+    preview = approval_preview(value, action=action, scheduled_at=scheduled_at,
+                               target_url=checkpoint.get("draft_url"),
+                               saved_surface_hash=checkpoint.get("saved_surface_hash"))
     if approval_token != preview["approval_token"]:
         raise ApprovalRequired("the exact per-document approval token is required")
     if os.environ.get("AUTOSEO_TESTING") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
@@ -384,11 +437,15 @@ def publish_or_schedule(
     if not required.issubset(set(checkpoint.get("completed_operation_ids", []))):
         raise ValueError("the draft has incomplete editor operations; resume it first")
 
+    if store is None:
+        raise ValueError("durable checkpoint storage is required for publication")
+    prepare_publication(driver, value, checkpoint, settings)
+    # Settings are verified before the irreversible attempt starts.
+    driver.apply_publish_settings(settings)
     checkpoint["publish_state"] = "attempting"
     if store:
         store.save(checkpoint)
     try:
-        driver.apply_publish_settings(settings)
         driver.click_publish(action)
         result = driver.verify_publish(action)
     except Exception as exc:
@@ -430,6 +487,10 @@ class LocatorResolver:
     def __init__(self, page: Any, catalog: FeatureCatalog) -> None:
         self.page = page
         self.catalog = catalog
+        self.compatibility = None
+        self.last_resolution = {}
+        self.ambiguous_error = AmbiguousElement
+        self.ui_error = EditorUIChanged
 
     @staticmethod
     def _count(locator: Any) -> int:
@@ -447,34 +508,8 @@ class LocatorResolver:
         return locator if count == 1 else None
 
     def locate(self, feature_id: str, *, allow_shortcut: bool = False) -> tuple[str, Any]:
-        feature = self.catalog.feature(feature_id)
-        locator = feature["locator"]
-        role = locator.get("role")
-        name = locator.get("name")
-        if role and name:
-            candidate = self._unique(
-                self.page.get_by_role(role, name=name, exact=True),
-                f"role={role}, name={name}",
-            )
-            if candidate is not None:
-                return "role-name", candidate
-        for label in locator.get("labels") or []:
-            candidate = self._unique(
-                self.page.get_by_text(label, exact=True), f"Korean label={label}"
-            )
-            if candidate is not None:
-                return "korean-label", candidate
-        shortcut = locator.get("shortcut")
-        if allow_shortcut and shortcut:
-            return "shortcut", shortcut
-        fallback = locator.get("dom_fallback")
-        if fallback:
-            candidate = self._unique(
-                self.page.locator(fallback), f"DOM fallback={fallback}"
-            )
-            if candidate is not None:
-                return "dom-fallback", candidate
-        raise EditorUIChanged(f"no unique editor control found for {feature_id}")
+        return editor_compatibility.locate(self, feature_id, allow_shortcut=allow_shortcut)
+
 
     def click(self, feature_id: str) -> str:
         strategy, target = self.locate(feature_id, allow_shortcut=True)
@@ -492,7 +527,7 @@ class LocatorResolver:
     def probe(self, feature_id: str) -> dict[str, Any]:
         try:
             strategy, _ = self.locate(feature_id, allow_shortcut=False)
-            return {"available": True, "strategy": strategy}
+            return {"available": True, **self.last_resolution, "strategy": strategy}
         except AmbiguousElement:
             return {"available": False, "strategy": None, "reason": "ambiguous"}
         except EditorUIChanged:
@@ -516,18 +551,33 @@ class PlaywrightNaverDriver:
         self.catalog = catalog
         self.resolver = LocatorResolver(page, catalog)
         self.data_dir = data_dir
+        self.resolver.compatibility = editor_compatibility.load_map(
+            data_dir / "naver-editor-compatibility.json", page, catalog
+        )
+        self._save_receipt = FreshSaveReceipt(page)
         self._postconditions: dict[str, bool] = {}
+        self._guided_open: set[str] = set()
 
     def _body_locator(self) -> Any:
         _, locator = self.resolver.locate("paragraph")
         return locator
 
+    def prepare_operations(self, operations: list[dict]) -> None:
+        counts = {}
+        self._expected_components = {}
+        for operation in operations:
+            feature = operation["feature_id"]
+            selector = COMPONENT_SELECTORS.get(feature)
+            if selector:
+                counts[selector] = counts.get(selector, 0) + len(operation["payload"].get("paths") or [None])
+                self._expected_components[operation["operation_id"]] = (selector, counts[selector])
+
     def _component_count(self, feature_id: str) -> int | None:
         selector = COMPONENT_SELECTORS.get(feature_id)
         return int(self.page.locator(selector).count()) if selector else None
 
-    def _apply_style(self, style: dict[str, Any]) -> list[str]:
-        toggled: list[str] = []
+    def _apply_style(self, style: dict[str, Any], *, reset_booleans: bool = True) -> dict:
+        restore = {}
         boolean_features = {
             "bold": "bold",
             "italic": "italic",
@@ -537,9 +587,23 @@ class PlaywrightNaverDriver:
             "subscript": "subscript",
         }
         for field, feature_id in boolean_features.items():
-            if style.get(field):
+            if field not in style and not reset_booleans:
+                continue
+            try:
+                _, control = self.resolver.locate(feature_id)
+                current = control.get_attribute("aria-pressed")
+            except EditorUIChanged:
+                if not style.get(field):
+                    continue
+                raise
+            if current not in {"true", "false"}:
+                raise EditorUIChanged(f"format toggle state is unmeasured: {field}")
+            enabled = current == "true"
+            restore[field] = enabled
+            if bool(style.get(field, False)) != enabled:
                 self.resolver.click(feature_id)
-                toggled.append(feature_id)
+                if control.get_attribute("aria-pressed") != str(bool(style.get(field, False))).lower():
+                    raise EditorUIChanged(f"format toggle did not change: {field}")
         menu_features = {
             "font": "font-family",
             "size": "font-size",
@@ -551,12 +615,18 @@ class PlaywrightNaverDriver:
             value = style.get(field)
             if value is None:
                 continue
+            _, control = self.resolver.locate(feature_id)
+            previous = control.get_attribute("data-value") or control.get_attribute("aria-valuetext")
+            if previous is None:
+                raise EditorUIChanged(f"current {field} is unknown; use guided formatting")
+            restore[field] = previous
             self.resolver.click(feature_id)
-            option = self.page.get_by_text(str(value), exact=True)
+            label = {"left": "왼쪽", "center": "가운데", "right": "오른쪽", "justify": "양쪽"}.get(str(value), str(value))
+            option = self.page.get_by_text(label, exact=True)
             if option.count() != 1:
                 raise AmbiguousElement(f"format option is not unique: {field}={value}")
             option.click()
-        return toggled
+        return restore
 
     def _insert_text_block(self, operation: dict[str, Any]) -> None:
         payload = operation["payload"]
@@ -565,11 +635,19 @@ class PlaywrightNaverDriver:
             self.resolver.click(feature_id)
         body = self._body_locator()
         body.click()
-        toggled = self._apply_style(payload.get("style", {}))
+        body.press("ControlOrMeta+End")
         self.page.keyboard.insert_text(payload["text"])
+        block = body.get_by_text(payload["text"], exact=True)
+        if block.count() != 1:
+            raise AmbiguousElement("inserted text block is not uniquely identifiable")
+        block.evaluate("""node => {
+            const range = document.createRange(); range.selectNodeContents(node);
+            const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        }""")
+        restore = self._apply_style(payload.get("style", {}))
+        body.evaluate("() => window.getSelection().collapseToEnd()")
         self.page.keyboard.press("Enter")
-        for feature_id in reversed(toggled):
-            self.resolver.click(feature_id)
+        self._apply_style(restore, reset_booleans=False)
 
     def _upload(self, operation: dict[str, Any]) -> None:
         self.resolver.click(operation["feature_id"])
@@ -630,8 +708,9 @@ class PlaywrightNaverDriver:
         self._postconditions[operation["operation_id"]] = links.count() == 1
 
     def _named_textbox(self, names: tuple[str, ...]) -> Any:
+        scope = editor_compatibility.dialog_scope(self.page)
         for name in names:
-            candidate = self.page.get_by_role("textbox", name=name, exact=True)
+            candidate = scope.get_by_role("textbox", name=name, exact=True)
             count = candidate.count()
             if count > 1:
                 raise AmbiguousElement(f"multiple textboxes matched {name}")
@@ -640,7 +719,7 @@ class PlaywrightNaverDriver:
         raise EditorUIChanged(f"required textbox was not found: {', '.join(names)}")
 
     def _confirm_dialog(self) -> None:
-        confirm = self.page.get_by_role("button", name="확인", exact=True)
+        confirm = editor_compatibility.dialog_scope(self.page).get_by_role("button", name="확인", exact=True)
         if confirm.count() != 1:
             raise AmbiguousElement("component confirmation is missing or ambiguous")
         confirm.click()
@@ -687,14 +766,21 @@ class PlaywrightNaverDriver:
             checked = bool(control.is_checked())
             if checked != value:
                 control.click()
+            if bool(control.is_checked()) != value:
+                raise EditorUIChanged(f"publish option did not match: {feature_id}")
             return
         control.click()
         if value is None:
             return
-        option = self.page.get_by_text(str(value), exact=True)
+        label = {"public": "전체공개", "private": "비공개", "neighbors": "이웃공개",
+                 "mutual-neighbors": "서로이웃공개", "none": "사용 안 함"}.get(str(value), str(value))
+        option = self.page.get_by_text(label, exact=True)
         if option.count() != 1:
             raise AmbiguousElement(f"publish option is not unique: {feature_id}")
         option.click()
+        selected = control.get_attribute("data-value") or control.get_attribute("aria-valuetext")
+        if selected not in {str(value), label}:
+            raise EditorUIChanged(f"publish option state is not verifiable: {feature_id}")
 
     def execute(self, operation: dict[str, Any]) -> None:
         feature_id = operation["feature_id"]
@@ -730,7 +816,10 @@ class PlaywrightNaverDriver:
         elif handler == "set-publish-option":
             self._set_option(operation)
         elif handler == "save-draft":
+            self._save_receipt.begin()
             self.resolver.click(feature_id)
+            if not self._save_receipt.confirm():
+                raise EditorUIChanged("new draft save acknowledgement was not observed")
         elif handler == "apply-format":
             self.resolver.click(feature_id)
         elif handler == "guarded-publish":
@@ -738,9 +827,8 @@ class PlaywrightNaverDriver:
         else:
             raise EditorUIChanged(f"unsupported editor handler: {handler}")
         after = self._component_count(feature_id)
-        self._postconditions[operation["operation_id"]] = (
-            before is None or after is None or after > before
-        )
+        if before is not None and after is not None:
+            self._postconditions[operation["operation_id"]] = after > before
 
     def verify(self, operation: dict[str, Any]) -> bool:
         feature_id = operation["feature_id"]
@@ -748,44 +836,71 @@ class PlaywrightNaverDriver:
         if feature_id == "title":
             try:
                 _, locator = self.resolver.locate("title")
-                return locator.input_value() == payload["text"]
+                tag = locator.evaluate("node => node.tagName.toLowerCase()")
+                actual = locator.input_value() if tag in {"input", "textarea"} else locator.inner_text()
+                return actual == payload["text"]
             except Exception:
                 return False
         if feature_id in {"paragraph", "heading", "quote", "special-character"}:
             try:
-                return self.page.get_by_text(payload["text"], exact=True).count() >= 1
+                matches = [frame.get_by_text(payload["text"], exact=True) for frame in self.page.frames]
+                matches = [item for item in matches if item.count()]
+                if len(matches) != 1 or matches[0].count() != 1:
+                    return False
+                return matches[0].evaluate("""(node, expected) => {
+                    const s = getComputedStyle(node), p = getComputedStyle(node.closest('p') || node);
+                    const bold = s.fontWeight === 'bold' || parseInt(s.fontWeight) >= 600;
+                    if (bold !== !!expected.bold || (s.fontStyle === 'italic') !== !!expected.italic) return false;
+                    if (s.textDecorationLine.includes('underline') !== !!expected.underline) return false;
+                    if (s.textDecorationLine.includes('line-through') !== !!expected.strikethrough) return false;
+                    const align = p.textAlign === 'start' && p.direction === 'ltr' ? 'left' : p.textAlign;
+                    if (expected.alignment && align !== expected.alignment) return false;
+                    if (expected.size && parseFloat(s.fontSize) !== Number(expected.size)) return false;
+                    if (expected.font && !s.fontFamily.includes(expected.font)) return false;
+                    if (expected.color) {
+                        const color = document.createElement('span'); color.style.color = expected.color;
+                        document.body.append(color); const actual = getComputedStyle(color).color; color.remove();
+                        if (s.color !== actual) return false;
+                    }
+                    if (expected.line_spacing && Math.abs(parseFloat(p.lineHeight) / parseFloat(p.fontSize) - Number(expected.line_spacing)) > .05) return false;
+                    if ((s.verticalAlign === 'super') !== !!expected.superscript || (s.verticalAlign === 'sub') !== !!expected.subscript) return false;
+                    return true;
+                }""", payload.get("style", {}))
             except Exception:
                 return False
         if feature_id in {"photo", "group-photo", "video", "file", "multi-attach"}:
-            paths = payload.get("paths") or [payload["path"]]
             try:
-                return all(
-                    self.page.get_by_text(Path(path).name, exact=False).count() >= 1
-                    for path in paths
-                )
+                expected = self._expected_components.get(operation["operation_id"])
+                if not expected:
+                    return False
+                components = self.page.locator(expected[0])
+                return components.count() >= expected[1] and components.evaluate_all("""nodes => nodes.every(n =>
+                    [...n.querySelectorAll('img, video, a')].some(media =>
+                        media.tagName === 'IMG' ? media.complete && media.naturalWidth > 0 : !!(media.src || media.href)))""")
             except Exception:
                 return False
         if feature_id == "link":
             try:
-                return (
-                    self.page.get_by_role(
-                        "link", name=payload["text"], exact=True
-                    ).count()
-                    == 1
-                )
+                links = self.page.get_by_role("link", name=payload["text"], exact=True)
+                return links.count() == 1 and links.get_attribute("href") == payload["url"]
             except Exception:
                 return False
         if feature_id == "draft-save":
-            try:
-                return self.page.get_by_text("임시저장 완료", exact=False).count() >= 1
-            except Exception:
-                return False
+            return self._save_receipt.acknowledged
+        if feature_id == "tags":
+            return all(self.page.get_by_text(tag, exact=True).count() == 1 for tag in payload["tags"])
+        if feature_id in COMPONENT_SELECTORS:
+            expected = getattr(self, "_expected_components", {}).get(operation["operation_id"])
+            return bool(expected and self.page.locator(expected[0]).count() >= expected[1])
         return self._postconditions.get(operation["operation_id"], False)
 
     def guide(self, operation: dict[str, Any]) -> bool:
         feature_id = operation["feature_id"]
         before = self._component_count(feature_id)
-        self.resolver.click(feature_id)
+        if operation["operation_id"] not in self._guided_open:
+            if self.page.get_by_role("dialog").count() == 0:
+                self.resolver.click(feature_id)
+            self._guided_open.add(operation["operation_id"])
         if not sys.stdin.isatty():
             raise GuidedChoiceRequired(
                 f"{feature_id} requires a visible user choice in SmartEditor ONE"
@@ -794,7 +909,8 @@ class PlaywrightNaverDriver:
             json.dumps(
                 {
                     "guided_feature": feature_id,
-                    "instruction": "Complete the visible choice, then enter done.",
+                    "operation_id": operation["operation_id"],
+                    "instruction": "Choose the intended visible candidate or review the component; then enter done. Leave other blocks unchanged.",
                 },
                 ensure_ascii=False,
             )
@@ -802,9 +918,11 @@ class PlaywrightNaverDriver:
         confirmed = input().strip().casefold() == "done"
         after = self._component_count(feature_id)
         verified = confirmed and (
-            before is None or after is None or after > before
+            before is not None and after is not None and after > before
         )
         self._postconditions[operation["operation_id"]] = verified
+        if verified:
+            self._guided_open.discard(operation["operation_id"])
         return verified
 
     def capture_diagnostic(self, reason: str) -> str:
@@ -818,7 +936,49 @@ class PlaywrightNaverDriver:
         except Exception:
             return ""
 
+    def snapshot_hash(self) -> str:
+        _, title = self.resolver.locate("title")
+        try:
+            title_value = title.input_value()
+        except Exception:
+            title_value = title.inner_text()
+        bodies = []
+        for frame in self.page.frames:
+            roots = frame.locator(".se-main-container")
+            if roots.count() == 1:
+                bodies.append(roots.evaluate("""root => [...root.querySelectorAll('p, img, a, table, hr, video')].map(n => ({
+                    tag: n.tagName, text: n.textContent, style: n.getAttribute('style'),
+                    src: n.getAttribute('src'), href: n.getAttribute('href')
+                }))"""))
+        if len(bodies) != 1:
+            raise EditorUIChanged("document body is missing or ambiguous for checkpoint verification")
+        tags = self.page.locator("#tags, .tag_list, .list_tag")
+        return digest({"title": title_value, "body": bodies[0], "tags": tags.all_text_contents()})
+
+    def has_existing_content(self) -> bool:
+        for frame in self.page.frames:
+            root = frame.locator(".se-main-container")
+            if root.count() and (root.inner_text().strip() or root.locator("img, video, table, iframe").count()):
+                return True
+        return False
+
+    def verify_document(self, document: dict) -> bool:
+        expected = [block["text"].strip() for block in document["blocks"] if block.get("text")]
+        observed = []
+        for frame in self.page.frames:
+            observed.extend(frame.locator(".se-main-container").evaluate_all("""roots => roots.flatMap(root =>
+                [...root.querySelectorAll('p,h1,h2,h3,h4,blockquote')].filter(n => !n.querySelector('p,h1,h2,h3,h4,blockquote'))
+                .map(n => n.textContent.trim()).filter(Boolean))"""))
+        # Advanced components need their own postconditions; do not accept extra prose.
+        return expected == observed
+
     def apply_publish_settings(self, settings: dict[str, Any]) -> None:
+        dialogs = self.page.get_by_role("dialog")
+        if dialogs.count() == 0:
+            # This opens configuration only. The final submit has a different contract.
+            self.resolver.click("publish-dialog")
+        if self.page.get_by_role("dialog").count() != 1:
+            raise AmbiguousElement("publish settings dialog is missing or ambiguous")
         operations = [
             ("category", settings.get("category")),
             ("visibility", settings["visibility"]),
@@ -829,6 +989,8 @@ class PlaywrightNaverDriver:
             ("share-allowed", settings["share_allowed"]),
         ]
         for index, (feature_id, value) in enumerate(operations, 1):
+            if feature_id == "category" and value is None:
+                continue
             self._set_option(
                 {
                     "operation_id": f"publish-setting-{index}",
@@ -837,25 +999,27 @@ class PlaywrightNaverDriver:
                 }
             )
         if settings["mode"] == "schedule":
-            self.resolver.click("schedule-publish")
+            self.resolver.click("schedule-option")
             field = self.page.get_by_role("textbox", name="예약 시간", exact=True)
             if field.count() != 1:
                 raise AmbiguousElement("schedule time input is missing or ambiguous")
-            field.fill(settings["scheduled_at"])
+            local = datetime.fromisoformat(local_schedule(settings["scheduled_at"]))
+            formatted = local.strftime("%Y-%m-%dT%H:%M")
+            field.fill(formatted)
+            if field.input_value() != formatted:
+                raise EditorUIChanged("schedule time did not match the approved local time")
 
     def click_publish(self, action: str) -> None:
+        if os.environ.get("AUTOSEO_TESTING") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
+            raise RuntimeError("publish controls are disabled in automated tests")
         self.resolver.click("schedule-publish" if action == "schedule" else "publish")
 
     def verify_publish(self, action: str) -> dict[str, Any] | None:
         try:
             self.page.wait_for_load_state("domcontentloaded", timeout=10_000)
+            return publication_result(self, action)
         except Exception:
-            pass
-        url = str(self.page.url)
-        host = (urlsplit(url).hostname or "").casefold()
-        if host in {"blog.naver.com", "m.blog.naver.com"} and "PostWriteForm" not in url:
-            return {"url": url, "action": action}
-        return None
+            return None
 
 
 def _validate_editor_url(value: str) -> str:
@@ -871,14 +1035,8 @@ def _validate_editor_url(value: str) -> str:
 
 
 def _verified_draft_url(value: str) -> str | None:
-    parsed = urlsplit(value)
-    host = (parsed.hostname or "").casefold()
-    query = parsed.query.casefold()
-    if (
-        parsed.scheme == "https"
-        and host in {"blog.naver.com", "m.blog.naver.com"}
-        and any(marker in query for marker in ("logno=", "draftno=", "documentid="))
-    ):
+    identity = draft_identity(value)
+    if identity and identity[0].startswith("naver:") and identity[1]:
         return value
     return None
 
@@ -898,6 +1056,7 @@ class NaverBrowserSession:
         self.context = None
         self.page = None
 
+    @locked_profile_enter
     def __enter__(self) -> "NaverBrowserSession":
         try:
             from playwright.sync_api import sync_playwright
@@ -917,11 +1076,14 @@ class NaverBrowserSession:
         self._assert_allowed_page()
         return self
 
+    @locked_profile_exit
     def __exit__(self, *_: object) -> None:
-        if self.context is not None:
-            self.context.close()
-        if self.playwright is not None:
-            self.playwright.stop()
+        try:
+            if self.context is not None:
+                self.context.close()
+        finally:
+            if self.playwright is not None:
+                self.playwright.stop()
 
     def _assert_allowed_page(self) -> None:
         host = (urlsplit(str(self.page.url)).hostname or "").casefold()
@@ -949,7 +1111,7 @@ class NaverBrowserSession:
         raise EditorUIChanged("SmartEditor ONE was not ready before the login timeout")
 
     def keep_open_until_closed(self) -> None:
-        print("Draft is ready. Close the browser window to finish.", file=sys.stderr)
+        print("The editor remains open for review. Close the browser window to finish.", file=sys.stderr)
         try:
             while self.context.pages:
                 live_pages = [page for page in self.context.pages if not page.is_closed()]
@@ -971,18 +1133,7 @@ def learn_compatibility_map(
     *,
     editor_url: str,
 ) -> dict[str, Any]:
-    resolver = LocatorResolver(page, catalog)
-    return {
-        "schema_version": 1,
-        "catalog_version": catalog.catalog_version,
-        "editor_origin": f"{urlsplit(editor_url).scheme}://{urlsplit(editor_url).hostname}",
-        "observed_at": datetime.now(timezone.utc).isoformat(),
-        "features": {
-            identifier: resolver.probe(identifier)
-            for identifier in catalog.features
-        },
-        "note": "Local UI compatibility map only; no page text, cookies, or account data.",
-    }
+    return editor_compatibility.build_map(page, catalog, LocatorResolver(page, catalog), editor_url)
 
 
 def _compatibility_path(data_dir: Path) -> Path:
@@ -996,7 +1147,7 @@ def _load_document(path: Path) -> dict[str, Any]:
     return validate_document(value)
 
 
-def _draft_preview(document: dict[str, Any]) -> dict[str, Any]:
+def _draft_preview(document: dict[str, Any], *, target_url: str | None = None) -> dict[str, Any]:
     document = validate_document(document)
     attachment_count = int(document["background"]["type"] == "image")
     for block in document["blocks"]:
@@ -1007,6 +1158,7 @@ def _draft_preview(document: dict[str, Any]) -> dict[str, Any]:
         {
             "action": "compose-and-save-draft",
             "document_hash": document_hash(document),
+            "target_url": target_url,
         },
         ensure_ascii=False,
         sort_keys=True,
@@ -1016,6 +1168,7 @@ def _draft_preview(document: dict[str, Any]) -> dict[str, Any]:
         "schema_version": 1,
         "approval_required": True,
         "action": "compose-and-save-draft",
+        "target_url": target_url,
         "document_id": document["document_id"],
         "title": document["title"],
         "block_count": len(document["blocks"]),
@@ -1050,7 +1203,12 @@ def _compose(
         driver = PlaywrightNaverDriver(
             page, catalog=catalog, data_dir=data_dir
         )
-        checkpoint = EditorAutomation(store).apply(document, driver)
+        try:
+            checkpoint = EditorAutomation(store).apply(document, driver)
+        except Exception:
+            if not close_after:
+                browser.keep_open_until_closed()
+            raise
         checkpoint["draft_url"] = _verified_draft_url(str(page.url))
         store.save(checkpoint)
         if not close_after:
@@ -1144,10 +1302,6 @@ def main(argv: list[str] | None = None) -> int:
 
         document = _load_document(args.document)
         if args.command in {"compose", "resume"}:
-            preview = _draft_preview(document)
-            if args.approval_token != preview["approval_token"]:
-                print(json.dumps(preview, ensure_ascii=False, indent=2))
-                return 4
             editor_url = args.editor_url if args.command == "compose" else None
             if args.command == "resume":
                 existing = CheckpointStore(data_dir).load_existing(document)
@@ -1157,6 +1311,10 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError(
                         "resume requires a verified Naver draft URL with a draft identifier"
                     )
+            preview = _draft_preview(document, target_url=str(editor_url))
+            if args.approval_token != preview["approval_token"]:
+                print(json.dumps(preview, ensure_ascii=False, indent=2))
+                return 4
             result = _compose(
                 document,
                 data_dir=data_dir,
@@ -1168,8 +1326,12 @@ def main(argv: list[str] | None = None) -> int:
 
         action = "schedule" if args.command == "schedule" else "publish"
         scheduled_at = args.at if action == "schedule" else None
+        store = CheckpointStore(data_dir)
+        checkpoint = store.load_existing(document)
         preview = approval_preview(
-            document, action=action, scheduled_at=scheduled_at
+            document, action=action, scheduled_at=scheduled_at,
+            target_url=checkpoint.get("draft_url"),
+            saved_surface_hash=checkpoint.get("saved_surface_hash"),
         )
         if args.approval_token != preview["approval_token"]:
             print(json.dumps(preview, ensure_ascii=False, indent=2))

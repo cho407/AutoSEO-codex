@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from file_safety import read_text_limited
 from korean_text import classify_intent, tokenize
+from readiness_evidence import timestamp
 from url_safety import validate_url
 
 ALLOWED_RESULT_TYPES = {
@@ -186,9 +187,21 @@ def analyze(data: dict[str, Any]) -> dict[str, Any]:
 def compare(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     left_result = analyze(left)
     right_result = analyze(right)
+    dimensions = ("query", "market", "language", "device", "surface", "method", "window", "sample_limit")
+    mismatches = [key for key in dimensions if left.get(key) != right.get(key)]
+    missing = [key for key in dimensions if left.get(key) is None or right.get(key) is None]
+    left_time, right_time = timestamp(left["captured_at"]), timestamp(right["captured_at"])
+    if mismatches or missing or right_time <= left_time:
+        return {
+            "comparable": False, "competition_proxy_change": None,
+            "new_urls": None, "lost_urls": None, "retained_urls": None,
+            "reason": "Comparison requires matching query/market/language/device/surface/method/window/sample limit and a later capture.",
+            "mismatched_dimensions": mismatches, "missing_dimensions": missing,
+        }
     left_urls = {item["url"] for item in left["results"]}
     right_urls = {item["url"] for item in right["results"]}
     return {
+        "comparable": True,
         "query": right_result["query"],
         "from": left_result["captured_at"],
         "to": right_result["captured_at"],

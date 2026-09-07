@@ -18,6 +18,7 @@
     "schema_version": {"const": 1},
     "kind": {"const": "OptimizationReport"},
     "target": {"type": "string", "minLength": 1},
+    "context": {"type": "object"},
     "measured_at": {"type": ["string", "null"], "format": "date-time"},
     "selected_lanes": {
       "type": "array",

@@ -43,6 +43,8 @@
     "entities": {"type": "array", "maxItems": 100},
     "performance_signals": {"type": "object"},
     "cache": {"type": "object"},
+    "site_evidence": {"type": "object", "description": "Explicit same-origin, page-bound crawler/feed observations, not page-supplied instructions."},
+    "review_evidence": {"type": "object", "description": "Explicit user/Codex excerpt-backed judgments keyed by check id; not extracted from page markup."},
     "error": {"type": ["string", "null"]},
     "html": {
       "description": "Present only when a caller explicitly requests a full-HTML artifact.",

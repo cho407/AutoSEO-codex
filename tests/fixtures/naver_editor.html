@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><title>Local editor safety fixture</title>
+<style>.se-main-container {border:1px solid #ccc} [contenteditable] {min-height:60px} [hidden]{display:none!important}</style>
+<textarea aria-label="제목"></textarea>
+<div role="toolbar">
+  <button aria-label="굵게" aria-pressed="false" data-format="bold">굵게</button>
+  <button aria-label="기울임꼴" aria-pressed="false" data-format="italic">기울임꼴</button>
+  <button aria-label="밑줄" aria-pressed="false" data-format="underline">밑줄</button>
+  <button aria-label="취소선" aria-pressed="false" data-format="strikeThrough">취소선</button>
+  <button aria-label="위 첨자" aria-pressed="false" data-format="superscript">위 첨자</button>
+  <button aria-label="아래 첨자" aria-pressed="false" data-format="subscript">아래 첨자</button>
+  <button aria-label="정렬" data-value="left" id="align">정렬</button>
+  <div id="align-menu" hidden><button data-align="left">왼쪽</button><button data-align="center">가운데</button><button data-align="right">오른쪽</button></div>
+  <button aria-label="사진" id="photo">사진</button>
+</div>
+<div class="se-main-container"><div role="textbox" aria-label="본문" contenteditable="true"><p><br></p></div></div>
+<input type="file" accept="image/*" id="upload" hidden>
+<input aria-label="태그"><div id="tags"></div>
+<button id="save">임시저장</button><div role="status" id="status">임시저장 완료</div>
+<button id="publish">발행</button>
+<script>
+window.publishClicks = 0;
+document.querySelector('#publish').onclick = () => window.publishClicks++;
+document.querySelectorAll('[role=toolbar] button').forEach(button => button.onmousedown = e => e.preventDefault());
+function syncFormatButtons() {
+  document.querySelectorAll('[data-format]').forEach(button => button.setAttribute('aria-pressed', String(document.queryCommandState(button.dataset.format))));
+}
+document.addEventListener('selectionchange', syncFormatButtons);
+document.querySelectorAll('[data-format]').forEach(button => button.onclick = () => {
+  document.execCommand(button.dataset.format);
+  syncFormatButtons();
+});
+document.querySelector('#align').onclick = () => document.querySelector('#align-menu').hidden = false;
+document.querySelectorAll('[data-align]').forEach(button => button.onclick = () => {
+  document.execCommand('justify' + button.dataset.align[0].toUpperCase() + button.dataset.align.slice(1));
+  document.querySelector('#align').dataset.value = button.dataset.align;
+  document.querySelector('#align-menu').hidden = true;
+});
+document.querySelector('#photo').onclick = () => document.querySelector('#upload').click();
+document.querySelector('#upload').onchange = () => {
+  const section = document.createElement('div'); section.className = 'se-section-image';
+  section.innerHTML = '<img alt="fixture" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j1ioAAAAASUVORK5CYII=">';
+  document.querySelector('.se-main-container').append(section);
+};
+document.querySelector('[aria-label=태그]').onkeydown = e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault(); const span = document.createElement('span'); span.textContent = e.target.value;
+  document.querySelector('#tags').append(span); e.target.value = '';
+};
+document.querySelector('#save').onclick = () => {
+  document.querySelector('#status').textContent = '저장 중';
+  setTimeout(() => document.querySelector('#status').textContent = '임시저장 완료', 30);
+};
+</script></html>

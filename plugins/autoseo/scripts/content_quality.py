@@ -1,42 +1,12 @@
 #!/usr/bin/env python3
-"""
-QRG-aligned content quality detector.
+"""Advisory style diagnostics, not a factual-quality or ranking score.
 
-Scores a block of text against the three lowest-rating triggers from
-Google's September 11, 2025 Quality Rater Guidelines:
-
-  - §4.6.5 Scaled content abuse
-        "Using automated tools (generative AI or otherwise) as a
-         low-effort way to produce many pages that add little-to-no
-         value."
-  - §4.6.6 Lowest rating triggered when
-        "all or almost all MC… copied, paraphrased, [or] AI-generated."
-  - §4.6 Filler content
-        Padding phrases, generic transitions, no original insight.
-
-The script is *advisory*: it surfaces signals so the caller can decide
-whether a page warrants rewriting. It does NOT make a "this is AI"
-verdict — modern generative tools can produce content that passes
-every heuristic. Pair this with ``content_verify.py`` (claim
-verification) for stronger signal.
-
-Output (JSON when ``--json`` is set)::
-
-    {
-      "filler_score":           0..100 (higher = more filler-like)
-      "ai_pattern_score":       0..100 (higher = more AI-pattern hits)
-      "information_density":    0.0..1.0 (entities + numbers per token)
-      "repetition_score":       0..100 (higher = more repetition)
-      "overall_quality":        0..100 (composite, higher is better)
-      "flags": ["filler", "ai-patterns", "low-density", ...],
-      "matches": {"filler": [...], "ai_patterns": [...]},
-      "tokens":                 int,
-      "unique_tokens":          int
-    }
-
-The style-pattern list is maintained by AutoSEO as a conservative editorial
-heuristic. It flags clusters of generic or promotional phrasing and must never
-be presented as proof of AI authorship.
+The legacy ``overall_quality`` key is retained for callers, but now describes
+style patterns and repetition only. English name/number density is descriptive;
+it is unmeasured for Korean and never contributes to the score. There is no
+length bonus. Factual accuracy, usefulness, originality and authorship all need
+independent semantic review. These heuristics cannot prove AI authorship or
+classify a page's Google Quality Rater Guidelines rating.
 """
 
 from __future__ import annotations
@@ -158,12 +128,14 @@ def _repetition_score(tokens: list[str]) -> float:
 
 
 def analyse(text: str) -> dict:
-    """Score a body of text against the QRG quality heuristics."""
+    """Diagnose observable style signals without inferring semantic quality."""
     if not text or not text.strip():
         return {
             "filler_score": 0,
             "ai_pattern_score": 0,
-            "information_density": 0.0,
+            "information_density": None,
+            "score_kind": "style-diagnostics",
+            "semantic_quality": "unmeasured",
             "repetition_score": 0,
             "overall_quality": 0,
             "flags": ["empty-input"],
@@ -186,7 +158,8 @@ def analyse(text: str) -> dict:
     entities = len(_ENTITY_RE.findall(text))
     numbers = len(_NUMBER_RE.findall(text))
     density_per_100 = (entities + numbers) * 100.0 / max(1, n_tokens)
-    information_density = min(1.0, density_per_100 / 10.0)
+    is_korean = bool(re.search(r"[가-힣]", text))
+    information_density = None if is_korean else min(1.0, density_per_100 / 10.0)
 
     rep = _repetition_score(tokens)
     rep_score = int(round(rep * 100))
@@ -204,26 +177,24 @@ def analyse(text: str) -> dict:
         flags.append("filler")
     if ai_pattern_score >= 40:
         flags.append("ai-patterns")
-    if information_density < 0.20:
-        flags.append("low-density")
     if rep_score >= 30:
         flags.append("repetitive")
-    if n_tokens < 300:
-        flags.append("thin-content")
 
     # Composite: invert penalty signals, weight by impact.
     overall = (
-        (100 - filler_score) * 0.25
-        + (100 - ai_pattern_score) * 0.25
-        + information_density * 100 * 0.25
-        + (100 - rep_score) * 0.15
-        + min(100, n_tokens / 10.0) * 0.10  # length bonus capped at 1000 tokens
+        (100 - filler_score) * 0.30
+        + (100 - ai_pattern_score) * 0.30
+        + (100 - rep_score) * 0.40
     )
 
     return {
         "filler_score": filler_score,
         "ai_pattern_score": ai_pattern_score,
-        "information_density": round(information_density, 3),
+        "information_density": round(information_density, 3) if information_density is not None else None,
+        "score_kind": "style-diagnostics",
+        "semantic_quality": "unmeasured",
+        "limitations": ["Style patterns are not evidence of factuality, usefulness or AI authorship.",
+                        "English name/number density is descriptive only; unavailable for Korean. No length bonus."],
         "repetition_score": rep_score,
         "overall_quality": int(round(overall)),
         "flags": flags,
@@ -235,7 +206,7 @@ def analyse(text: str) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="QRG-aligned content quality scorer."
+        description="Advisory style and repetition diagnostics."
     )
     parser.add_argument(
         "source",
@@ -271,10 +242,10 @@ def main() -> int:
         json.dump(result, sys.stdout, indent=2)
         sys.stdout.write("\n")
     else:
-        print(f"Overall quality:       {result['overall_quality']}/100")
+        print(f"Style diagnostic:      {result['overall_quality']}/100 (semantic quality unmeasured)")
         print(f"  Filler score:        {result['filler_score']}/100 (higher = worse)")
         print(f"  AI-pattern score:    {result['ai_pattern_score']}/100 (higher = worse)")
-        print(f"  Information density: {result['information_density']:.2f}")
+        print(f"  Information density: {result['information_density']} (diagnostic only)")
         print(f"  Repetition:          {result['repetition_score']}/100 (higher = worse)")
         print(f"  Tokens:              {result['tokens']} ({result['unique_tokens']} unique)")
         if result["flags"]:

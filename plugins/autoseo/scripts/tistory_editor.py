@@ -15,8 +15,26 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import urlsplit
 
+import editor_compatibility
+from editor_safety import (
+    CHECKPOINT_DEFAULTS,
+    FreshSaveReceipt,
+    attachment_stamps,
+    bind_surface,
+    digest,
+    draft_identity,
+    local_schedule,
+    locked_document,
+    locked_profile_enter,
+    locked_profile_exit,
+    locked_publication,
+    prepare_publication,
+    publication_result,
+    record_operation,
+    validate_checkpoint,
+)
 from file_safety import read_text_limited, resolve_input_file, write_text_atomically
 from privacy_mosaic import (
     MosaicDependencyError,
@@ -191,6 +209,7 @@ class CheckpointStore:
         return {
             "schema_version": SCHEMA_VERSION,
             "document_id": document["document_id"],
+            **CHECKPOINT_DEFAULTS,
             "source_hash": document_hash(document),
             "completed_operation_ids": [],
             "media_states": {identifier: "pending" for identifier in media_ids},
@@ -205,20 +224,12 @@ class CheckpointStore:
 
     def load_or_create(self, document: object) -> dict[str, Any]:
         value = validate_document(document)
-        expected_hash = document_hash(value)
         path = self.path_for(value["document_id"])
-        checkpoint: dict[str, Any] | None = None
-        if path.is_file() and not path.is_symlink():
-            try:
-                loaded = json.loads(read_text_limited(path, extensions={".json"}))
-                if isinstance(loaded, dict) and loaded.get("schema_version") == 1:
-                    checkpoint = loaded
-            except (OSError, ValueError, json.JSONDecodeError):
-                checkpoint = None
-        if checkpoint is None or checkpoint.get("source_hash") != expected_hash:
-            checkpoint = self._new(value)
-            self.save(checkpoint)
-        return copy.deepcopy(checkpoint)
+        if path.exists() or path.is_symlink():
+            return copy.deepcopy(self.load_existing(value))
+        checkpoint = self._new(value)
+        self.save(checkpoint)
+        return checkpoint
 
     def load_existing(self, document: object) -> dict[str, Any]:
         value = validate_document(document)
@@ -231,10 +242,11 @@ class CheckpointStore:
             or checkpoint.get("source_hash") != document_hash(value)
         ):
             raise ValueError("Tistory checkpoint source hash does not match the document")
-        return checkpoint
+        return validate_checkpoint(checkpoint, value["document_id"], document_hash(value))
 
     def save(self, checkpoint: dict[str, Any]) -> None:
         allowed = {
+            *CHECKPOINT_DEFAULTS,
             "schema_version",
             "document_id",
             "source_hash",
@@ -277,6 +289,7 @@ class TistoryEditorAutomation:
     def __init__(self, store: CheckpointStore) -> None:
         self.store = store
 
+    @locked_document
     def apply(
         self,
         document: object,
@@ -291,6 +304,8 @@ class TistoryEditorAutomation:
         if set(prepared_media) != expected_ids:
             raise ValueError("prepared media IDs do not match TistoryDocument media")
         checkpoint = self.store.load_or_create(value)
+        source_stamps = attachment_stamps(value)
+        bind_surface(checkpoint, driver)
         for media in value["media"]:
             identifier = media["id"]
             state = checkpoint["media_states"].get(identifier, "pending")
@@ -311,6 +326,8 @@ class TistoryEditorAutomation:
                 checkpoint["media_urls"][identifier] = validate_media_url(uploaded_url)
                 checkpoint["media_states"][identifier] = "uploaded"
                 checkpoint["last_error_type"] = None
+                if hasattr(driver, "snapshot_hash"):
+                    checkpoint["surface_hash"] = driver.snapshot_hash()
                 self.store.save(checkpoint)
             except Exception as exc:
                 checkpoint["media_states"][identifier] = "unknown"
@@ -327,18 +344,31 @@ class TistoryEditorAutomation:
 
         completed = set(checkpoint.get("completed_operation_ids", []))
         for operation in build_operations(value, checkpoint["media_urls"]):
+            if attachment_stamps(value) != source_stamps:
+                raise ValueError("source attachment changed since approval; request a new document preview")
             operation_id = operation["operation_id"]
             if operation_id in completed:
-                try:
-                    if driver.verify(operation):
-                        continue
-                except Exception:
-                    pass
+                if operation["feature_id"] != "draft-save" and not driver.verify(operation):
+                    raise EditorUIChanged("completed content changed; reconcile before resuming")
+                continue
             try:
+                pending = checkpoint.get("pending_operation_id") == operation_id
+                already_applied = pending and driver.verify(operation)
+                unchanged = hasattr(driver, "snapshot_hash") and driver.snapshot_hash() == checkpoint.get("surface_hash")
+                if pending and not already_applied and not unchanged:
+                    raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
+                checkpoint["pending_operation_id"] = operation_id
+                checkpoint["save_state"] = "saving" if operation["feature_id"] == "draft-save" else "dirty"
+                if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
+                    raise ValueError("source attachment hash changed before saving")
+                self.store.save(checkpoint)
                 try:
-                    driver.execute(operation)
+                    if not already_applied:
+                        driver.execute(operation)
                 except StaleElementReference:
                     if not driver.verify(operation):
+                        if operation["feature_id"] not in {"title", "body-source"}:
+                            raise
                         driver.execute(operation)
                 if not driver.verify(operation):
                     raise EditorUIChanged(
@@ -354,6 +384,7 @@ class TistoryEditorAutomation:
             completed.add(operation_id)
             checkpoint["completed_operation_ids"] = sorted(completed)
             checkpoint["last_error_type"] = None
+            record_operation(checkpoint, operation, driver)
             self.store.save(checkpoint)
         return checkpoint
 
@@ -394,6 +425,7 @@ def draft_preview(
     document: object,
     *,
     privacy_preflight: dict[str, dict[str, Any]],
+    target_url: str | None = None,
 ) -> dict[str, Any]:
     value = validate_document(document)
     expected = {item["id"] for item in value["media"]}
@@ -412,6 +444,7 @@ def draft_preview(
         {
             "action": "compose-and-save-tistory-draft",
             "document_hash": document_hash(value),
+            "target_url": target_url,
             "privacy": token_privacy,
         },
         ensure_ascii=False,
@@ -422,6 +455,7 @@ def draft_preview(
         "schema_version": 1,
         "approval_required": True,
         "action": "compose-and-save-tistory-draft",
+        "target_url": target_url,
         "document_id": value["document_id"],
         "title": value["title"],
         "format": value["format"],
@@ -480,7 +514,7 @@ def _publish_settings(
         candidate = scheduled_at or settings.get("scheduled_at")
         if not candidate:
             raise ValueError("scheduled_at is required for schedule")
-        settings["scheduled_at"] = validate_schedule(candidate)
+        settings["scheduled_at"] = local_schedule(validate_schedule(candidate))
     else:
         settings["scheduled_at"] = None
     return value, settings
@@ -491,6 +525,8 @@ def approval_preview(
     *,
     action: str,
     scheduled_at: str | None = None,
+    target_url: str | None = None,
+    saved_surface_hash: str | None = None,
 ) -> dict[str, Any]:
     value, settings = _publish_settings(
         document, action=action, scheduled_at=scheduled_at
@@ -499,6 +535,8 @@ def approval_preview(
         {
             "action": action,
             "document_hash": document_hash(value),
+            "target_url": target_url,
+            "saved_surface_hash": saved_surface_hash,
             "settings": settings,
             "tags": value["tags"],
         },
@@ -517,6 +555,10 @@ def approval_preview(
         "comments_allowed": settings["comments_allowed"],
         "tags": value["tags"],
         "scheduled_at": settings["scheduled_at"],
+        "scheduled_at_local": local_schedule(settings["scheduled_at"]),
+        "platform_timezone": "Asia/Seoul",
+        "target_url": target_url,
+        "saved_surface_hash": saved_surface_hash,
         "approval_token": hashlib.sha256(material.encode("utf-8")).hexdigest()[:24],
     }
 
@@ -563,6 +605,7 @@ def _validated_action_result(action: str, result: object) -> str | None:
     return None
 
 
+@locked_publication
 def publish_or_schedule(
     document: object,
     checkpoint: dict[str, Any],
@@ -576,7 +619,9 @@ def publish_or_schedule(
     value, settings = _publish_settings(
         document, action=action, scheduled_at=scheduled_at
     )
-    preview = approval_preview(value, action=action, scheduled_at=scheduled_at)
+    preview = approval_preview(value, action=action, scheduled_at=scheduled_at,
+                               target_url=checkpoint.get("draft_url"),
+                               saved_surface_hash=checkpoint.get("saved_surface_hash"))
     if approval_token != preview["approval_token"]:
         raise ApprovalRequired("the exact per-document Tistory approval token is required")
     if os.environ.get("AUTOSEO_TESTING") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
@@ -592,11 +637,15 @@ def publish_or_schedule(
     if not required.issubset(set(checkpoint.get("completed_operation_ids", []))):
         raise ValueError("the Tistory draft has incomplete editor operations; resume it first")
 
+    if store is None:
+        raise ValueError("durable checkpoint storage is required for publication")
+    prepare_publication(driver, value, checkpoint, settings)
+    # Settings are verified before the irreversible attempt starts.
+    driver.apply_publish_settings(settings)
     checkpoint["publish_state"] = "attempting"
     if store:
         store.save(checkpoint)
     try:
-        driver.apply_publish_settings(settings)
         driver.click_publish(action)
         result = driver.verify_publish(action)
     except Exception as exc:
@@ -630,6 +679,10 @@ class LocatorResolver:
     def __init__(self, page: Any, catalog: FeatureCatalog) -> None:
         self.page = page
         self.catalog = catalog
+        self.compatibility = None
+        self.last_resolution = {}
+        self.ambiguous_error = AmbiguousElement
+        self.ui_error = EditorUIChanged
 
     @staticmethod
     def _count(locator: Any) -> int:
@@ -648,34 +701,8 @@ class LocatorResolver:
         return locator if count == 1 else None
 
     def locate(self, feature_id: str, *, allow_shortcut: bool = False) -> tuple[str, Any]:
-        feature = self.catalog.feature(feature_id)
-        locator = feature["locator"]
-        role = locator.get("role")
-        for name in locator.get("names") or ([locator.get("name")] if locator.get("name") else []):
-            if role and name:
-                candidate = self._unique(
-                    self.page.get_by_role(role, name=name, exact=True),
-                    f"role={role}, name={name}",
-                )
-                if candidate is not None:
-                    return "role-name", candidate
-        for label in locator.get("labels") or []:
-            candidate = self._unique(
-                self.page.get_by_text(label, exact=True), f"Korean label={label}"
-            )
-            if candidate is not None:
-                return "korean-label", candidate
-        shortcut = locator.get("shortcut")
-        if allow_shortcut and shortcut:
-            return "shortcut", shortcut
-        fallback = locator.get("dom_fallback")
-        if fallback:
-            candidate = self._unique(
-                self.page.locator(fallback), f"DOM fallback={fallback}"
-            )
-            if candidate is not None:
-                return "dom-fallback", candidate
-        raise EditorUIChanged(f"no unique Tistory control found for {feature_id}")
+        return editor_compatibility.locate(self, feature_id, allow_shortcut=allow_shortcut)
+
 
     def click(self, feature_id: str) -> str:
         strategy, target = self.locate(feature_id, allow_shortcut=True)
@@ -694,7 +721,7 @@ class LocatorResolver:
     def probe(self, feature_id: str) -> dict[str, Any]:
         try:
             strategy, _ = self.locate(feature_id)
-            return {"available": True, "strategy": strategy}
+            return {"available": True, **self.last_resolution, "strategy": strategy}
         except AmbiguousElement:
             return {"available": False, "strategy": None, "reason": "ambiguous"}
         except EditorUIChanged:
@@ -709,6 +736,10 @@ class PlaywrightTistoryDriver:
         self.catalog = catalog
         self.resolver = LocatorResolver(page, catalog)
         self.data_dir = data_dir
+        self.resolver.compatibility = editor_compatibility.load_map(
+            data_dir / "tistory-editor-compatibility.json", page, catalog
+        )
+        self._save_receipt = FreshSaveReceipt(page)
         self._current_format: str | None = None
         self._postconditions: dict[str, bool] = {}
 
@@ -769,14 +800,19 @@ class PlaywrightTistoryDriver:
             raise EditorUIChanged("Tistory source editor value could not be verified") from exc
 
     def _basic_body(self) -> Any:
-        candidates = self.page.locator(
-            ".ProseMirror[contenteditable='true'], .tt_article_useless_p_margin[contenteditable='true'], "
-            "#editor [contenteditable='true']"
-        )
-        count = candidates.count()
-        if count != 1:
+        matches = []
+        for frame in self.page.frames:
+            candidates = frame.locator(
+                ".ProseMirror[contenteditable='true'], .tt_article_useless_p_margin[contenteditable='true'], "
+                "#editor [contenteditable='true'], body#tinymce[contenteditable='true']"
+            )
+            if candidates.count() > 1:
+                raise EditorUIChanged("Tistory basic body is ambiguous")
+            if candidates.count() == 1:
+                matches.append(candidates)
+        if len(matches) != 1:
             raise EditorUIChanged("Tistory basic editor body is missing or ambiguous")
-        return candidates
+        return matches[0]
 
     def _clear_basic_body(self) -> None:
         body = self._basic_body()
@@ -818,8 +854,9 @@ class PlaywrightTistoryDriver:
     def upload_media(self, media: dict[str, Any], path: Path, *, document_format: str) -> str:
         del document_format
         self._switch_mode("basic")
-        self._clear_basic_body()
         body = self._basic_body()
+        if body.inner_text().strip() or body.locator("img, video, table, iframe").count():
+            raise EditorUIChanged("existing editor content must not be cleared for an upload")
         before = set(self._body_image_urls(body))
         self._trigger_image_upload(path)
         deadline = time.monotonic() + 60
@@ -864,8 +901,10 @@ class PlaywrightTistoryDriver:
                         locator.fill(tag)
                         self.page.keyboard.press("Enter")
             elif feature_id == "draft-save":
+                self._save_receipt.begin()
                 self.resolver.click("draft-save")
-                self.page.wait_for_timeout(250)
+                if not self._save_receipt.confirm():
+                    raise EditorUIChanged("new draft save acknowledgement was not observed")
             else:
                 raise EditorUIChanged(f"unsupported Tistory operation: {feature_id}")
         except StaleElementReference:
@@ -889,13 +928,15 @@ class PlaywrightTistoryDriver:
                     "markdown": "마크다운",
                     "html": "HTML",
                 }[payload["format"]]
-                return (
-                    self._current_format == payload["format"]
-                    and self.page.get_by_role(
+                matches = (
+                    self.page.get_by_role(
                         "button", name=expected_label, exact=True
                     ).count()
                     == 1
                 )
+                if matches:
+                    self._current_format = payload["format"]
+                return matches
             if feature_id == "title":
                 _, locator = self.resolver.locate("title")
                 return locator.input_value() == payload["text"]
@@ -911,14 +952,7 @@ class PlaywrightTistoryDriver:
                     for tag in payload["tags"]
                 )
             if feature_id == "draft-save":
-                return any(
-                    self.page.get_by_text(message, exact=False).count() >= 1
-                    for message in (
-                        "임시저장 완료",
-                        "임시 저장되었습니다",
-                        "저장되었습니다",
-                    )
-                )
+                return self._save_receipt.acknowledged
         except Exception:
             return False
         return self._postconditions.get(operation["operation_id"], False)
@@ -933,16 +967,42 @@ class PlaywrightTistoryDriver:
         except Exception:
             return ""
 
+    def snapshot_hash(self) -> str:
+        _, title = self.resolver.locate("title")
+        try:
+            body = self._source_value()
+        except EditorUIChanged:
+            body = self._basic_body().inner_html()
+        tags = self.page.locator("#tags, .tag_list, .list_tag")
+        return digest({"title": title.input_value(), "body": body,
+                       "tags": tags.all_text_contents()})
+
+    def has_existing_content(self) -> bool:
+        try:
+            if self._source_value().strip():
+                return True
+        except EditorUIChanged:
+            pass
+        try:
+            body = self._basic_body()
+            return bool(body.inner_text().strip() or body.locator("img, video, table, iframe").count())
+        except EditorUIChanged:
+            return False
+
     def _set_option(self, feature_id: str, value: Any) -> None:
         _, locator = self.resolver.locate(feature_id)
         try:
             tag_name = locator.evaluate("node => node.tagName.toLowerCase()")
             if tag_name == "select":
                 locator.select_option(label=str(value))
+                if locator.locator("option:checked").inner_text() != str(value):
+                    raise EditorUIChanged(f"Tistory option did not match: {feature_id}")
             elif isinstance(value, bool):
                 checked = bool(locator.is_checked())
                 if checked != value:
                     locator.click()
+                if bool(locator.is_checked()) != value:
+                    raise EditorUIChanged(f"Tistory option did not match: {feature_id}")
             else:
                 locator.click()
                 option = self.page.get_by_text(str(value), exact=True)
@@ -951,6 +1011,9 @@ class PlaywrightTistoryDriver:
                         f"Tistory option is missing or ambiguous for {feature_id}"
                     )
                 option.click()
+                selected = locator.get_attribute("data-value") or locator.get_attribute("aria-valuetext")
+                if selected != str(value):
+                    raise EditorUIChanged(f"Tistory option state is unknown: {feature_id}")
         except EditorError:
             raise
         except Exception as exc:
@@ -964,10 +1027,12 @@ class PlaywrightTistoryDriver:
         self._set_option("comments-allowed", settings["comments_allowed"])
         if settings["mode"] == "schedule":
             self.resolver.click("schedule-option")
-            parsed = datetime.fromisoformat(settings["scheduled_at"].replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(local_schedule(settings["scheduled_at"]))
             combined = self.page.locator("input[type='datetime-local']")
             if combined.count() == 1:
                 combined.fill(parsed.strftime("%Y-%m-%dT%H:%M"))
+                if combined.input_value() != parsed.strftime("%Y-%m-%dT%H:%M"):
+                    raise EditorUIChanged("schedule time did not match the approved local time")
                 return
             date_fields = self.page.locator("input[type='date']")
             time_fields = self.page.locator("input[type='time']")
@@ -977,40 +1042,20 @@ class PlaywrightTistoryDriver:
                 )
             date_fields.fill(parsed.strftime("%Y-%m-%d"))
             time_fields.fill(parsed.strftime("%H:%M"))
+            if date_fields.input_value() != parsed.strftime("%Y-%m-%d") or time_fields.input_value() != parsed.strftime("%H:%M"):
+                raise EditorUIChanged("schedule time did not match the approved local time")
 
     def click_publish(self, action: str) -> None:
+        if os.environ.get("AUTOSEO_TESTING") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
+            raise RuntimeError("publish controls are disabled in automated tests")
         self.resolver.click("schedule-publish" if action == "schedule" else "publish")
 
     def verify_publish(self, action: str) -> dict[str, Any] | None:
         try:
             self.page.wait_for_load_state("domcontentloaded", timeout=10_000)
+            return publication_result(self, action)
         except Exception:
-            pass
-        url = str(self.page.url)
-        if _is_published_tistory_url(url):
-            return {"url": url, "action": action, "scheduled": action == "schedule"}
-        if action == "schedule" and _is_scheduled_result_url(url):
-            scheduled = any(
-                self.page.get_by_text(message, exact=False).count() >= 1
-                for message in ("예약되었습니다", "예약 발행", "예약 완료")
-            )
-            if scheduled:
-                return {"url": url, "action": action, "scheduled": True}
-        candidates = self.page.locator("a[href*='.tistory.com/']")
-        observed: list[str] = []
-        for index in range(candidates.count()):
-            value = candidates.nth(index).get_attribute("href")
-            if value and _is_published_tistory_url(value) and value not in observed:
-                observed.append(value)
-        return (
-            {
-                "url": observed[0],
-                "action": action,
-                "scheduled": action == "schedule",
-            }
-            if len(observed) == 1
-            else None
-        )
+            return None
 
 
 def validate_editor_url(value: str) -> str:
@@ -1030,15 +1075,9 @@ def validate_editor_url(value: str) -> str:
 
 
 def _verified_draft_url(value: str) -> str | None:
-    try:
-        validated = validate_editor_url(value)
-    except ValueError:
-        return None
-    parsed = urlsplit(validated)
-    query = parse_qs(parsed.query)
-    path = parsed.path.casefold()
-    if "/manage/post/" in path or any(key.casefold() in {"id", "postid"} for key in query):
-        return validated
+    identity = draft_identity(value)
+    if identity and identity[0].startswith("tistory:") and identity[1]:
+        return value
     return None
 
 
@@ -1057,6 +1096,7 @@ class TistoryBrowserSession:
         self.context = None
         self.page = None
 
+    @locked_profile_enter
     def __enter__(self) -> "TistoryBrowserSession":
         try:
             from playwright.sync_api import sync_playwright
@@ -1076,11 +1116,14 @@ class TistoryBrowserSession:
         self._assert_allowed_page()
         return self
 
+    @locked_profile_exit
     def __exit__(self, *_: object) -> None:
-        if self.context is not None:
-            self.context.close()
-        if self.playwright is not None:
-            self.playwright.stop()
+        try:
+            if self.context is not None:
+                self.context.close()
+        finally:
+            if self.playwright is not None:
+                self.playwright.stop()
 
     def _assert_allowed_page(self) -> None:
         host = (urlsplit(str(self.page.url)).hostname or "").casefold()
@@ -1113,7 +1156,7 @@ class TistoryBrowserSession:
         raise EditorUIChanged("Tistory editor was not ready before the login timeout")
 
     def keep_open_until_closed(self) -> None:
-        print("Tistory draft is ready. Close the browser window to finish.", file=sys.stderr)
+        print("The Tistory editor remains open for review. Close the browser window to finish.", file=sys.stderr)
         try:
             while self.context.pages:
                 live = [page for page in self.context.pages if not page.is_closed()]
@@ -1132,17 +1175,7 @@ class TistoryBrowserSession:
 def learn_compatibility_map(
     page: Any, catalog: FeatureCatalog, *, editor_url: str
 ) -> dict[str, Any]:
-    resolver = LocatorResolver(page, catalog)
-    return {
-        "schema_version": 1,
-        "catalog_version": catalog.catalog_version,
-        "editor_origin": f"{urlsplit(editor_url).scheme}://{urlsplit(editor_url).hostname}",
-        "observed_at": datetime.now(timezone.utc).isoformat(),
-        "features": {
-            identifier: resolver.probe(identifier) for identifier in catalog.features
-        },
-        "note": "Local Tistory UI compatibility map only; no page text, cookies, or account data.",
-    }
+    return editor_compatibility.build_map(page, catalog, LocatorResolver(page, catalog), editor_url)
 
 
 def _compatibility_path(data_dir: Path) -> Path:
@@ -1175,9 +1208,14 @@ def _compose(
     with TistoryBrowserSession(data_dir=data_dir, editor_url=editor_url) as browser:
         page = browser.wait_for_editor()
         driver = PlaywrightTistoryDriver(page, catalog=catalog, data_dir=data_dir)
-        checkpoint = TistoryEditorAutomation(store).apply(
-            document, driver, prepared_media=prepared
-        )
+        try:
+            checkpoint = TistoryEditorAutomation(store).apply(
+                document, driver, prepared_media=prepared
+            )
+        except Exception:
+            if not close_after:
+                browser.keep_open_until_closed()
+            raise
         checkpoint["draft_url"] = _verified_draft_url(str(page.url))
         store.save(checkpoint)
         if not close_after:
@@ -1271,10 +1309,6 @@ def main(argv: list[str] | None = None) -> int:
         document = _load_document(args.document)
         if args.command in {"compose", "resume"}:
             preflight = build_privacy_preflight(document)
-            preview = draft_preview(document, privacy_preflight=preflight)
-            if args.approval_token != preview["approval_token"]:
-                print(json.dumps(preview, ensure_ascii=False, indent=2))
-                return 4
             editor_url = args.editor_url if args.command == "compose" else None
             if args.command == "resume":
                 existing = CheckpointStore(data_dir).load_existing(document)
@@ -1284,6 +1318,10 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError(
                         "resume requires a verified Tistory manage/post draft URL"
                     )
+            preview = draft_preview(document, privacy_preflight=preflight, target_url=str(editor_url))
+            if args.approval_token != preview["approval_token"]:
+                print(json.dumps(preview, ensure_ascii=False, indent=2))
+                return 4
             result = _compose(
                 document,
                 preflight=preflight,
@@ -1296,8 +1334,12 @@ def main(argv: list[str] | None = None) -> int:
 
         action = "schedule" if args.command == "schedule" else "publish"
         scheduled_at = args.at if action == "schedule" else None
+        store = CheckpointStore(data_dir)
+        checkpoint = store.load_existing(document)
         preview = approval_preview(
-            document, action=action, scheduled_at=scheduled_at
+            document, action=action, scheduled_at=scheduled_at,
+            target_url=checkpoint.get("draft_url"),
+            saved_surface_hash=checkpoint.get("saved_surface_hash"),
         )
         if args.approval_token != preview["approval_token"]:
             print(json.dumps(preview, ensure_ascii=False, indent=2))

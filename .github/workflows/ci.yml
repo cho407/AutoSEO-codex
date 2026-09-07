@@ -32,6 +32,28 @@ jobs:
       - name: Verify tests from tracked archive
         run: python scripts/verify_git_archive.py
 
+  browser-smoke:
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: "3.12"
+      - name: Install local browser test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check ".[dev]" -r plugins/autoseo/requirements-browser.txt
+          python -m playwright install --with-deps chromium
+      - name: Verify local editors without publishing
+        env:
+          AUTOSEO_TESTING: "1"
+          AUTOSEO_REQUIRE_BROWSER_TESTS: "1"
+        run: python -m pytest tests/test_editor_browser_safety.py tests/test_tistory_editor.py::test_real_playwright_driver_composes_the_local_editor_fixture
+
   compatibility:
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest

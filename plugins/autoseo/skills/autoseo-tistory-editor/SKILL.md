@@ -55,6 +55,17 @@ the draft. Checkpoints store operation hashes, upload states, hosted media URLs,
 and verified post state; they never store the title, article body, source paths,
 cookies, or credentials.
 
+The local learned map is consumed only while its origin, catalog hash, browser/UI
+signatures and seven-day validity still match. Controls are checked again in the
+current dialog, toolbar, document or editor frame. TinyMCE iframe body discovery
+is supported; this does not claim all live TinyMCE controls are verified.
+
+Resume validates the exact blog/draft, surface hash and completed operations.
+If the user changed the draft, stop without overwriting it. A corrupt checkpoint
+or changed source requires reconciliation or a new document ID, never a reset of
+publication history. Pending uploads remain non-retriable when their result is
+unknown. Profile/document locks reject overlapping runs.
+
 ## Attached-image privacy default
 
 Every static attached image defaults to `background-people`:
@@ -88,8 +99,16 @@ was applied.
 - Upload from an empty basic editor, observe exactly one newly hosted Kakao/Tistory
   media URL, then build the final Markdown or HTML source. An unclear upload is
   recorded as `unknown` and never retried automatically.
-- Before every publish or schedule action, show category, visibility, comments,
-  tags, and scheduled time and require a new exact approval token.
+- Before every publish or schedule action, show the exact blog/draft URL, saved
+  content/attachment fingerprints, category, visibility, comments, tags, and
+  scheduled time. Require a new exact approval token. Show the absolute instant
+  and Asia/Seoul local time; input and verify the latter at minute precision.
+- A new save acknowledgement is distinct from a completed input operation. Old
+  success toasts are not receipts. A home page or old link is not publication
+  evidence; match this post's identity, content and visibility, and scheduled
+  status/time when applicable. Unknown results require manual reconciliation.
+- Recheck TrendEvidence immediately before final approval for current/trending
+  articles. Expired evidence blocks handoff until refreshed.
 - Never retry an unclear publish result. Leave the draft and diagnostic image for
   manual reconciliation.
 - Do not support bulk posting, automatic comments, login bypass, CAPTCHA solving,

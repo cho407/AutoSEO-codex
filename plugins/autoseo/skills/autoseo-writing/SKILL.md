@@ -98,7 +98,11 @@ sentence endings consistent unless a quoted passage intentionally differs.
 
 7. Resolve safe findings. For `automatic: false` findings, inspect the sentence and
    rewrite only when the intended actor and meaning are clear.
-8. Run `content_quality.py`. For a URL with lane reports, also run
+8. Run `content_quality.py` as **style diagnostics only**. Its retained
+   `overall_quality` key is not semantic quality; factual accuracy and usefulness
+   remain unmeasured until an excerpt-backed review. Korean name density is
+   unavailable, and numbers or extra length do not earn quality points.
+   For a URL with lane reports, also run
    `optimization_report.py`. Never present a draft-only content score as a site or
    ranking score.
 9. Return the finished draft first, then a compact note with tone, sources, measured
@@ -128,6 +132,10 @@ For current/trending requests, normalize research as `TrendEvidence v1` and run:
 Use a 24-hour window by default for breaking topics and a 7-day window for sustained
 interest. A topic is brief-ready only when the report says `confirmed`, evidence is
 fresh for the window, and the opportunity score has enough measured components.
+Require `content_action=brief-ready`, `refresh.needs_refresh=false` and
+`opportunity.valid_for_new_content=true`. Re-run without a historical `--as-of`
+before drafting and again before final publication approval. Historical opportunity
+scores remain dated evidence, not permission to reuse expired facts.
 Single-source items remain emerging even when an official relative trend is present.
 The score is a research-priority score, never exact volume or ranking potential.
 

@@ -24,10 +24,16 @@ verified against the live, user-owned PC editor before a stable release.
 | Animated GIF face mosaic | unavailable | Use a static derivative or explicitly disable privacy processing |
 | Bulk posting and engagement automation | unavailable | Outside product safety scope |
 
-`automatic candidate` means the implementation and mock editor regression tests are
-complete but the selector map must be refreshed with `learn` and manually checked
+`automatic candidate` means an adapter is implemented; it does not claim every
+control has a browser regression test. The catalog's per-feature `validation`
+separates mock tests and live verification. The selector map must be refreshed with `learn` and manually checked
 against a live editor for this release. A missing or duplicate match is a failure,
 not permission to guess.
+
+Local validation date: 2026-09-07, synthetic Tistory PC fixture v1. Markdown source
+write, image URL capture and new save acknowledgement are browser-tested. TinyMCE
+iframe discovery is tested separately, not as an entire live TinyMCE workflow.
+Private/scheduled result mapping and live save/reopen remain unverified.
 
 ## Live release checklist
 

@@ -77,6 +77,20 @@ requested by the user.
 5. Build a representative page sample across templates, depth, and business value.
 6. Do not bypass authentication, rate limits, robots controls, or access restrictions.
 
+Run `lane_engine.py audit <url> --bundle <bundle.json> --question <original-query>`
+after collection so automatic lane selection uses the detected language. Preserve
+one common context (URL, original question, market, language, device, surface,
+capture time and rule version) across the run; incompatible contexts cannot be
+combined. Add `--market`, `--device` and `--surface` when known.
+
+Supply dated crawler/feed observations with `--site-evidence <site.json>` and
+excerpt-backed semantic reviews with `--review-evidence <reviews.json>`. See
+`references/readiness-evidence.md` for input examples. These are explicit review
+inputs, not fields taken from page markup. Missing evidence remains unmeasured.
+Do not infer a direct answer, claim/source support, authorship or brand facts from
+length, link count, or a Person JSON-LD declaration. Report index/snippet directives
+separately from crawler permission; alternate canonicals require intent review.
+
 ### 3. Detect business type
 
 Classify the site as SaaS, e-commerce, local service, publisher, agency, or
@@ -124,6 +138,8 @@ reports separately:
 Do not mix the full-audit category score, lane readiness, draft quality, or observed
 click/rank/citation outcomes into one opaque number. `OptimizationReport v1` appears
 only when every selected lane is scoreable and always displays evidence coverage.
+Show each lane's `eligibility.status` and blockers beside its readiness score.
+Prioritize a measured eligibility blocker even when the overall score is withheld.
 
 ### 7. Deliver
 

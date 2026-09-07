@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import io
 import subprocess
 import sys
@@ -23,8 +24,15 @@ def _safe_members(archive: tarfile.TarFile) -> list[tarfile.TarInfo]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ref", default="HEAD", help="Commit or tree to validate; defaults to committed HEAD")
+    args = parser.parse_args()
+    tree = subprocess.run(
+        ["git", "rev-parse", "--verify", "--end-of-options", f"{args.ref}^{{tree}}"],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout.strip()
     result = subprocess.run(
-        ["git", "archive", "--format=tar", "HEAD"],
+        ["git", "archive", "--format=tar", tree],
         cwd=ROOT,
         capture_output=True,
         check=True,

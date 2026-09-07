@@ -78,6 +78,10 @@ never guaranteed.
 It uses the same measured severity weights, publishes aggregate evidence coverage,
 lists failed checks in priority order, and keeps real clicks, ranks, mentions, and
 citations in a separate outcome panel.
+The P0 hardening adds shared context validation, separate eligibility blockers,
+excerpt-backed semantic review and current-time trend gates. See
+[priority hardening](PRIORITY_HARDENING.md) for exact input contracts and remaining
+live-editor limitations. Declared capability is not live-account certification.
 
 ## Writing and trend research
 

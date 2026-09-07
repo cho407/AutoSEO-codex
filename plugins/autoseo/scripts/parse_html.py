@@ -90,6 +90,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         "title": None,
         "meta_description": None,
         "meta_robots": None,
+        "robots_by_agent": {},
         "canonical": None,
         "h1": [],
         "h2": [],
@@ -120,7 +121,9 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         if name == "description":
             result["meta_description"] = content
         elif name == "robots":
-            result["meta_robots"] = content
+            result["meta_robots"] = ",".join(filter(None, (result["meta_robots"], content)))
+        elif name in {"googlebot", "bingbot", "yeti", "oai-searchbot", "perplexitybot"}:
+            result["robots_by_agent"][name] = ",".join(filter(None, (result["robots_by_agent"].get(name), content)))
 
         # Open Graph
         if property_attr.startswith("og:"):

@@ -12,6 +12,7 @@ from typing import Any, Mapping
 
 from file_safety import read_text_limited
 from lane_engine import ALL_LANES, MINIMUM_COVERAGE_PERCENT, SEVERITY_WEIGHTS, score_checks
+from readiness_evidence import timestamp
 
 SCHEMA_VERSION = 1
 _PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -79,6 +80,15 @@ def build_optimization_report(reports: Mapping[str, object]) -> dict[str, Any]:
     targets = {report["target"] for report in normalized}
     if len(targets) != 1:
         raise ValueError("all lane reports must describe the same target")
+    contexts = [report.get("context") for report in normalized]
+    if any(not isinstance(context, dict) for context in contexts):
+        raise ValueError("lane context is missing; rerun the audit before aggregation")
+    required_context = {"target_url", "question", "market", "language", "device", "surface", "collected_at", "rule_version"}
+    for report, context in zip(normalized, contexts):
+        if not required_context <= context.keys() or context != contexts[0]:
+            raise ValueError("lane context differs (target, question, market, language, device, surface, capture or rules)")
+        if timestamp(context["collected_at"]) != timestamp(report["measured_at"]):
+            raise ValueError("lane context capture does not match measured_at")
 
     applicable_weight = sum(
         report["readiness"]["applicable_weight"] for report in normalized
@@ -127,6 +137,7 @@ def build_optimization_report(reports: Mapping[str, object]) -> dict[str, Any]:
                 "coverage_percent": readiness["coverage_percent"],
                 "status": "scored" if readiness["score"] is not None else "withheld",
                 "reason": readiness["reason"],
+                "eligibility": copy.deepcopy(report.get("eligibility")),
             }
         )
         outcomes[report["lane"]] = copy.deepcopy(report.get("outcomes", []))
@@ -142,11 +153,13 @@ def build_optimization_report(reports: Mapping[str, object]) -> dict[str, Any]:
                     "weight": SEVERITY_WEIGHTS[check["severity"]],
                     "evidence": copy.deepcopy(evidence[:3] if isinstance(evidence, list) else []),
                     "note": check.get("note"),
+                    "eligibility_blocker": bool(check.get("required")),
                 }
             )
     lane_order = {lane: index for index, lane in enumerate(ALL_LANES)}
     priorities.sort(
         key=lambda item: (
+            not item["eligibility_blocker"],
             _PRIORITY_ORDER[item["severity"]],
             lane_order[item["lane"]],
             item["check_id"],
@@ -169,6 +182,7 @@ def build_optimization_report(reports: Mapping[str, object]) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "kind": "OptimizationReport",
         "target": normalized[0]["target"],
+        "context": copy.deepcopy(contexts[0]),
         "measured_at": max(measured_times).isoformat() if measured_times else None,
         "selected_lanes": [report["lane"] for report in normalized],
         "readiness": {

@@ -40,6 +40,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "crux_history.py", "domain_history.py", "drift_baseline.py",
         "drift_compare.py", "drift_history.py", "drift_report.py", "fetch_page.py",
         "evidence_engine.py", "file_safety.py", "free_source_policy.py",
+        "editor_compatibility.py", "editor_safety.py", "readiness_evidence.py",
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
         "indexnow_submit.py", "iptc_ai_label.py", "korean_text.py", "lane_engine.py", "lcp_subparts.py", "naver_document.py", "naver_editor.py", "naver_evidence.py", "pagespeed_check.py",

@@ -17,7 +17,8 @@ catalog offers blog search but no rich blog-post writing endpoint.
 - The user completes login, two-factor authentication, and CAPTCHA manually.
 - Before compose or resume clicks `임시저장`, show the exact document, block,
   attachment, tag, and setting scope and obtain immediate confirmation.
-- Before every publish or schedule action, show category, visibility, search,
+- Before every publish or schedule action, show the exact blog/draft URL, content
+  and attachment fingerprint, category, visibility, search,
   comments, sympathy, CCL, sharing, tags, and scheduled time. Require the exact
   per-document approval token produced by the preview.
 - Never retry an unclear publish result. Preserve the checkpoint and local
@@ -32,7 +33,7 @@ catalog offers blog search but no rich blog-post writing endpoint.
 | `@autoseo naver-editor doctor` | Read-only runtime, catalog, and profile-permission check |
 | `@autoseo naver-editor learn` | Local compatibility map of roles, Korean labels, shortcuts, and DOM fallbacks |
 | `@autoseo naver-editor compose <topic-or-document>` | Build or validate `NaverDocument v1`, then save a confirmed draft |
-| `@autoseo naver-editor resume <draft>` | Resume only unfinished operation IDs for the same source hash |
+| `@autoseo naver-editor resume <draft>` | Reconcile the same draft and source hash before continuing unfinished operations |
 | `@autoseo naver-editor publish <draft>` | Preview settings, request approval, click publish once, verify once |
 | `@autoseo naver-editor schedule <draft-and-time>` | Preview time/settings, request approval, schedule once, verify once |
 
@@ -91,10 +92,29 @@ editor's accessibility names, Korean labels, documented shortcuts, and versioned
 DOM fallbacks, then writes a local compatibility map containing no page text or
 cookies.
 
+Compose loads this map, checks its origin, catalog hash, browser/UI signatures,
+and seven-day freshness, then re-resolves controls in the current frames and
+dialog/toolbar scopes. Learned hints never supply executable selectors or content.
+
 Checkpoints contain only the document hash, completed operation IDs, verified
 draft URL, publication state, and diagnostic filenames. They do not contain the
-title, body, attachment contents, or credentials. A changed source hash starts a
-new operation set so content is not silently duplicated.
+title, body, attachment contents, or credentials. Checkpoints also distinguish
+pending UI operations from a newly acknowledged remote save, with separate surface
+and saved-content hashes. Changed attachments, changed source hashes, corrupted
+history, or user edits stop for reconciliation; they never silently reset history.
+Use a new document ID for a revision. Legacy checkpoints are not automatically
+migrated across changed hash rules. Document and profile locks prevent overlap.
+
+Publication settings are applied in the final configuration dialog, not during
+draft composition. Scheduled times are normalized to Asia/Seoul at minute precision
+and read back before submission. A home page or existing post link is not success.
+The post identity, content, visibility and (for scheduling) actual scheduled status
+and time must match. If the current UI cannot provide those facts, stop as unknown;
+never announce successful publication or retry it automatically.
+
+For time-sensitive articles, rerun the saved TrendEvidence with the current time
+immediately before the final approval. `refresh-before-brief` or
+`valid_for_new_content=false` blocks handoff until the research is refreshed.
 
 ## Stop conditions
 

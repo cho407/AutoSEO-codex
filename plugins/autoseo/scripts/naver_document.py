@@ -8,6 +8,7 @@ import hashlib
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from file_safety import resolve_input_file
@@ -420,8 +421,22 @@ def validate_document(
 
 def document_hash(document: object) -> str:
     normalized = validate_document(document)
+    paths = []
+    if normalized["background"].get("path"):
+        paths.append(normalized["background"]["path"])
+    for block in normalized["blocks"]:
+        paths.extend(block.get("paths", []))
+        paths.extend(block[key] for key in ("path", "replace_path") if block.get(key))
+    attachment_hashes = {}
+    for path in paths:
+        digest = hashlib.sha256()
+        with Path(path).open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        attachment_hashes[path] = digest.hexdigest()
     payload = json.dumps(
-        normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        {"document": normalized, "attachment_hashes": attachment_hashes},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":")
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -495,16 +510,7 @@ def build_operations(document: object) -> list[dict[str, Any]]:
     if value["editor_options"]["spellcheck"]:
         add("spellcheck", {}, guided=True)
     settings = value["publish_settings"]
-    for feature_id, key in (
-        ("category", "category"),
-        ("visibility", "visibility"),
-        ("search-allowed", "search_allowed"),
-        ("comments-allowed", "comments_allowed"),
-        ("sympathy-allowed", "sympathy_allowed"),
-        ("ccl", "ccl"),
-        ("share-allowed", "share_allowed"),
-    ):
-        add(feature_id, {"value": settings[key]})
+    # Final publication settings belong to the approval-bound dialog, not compose.
     if settings["mode"] == "draft":
         add("draft-save", {})
     return operations

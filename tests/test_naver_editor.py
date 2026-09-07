@@ -194,7 +194,7 @@ def test_feature_catalog_is_complete_and_has_no_silent_omissions() -> None:
         "publish",
         "schedule-publish",
     }
-    assert set(catalog.features) == expected
+    assert set(catalog.features) == expected | {"publish-dialog", "schedule-option"}
     assert {item["status"] for item in catalog.features.values()} <= {
         "automatic",
         "guided",
@@ -287,6 +287,7 @@ def test_stale_element_is_resolved_once_and_operation_is_not_duplicated(
     operations = naver_document.build_operations(document)
     target = operations[0]["operation_id"]
     driver = MockEditorDriver(stale_once=target)
+    driver.verify = lambda operation: operation["operation_id"] in driver.calls
     automation = naver_editor.EditorAutomation(
         naver_editor.CheckpointStore(tmp_path)
     )
@@ -393,6 +394,7 @@ def test_locator_order_stops_on_ambiguity_and_prefers_shortcut_over_dom() -> Non
     assert ambiguous_page.calls[0].startswith("role:")
 
     shortcut_page = FakePage(role_count=0, label_count=0, fallback_count=1)
+    shortcut_page.evaluate = lambda _: True  # Positively identified editor focus.
     strategy = naver_editor.LocatorResolver(shortcut_page, catalog).click("bold")
     assert strategy == "shortcut"
     assert shortcut_page.calls[-1] == "shortcut:Meta+B"

@@ -21,6 +21,8 @@
     "lane": {"enum": ["seo", "aeo", "geo", "llmo", "neo"]},
     "target": {"type": "string"},
     "measured_at": {"type": "string", "format": "date-time"},
+    "context": {"type": "object", "required": ["target_url", "question", "market", "language", "device", "surface", "collected_at", "rule_version"]},
+    "eligibility": {"type": "object", "properties": {"status": {"enum": ["blocked", "unmeasured", "eligible"]}}},
     "readiness": {
       "type": "object",
       "required": ["score", "score_displayed", "coverage_percent", "meaning"],
