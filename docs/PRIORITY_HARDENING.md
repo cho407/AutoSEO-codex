@@ -127,3 +127,32 @@ Still required: user-authorized live draft/save/reopen and publication/schedule
 checks, guided advanced-component recovery validation, complete platform result
 adapters, image/privacy convergence for Naver, and the later P1 research-to-content
 and measured-exposure feedback work. Do not call these completed based on mocks.
+
+## Follow-up — 2026-09-08
+
+Both editors now share visible-body discovery across frames, including Tistory
+basic/TinyMCE and source modes. The new `verify-draft` command reopens the saved
+URL in a separate dedicated browser session and compares its fingerprint without
+editing, mode conversion, upload or save. Same-session inspection, missing saved
+IDs, unfinished non-save operations and legacy provenance remain unavailable. Different content
+invalidates readback; publication now requires it as well as the existing approval.
+
+Surface fingerprint v2 includes Naver inline rendered styles, structural content,
+media/link attributes and tags, and normalizes Tistory source line endings. Old
+fingerprints are not promoted automatically. A local mock server tests independent
+browser-session readback and resume without rewriting, including media references.
+An interrupted final save can become `readback-confirmed` only with the recorded
+draft ID, pre-save fingerprint and a matching new-session readback; the command
+never resaves or invents a remote save timestamp. Existing user-entered titles are
+protected even when the body is empty. This proves the implemented
+comparison path, not that a live platform's draft URL or editor transformation is
+already supported. These fixtures use already identified draft URLs, not an
+unverified newpost-to-draft-ID mapping. Actual UI identity discovery, incompatible mode reconciliation,
+advanced components, private/scheduled result adapters and live-account checks
+remain release gates. See [the roadmap](ROADMAP.md) for priorities and the title
+strategy evaluation. No screenshots or account data were committed as fixtures.
+
+Pre-push regression checks also cover CodeMirror controls nested inside the generic
+editor container, lost ancestor-applied underline/strikethrough, and meaningful
+Markdown indentation. Source fingerprints normalize line endings only; they do
+not trim whitespace. Local agent notes and session state remain excluded from Git.

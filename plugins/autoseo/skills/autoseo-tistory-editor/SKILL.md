@@ -1,6 +1,6 @@
 ---
 name: autoseo-tistory-editor
-description: Export, compose, resume, diagnose, learn, publish, or schedule a user-owned Tistory post through Markdown or HTML with guarded browser automation and optional local bystander mosaics. Use for Tistory editor automation and TistoryDocument v1.
+description: Export, compose, verify saved drafts, resume, diagnose, learn, publish, or schedule a user-owned Tistory post through Markdown or HTML with guarded browser automation and optional local bystander mosaics. Use for Tistory editor automation and TistoryDocument v1.
 ---
 
 # AutoSEO Tistory Editor
@@ -19,6 +19,7 @@ local Markdown and HTML export remains available without a browser or login.
 | `@autoseo tistory-editor export-html <document>` | Render the same structured document as escaped HTML |
 | `@autoseo tistory-editor compose <topic-or-document>` | Prepare images, fill one source buffer, then save a confirmed draft |
 | `@autoseo tistory-editor resume <draft>` | Resume only uploads and operations with a known safe state |
+| `@autoseo tistory-editor verify-draft <document>` | Reopen the saved draft in a fresh browser session and compare it without editing or saving |
 | `@autoseo tistory-editor publish <draft>` | Preview final settings, require approval, click once, verify once |
 | `@autoseo tistory-editor schedule <draft-and-time>` | Preview the time and settings, require approval, schedule once |
 
@@ -65,6 +66,25 @@ If the user changed the draft, stop without overwriting it. A corrupt checkpoint
 or changed source requires reconciliation or a new document ID, never a reset of
 publication history. Pending uploads remain non-retriable when their result is
 unknown. Profile/document locks reject overlapping runs.
+
+After the user reviews the saved draft and closes its editor session, run
+`tistory_editor.py verify-draft <document.json>`. It opens only the checkpoint's
+identified saved draft in a new session. It never switches modes, reuploads,
+rewrites or clicks save/publish. The observed source mode must match the saved
+representation; if the platform reopens a different mode, reconcile it with the
+user rather than silently converting content. Do not close unsaved user work.
+The result distinguishes `verified`, `mismatch` and `unavailable`; a same-session
+check or a missing/legacy save identity cannot prove persistence. Readback compares
+title, normalized source (including formatting, links and media references), and
+tags. It stores hashes, timestamps and random session IDs, not draft content.
+Publication requires verified readback in addition to the final per-post approval.
+Actual account UI/ID mappings and publication results still need live validation.
+
+An interrupted final save is never automatically repeated. If its exact draft ID
+was already recorded and the pre-save content matches in a new session,
+`verify-draft` may reconcile it as `save_state=readback-confirmed` without another
+write. This records observed persistence, not a fabricated save toast or remote
+save time. Other unfinished operations still need their own reconciliation.
 
 ## Attached-image privacy default
 

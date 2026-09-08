@@ -36,6 +36,7 @@ Sources and limitations are included in the result.
 @autoseo naver-editor learn
 @autoseo naver-editor compose <topic-or-document>
 @autoseo naver-editor resume <draft>
+@autoseo naver-editor verify-draft <document>
 @autoseo naver-editor publish <draft>
 @autoseo naver-editor schedule <draft-and-time>
 @autoseo tistory-editor doctor
@@ -44,6 +45,7 @@ Sources and limitations are included in the result.
 @autoseo tistory-editor export-html <document>
 @autoseo tistory-editor compose <topic-or-document>
 @autoseo tistory-editor resume <draft>
+@autoseo tistory-editor verify-draft <document>
 @autoseo tistory-editor publish <draft>
 @autoseo tistory-editor schedule <draft-and-time>
 @autoseo plan <business-context>
@@ -60,7 +62,7 @@ enter the same flow. On first use AutoSEO reuses known context, asks only the
 missing writer basis, audience, reader outcome, and tone questions, then offers a
 local profile for confirmation. A one-off tone change is not saved automatically.
 
-For a draft, `writing score` reports measured content quality. For a URL, it runs
+For a draft, `writing score` reports measured style diagnostics, not factual or semantic quality. For a URL, it runs
 the selected readiness lanes and combines them as `OptimizationReport v1` only when
 every selected lane is independently scoreable; the report always shows evidence
 coverage and never predicts rank or traffic.
@@ -78,6 +80,16 @@ default to local bystander mosaicing: a clear main face is kept, other detected
 faces are mosaicked, and ambiguous group photos mosaic all detected faces for
 review. Upload and publication each use one-attempt, approval-bound state; unclear
 results are not retried.
+
+For either editor, close the reviewed saved session and request `verify-draft` to
+reopen the identified draft without writing. A fresh save notification is not a
+readback receipt. `verified` requires matching content in a different browser
+session; missing identity or incompatible mode/fingerprint is unavailable, and
+changed content is a mismatch. Publication requires verified readback and the usual
+per-post approval. No real-account success is implied by local browser tests.
+
+See the [current roadmap](ROADMAP.md) for remaining editor work and the proposed
+search/feed/balanced title candidates; title candidate generation is not yet shipped.
 
 ## Site and page workflows
 

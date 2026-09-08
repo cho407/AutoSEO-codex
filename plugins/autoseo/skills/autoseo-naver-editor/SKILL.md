@@ -1,6 +1,6 @@
 ---
 name: autoseo-naver-editor
-description: Compose, resume, diagnose, learn, publish, or schedule a user-owned Naver Blog draft in PC SmartEditor ONE with a dedicated headed browser profile and guarded per-post approval. Use for Naver editor automation and NaverDocument v1.
+description: Compose, verify saved drafts, resume, diagnose, learn, publish, or schedule a user-owned Naver Blog draft in PC SmartEditor ONE with a dedicated headed browser profile and guarded per-post approval. Use for Naver editor automation and NaverDocument v1.
 ---
 
 # AutoSEO Naver Editor
@@ -34,6 +34,7 @@ catalog offers blog search but no rich blog-post writing endpoint.
 | `@autoseo naver-editor learn` | Local compatibility map of roles, Korean labels, shortcuts, and DOM fallbacks |
 | `@autoseo naver-editor compose <topic-or-document>` | Build or validate `NaverDocument v1`, then save a confirmed draft |
 | `@autoseo naver-editor resume <draft>` | Reconcile the same draft and source hash before continuing unfinished operations |
+| `@autoseo naver-editor verify-draft <document>` | Reopen the saved draft in a fresh browser session and compare content without editing or saving |
 | `@autoseo naver-editor publish <draft>` | Preview settings, request approval, click publish once, verify once |
 | `@autoseo naver-editor schedule <draft-and-time>` | Preview time/settings, request approval, schedule once, verify once |
 
@@ -104,6 +105,25 @@ and saved-content hashes. Changed attachments, changed source hashes, corrupted
 history, or user edits stop for reconciliation; they never silently reset history.
 Use a new document ID for a revision. Legacy checkpoints are not automatically
 migrated across changed hash rules. Document and profile locks prevent overlap.
+
+After reviewing the saved draft, close the existing editor session, then run
+`naver_editor.py verify-draft <document.json>`. This reads the checkpoint's exact
+saved URL in a new dedicated session; it never selects a draft by title or clicks
+save/publish. Do not close a window with unsaved user changes automatically.
+`acknowledged` means a new save notification, while `verification_state=verified`
+means the reopened title, body, inline formatting, links, media references and tags
+match the saved fingerprint. Only hashes, timestamps and random session IDs are
+recorded. A same-session check, missing saved ID or legacy fingerprint stays
+unavailable; changed content becomes mismatch. Do not replace or re-save content
+to make the comparison pass. Publication requires verified readback plus the
+existing per-post final approval. Advanced components and live UI mappings remain
+subject to the compatibility checklist; a local fixture pass is not live certification.
+
+If interrupted at the save boundary, do not retry save. When the journal already
+identifies that draft and all pre-save content matches in a new session,
+`verify-draft` can reconcile it as `save_state=readback-confirmed` without clicking
+save. This is distinct from receiving a save notification; it does not invent a
+remote save timestamp. Other unfinished operations remain unavailable for readback.
 
 Publication settings are applied in the final configuration dialog, not during
 draft composition. Scheduled times are normalized to Asia/Seoul at minute precision
