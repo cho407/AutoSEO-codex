@@ -10,6 +10,93 @@ from editor_safety import digest
 from file_safety import read_text_limited
 
 
+def editor_body(page, platform: str, *, kind: str | None = None):
+    """One visible body across frames, shared by readiness and driver access."""
+    selectors = {
+        "naver": [("naver", ".se-main-container")],
+        "tistory": [
+            ("basic", ".ProseMirror[contenteditable=true], .tt_article_useless_p_margin[contenteditable=true], #editor [contenteditable=true], body#tinymce[contenteditable=true]"),
+            ("codemirror5", ".CodeMirror"),
+            ("codemirror6", ".cm-content[contenteditable=true]"),
+            ("textarea", "textarea[aria-label*='본문'], textarea[name=content], textarea#editor-textarea"),
+        ],
+    }
+    if platform not in selectors:
+        raise ValueError("unsupported editor platform")
+    matches = []
+    for frame in page.frames:
+        if frame != page.main_frame and not frame.frame_element().is_visible():
+            continue
+        for name, selector in selectors[platform]:
+            if kind == "source" and name == "basic" or kind == "basic" and name != "basic":
+                continue
+            candidates = frame.locator(selector)
+            for index in range(candidates.count()):
+                node = candidates.nth(index)
+                if not node.is_visible():
+                    continue
+                if name in {"basic", "textarea", "codemirror6"} and not node.is_editable():
+                    continue
+                if name == "basic" and node.evaluate("node => !!node.closest('.CodeMirror, .cm-editor, .cm-content')"):
+                    continue
+                if name == "naver" and not node.locator("[contenteditable=true]:visible").count():
+                    continue
+                matches.append((name, node))
+    if len(matches) > 1:
+        raise ValueError("editor body is ambiguous across visible controls or frames")
+    return matches[0] if matches else None
+
+
+def editor_ready(page, platform: str, resolver) -> bool:
+    try:
+        body = editor_body(page, platform)
+    except ValueError as exc:
+        raise resolver.ambiguous_error(str(exc)) from exc
+    if body is None:
+        return False
+    try:
+        _, title = resolver.locate("title")
+        return title.is_visible() and title.is_editable()
+    except resolver.ambiguous_error:
+        raise
+    except resolver.ui_error:
+        return False
+
+
+def rich_body_snapshot(root) -> dict:
+    """In-memory rendered content and inline formatting; persist only its hash."""
+    return root.evaluate("""root => {
+        if ([...root.querySelectorAll('img')].some(n => !n.complete || !n.naturalWidth))
+            throw new Error('image loading is incomplete');
+        const style = node => {
+            const s = getComputedStyle(node);
+            return [s.fontFamily, s.fontSize, s.fontWeight, s.fontStyle,
+                s.textDecorationLine, s.color, s.backgroundColor, s.textAlign,
+                s.lineHeight, s.verticalAlign];
+        };
+        const decorations = node => {
+            const lines = new Set();
+            // Text decorations paint through descendants without being inherited.
+            for (let parent = node.parentElement; parent && root.contains(parent); parent = parent.parentElement) {
+                for (const line of getComputedStyle(parent).textDecorationLine.split(' '))
+                    if (line && line !== 'none') lines.add(line);
+            }
+            return [...lines].sort();
+        };
+        const runs = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            if (!node.nodeValue.trim()) continue;
+            runs.push({text: node.nodeValue, style: style(node.parentElement), decorations: decorations(node)});
+        }
+        const elements = [...root.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,td,th,blockquote,img,a,table,hr,video,iframe')]
+            .map(n => ({tag: n.tagName, text: n.innerText || '', style: style(n),
+                attributes: ['src','href','alt','title','width','height','colspan','rowspan']
+                    .map(key => [key, n.getAttribute(key)])}));
+        return {text: root.innerText, elements, runs};
+    }""")
+
+
 def browser_signature(page) -> str:
     try:
         return digest(page.evaluate("navigator.userAgent"))

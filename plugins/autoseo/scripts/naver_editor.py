@@ -22,6 +22,7 @@ from editor_safety import (
     FreshSaveReceipt,
     attachment_stamps,
     bind_surface,
+    browser_session_id,
     digest,
     draft_identity,
     local_schedule,
@@ -29,10 +30,12 @@ from editor_safety import (
     locked_profile_enter,
     locked_profile_exit,
     locked_publication,
+    mark_operation_pending,
     prepare_publication,
     publication_result,
     record_operation,
     validate_checkpoint,
+    verify_reopened_draft,
 )
 from file_safety import read_text_limited, write_text_atomically
 from naver_document import (
@@ -267,6 +270,16 @@ class EditorAutomation:
         self.store = store
 
     @locked_document
+    def verify_draft(self, document: object, driver: Any) -> dict:
+        value = validate_document(document)
+        checkpoint = self.store.load_existing(value)
+        result = verify_reopened_draft(checkpoint, driver)
+        if document_hash(value) != checkpoint["source_hash"]:
+            raise ValueError("source attachment changed during draft verification")
+        self.store.save(checkpoint)
+        return result
+
+    @locked_document
     def apply(self, document: object, driver: Any) -> dict[str, Any]:
         value = validate_document(document)
         checkpoint = self.store.load_or_create(value)
@@ -290,8 +303,9 @@ class EditorAutomation:
                 unchanged = hasattr(driver, "snapshot_hash") and driver.snapshot_hash() == checkpoint.get("surface_hash")
                 if pending and not already_applied and not unchanged:
                     raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
-                checkpoint["pending_operation_id"] = operation_id
-                checkpoint["save_state"] = "saving" if operation["feature_id"] == "draft-save" else "dirty"
+                if pending and operation["feature_id"] == "draft-save":
+                    raise EditorUIChanged("interrupted save requires verify-draft in a new session; do not save again")
+                mark_operation_pending(checkpoint, operation, driver)
                 if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
                     raise ValueError("source attachment hash changed before saving")
                 if operation["feature_id"] == "draft-save" and hasattr(driver, "verify_document"):
@@ -540,6 +554,8 @@ class LocatorResolver:
 class PlaywrightNaverDriver:
     """Real SmartEditor adapter; every action has a checked postcondition."""
 
+    surface_version = 2
+
     def __init__(
         self,
         page: Any,
@@ -548,6 +564,7 @@ class PlaywrightNaverDriver:
         data_dir: Path,
     ) -> None:
         self.page = page
+        self.session_id = browser_session_id(page)
         self.catalog = catalog
         self.resolver = LocatorResolver(page, catalog)
         self.data_dir = data_dir
@@ -559,7 +576,11 @@ class PlaywrightNaverDriver:
         self._guided_open: set[str] = set()
 
     def _body_locator(self) -> Any:
+        if editor_compatibility.editor_body(self.page, "naver") is None:
+            raise EditorUIChanged("visible Naver document body is unavailable")
         _, locator = self.resolver.locate("paragraph")
+        if not locator.evaluate("node => !!node.closest('.se-main-container')"):
+            raise EditorUIChanged("paragraph control is outside the identified document")
         return locator
 
     def prepare_operations(self, operations: list[dict]) -> None:
@@ -942,20 +963,22 @@ class PlaywrightNaverDriver:
             title_value = title.input_value()
         except Exception:
             title_value = title.inner_text()
-        bodies = []
-        for frame in self.page.frames:
-            roots = frame.locator(".se-main-container")
-            if roots.count() == 1:
-                bodies.append(roots.evaluate("""root => [...root.querySelectorAll('p, img, a, table, hr, video')].map(n => ({
-                    tag: n.tagName, text: n.textContent, style: n.getAttribute('style'),
-                    src: n.getAttribute('src'), href: n.getAttribute('href')
-                }))"""))
-        if len(bodies) != 1:
+        body = editor_compatibility.editor_body(self.page, "naver")
+        if body is None:
             raise EditorUIChanged("document body is missing or ambiguous for checkpoint verification")
         tags = self.page.locator("#tags, .tag_list, .list_tag")
-        return digest({"title": title_value, "body": bodies[0], "tags": tags.all_text_contents()})
+        return digest({"version": self.surface_version, "title": title_value,
+                       "body": editor_compatibility.rich_body_snapshot(body[1]),
+                       "tags": tags.all_text_contents()})
 
     def has_existing_content(self) -> bool:
+        _, title = self.resolver.locate("title")
+        try:
+            title_value = title.input_value()
+        except Exception:
+            title_value = title.inner_text()
+        if title_value.strip():
+            return True
         for frame in self.page.frames:
             root = frame.locator(".se-main-container")
             if root.count() and (root.inner_text().strip() or root.locator("img, video, table, iframe").count()):
@@ -1093,12 +1116,12 @@ class NaverBrowserSession:
     def wait_for_editor(self, timeout_seconds: int = 600) -> Any:
         deadline = time.monotonic() + timeout_seconds
         announced = False
+        resolver = LocatorResolver(self.page, FeatureCatalog.load())
         while time.monotonic() < deadline:
             self._assert_allowed_page()
             host = (urlsplit(str(self.page.url)).hostname or "").casefold()
             if host in {"blog.naver.com", "m.blog.naver.com"}:
-                editable = self.page.locator("[contenteditable='true']")
-                if editable.count() > 0:
+                if editor_compatibility.editor_ready(self.page, "naver", resolver):
                     return self.page
             if not announced:
                 print(
@@ -1234,6 +1257,9 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--draft-url")
     resume.add_argument("--approval-token")
     resume.add_argument("--close-after", action="store_true")
+    verify = sub.add_parser("verify-draft", help="Reopen and compare a saved draft without editing or saving")
+    verify.add_argument("document", type=Path)
+    verify.add_argument("--close-after", action="store_true")
     publish = sub.add_parser("publish")
     publish.add_argument("document", type=Path)
     publish.add_argument("--approval-token")
@@ -1301,6 +1327,22 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         document = _load_document(args.document)
+        if args.command == "verify-draft":
+            store = CheckpointStore(data_dir)
+            checkpoint = store.load_existing(document)
+            draft_url = _verified_draft_url(str(checkpoint.get("draft_url") or ""))
+            if draft_url is None:
+                result = EditorAutomation(store).verify_draft(document, None)
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 3
+            with NaverBrowserSession(data_dir=data_dir, editor_url=draft_url) as browser:
+                page = browser.wait_for_editor()
+                driver = PlaywrightNaverDriver(page, catalog=FeatureCatalog.load(), data_dir=data_dir)
+                result = EditorAutomation(store).verify_draft(document, driver)
+                if not args.close_after:
+                    browser.keep_open_until_closed()
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result["verification_state"] == "verified" else 3
         if args.command in {"compose", "resume"}:
             editor_url = args.editor_url if args.command == "compose" else None
             if args.command == "resume":

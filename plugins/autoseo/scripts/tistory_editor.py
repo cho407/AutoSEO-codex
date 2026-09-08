@@ -23,17 +23,21 @@ from editor_safety import (
     FreshSaveReceipt,
     attachment_stamps,
     bind_surface,
+    browser_session_id,
     digest,
     draft_identity,
+    invalidate_draft_verification,
     local_schedule,
     locked_document,
     locked_profile_enter,
     locked_profile_exit,
     locked_publication,
+    mark_operation_pending,
     prepare_publication,
     publication_result,
     record_operation,
     validate_checkpoint,
+    verify_reopened_draft,
 )
 from file_safety import read_text_limited, resolve_input_file, write_text_atomically
 from privacy_mosaic import (
@@ -290,6 +294,16 @@ class TistoryEditorAutomation:
         self.store = store
 
     @locked_document
+    def verify_draft(self, document: object, driver: Any) -> dict:
+        value = validate_document(document)
+        checkpoint = self.store.load_existing(value)
+        result = verify_reopened_draft(checkpoint, driver)
+        if document_hash(value) != checkpoint["source_hash"]:
+            raise ValueError("source attachment changed during draft verification")
+        self.store.save(checkpoint)
+        return result
+
+    @locked_document
     def apply(
         self,
         document: object,
@@ -317,6 +331,8 @@ class TistoryEditorAutomation:
                 validate_media_url(checkpoint["media_urls"][identifier])
                 continue
             checkpoint["media_states"][identifier] = "attempting"
+            invalidate_draft_verification(checkpoint)
+            checkpoint["save_state"] = "dirty"
             self.store.save(checkpoint)
             try:
                 path = resolve_input_file(prepared_media[identifier])
@@ -357,8 +373,9 @@ class TistoryEditorAutomation:
                 unchanged = hasattr(driver, "snapshot_hash") and driver.snapshot_hash() == checkpoint.get("surface_hash")
                 if pending and not already_applied and not unchanged:
                     raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
-                checkpoint["pending_operation_id"] = operation_id
-                checkpoint["save_state"] = "saving" if operation["feature_id"] == "draft-save" else "dirty"
+                if pending and operation["feature_id"] == "draft-save":
+                    raise EditorUIChanged("interrupted save requires verify-draft in a new session; do not save again")
+                mark_operation_pending(checkpoint, operation, driver)
                 if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
                     raise ValueError("source attachment hash changed before saving")
                 self.store.save(checkpoint)
@@ -731,8 +748,11 @@ class LocatorResolver:
 class PlaywrightTistoryDriver:
     """Real Tistory adapter; source mode is selected once and writes are verified."""
 
+    surface_version = 2
+
     def __init__(self, page: Any, *, catalog: FeatureCatalog, data_dir: Path) -> None:
         self.page = page
+        self.session_id = browser_session_id(page)
         self.catalog = catalog
         self.resolver = LocatorResolver(page, catalog)
         self.data_dir = data_dir
@@ -758,17 +778,12 @@ class PlaywrightTistoryDriver:
         self.page.wait_for_timeout(150)
 
     def _source_editor(self) -> tuple[str, Any]:
-        code_mirror = self.page.locator(".CodeMirror")
-        if code_mirror.count() == 1:
-            return "codemirror5", code_mirror
-        cm6 = self.page.locator(".cm-content[contenteditable='true']")
-        if cm6.count() == 1:
-            return "codemirror6", cm6
-        textareas = self.page.locator(
-            "textarea[aria-label*='본문'], textarea[name='content'], textarea#editor-textarea"
-        )
-        if textareas.count() == 1:
-            return "textarea", textareas
+        try:
+            body = editor_compatibility.editor_body(self.page, "tistory", kind="source")
+        except ValueError as exc:
+            raise AmbiguousElement(str(exc)) from exc
+        if body:
+            return body
         raise EditorUIChanged("Tistory Markdown/HTML source editor is missing or ambiguous")
 
     def _set_source(self, value: str) -> None:
@@ -800,19 +815,13 @@ class PlaywrightTistoryDriver:
             raise EditorUIChanged("Tistory source editor value could not be verified") from exc
 
     def _basic_body(self) -> Any:
-        matches = []
-        for frame in self.page.frames:
-            candidates = frame.locator(
-                ".ProseMirror[contenteditable='true'], .tt_article_useless_p_margin[contenteditable='true'], "
-                "#editor [contenteditable='true'], body#tinymce[contenteditable='true']"
-            )
-            if candidates.count() > 1:
-                raise EditorUIChanged("Tistory basic body is ambiguous")
-            if candidates.count() == 1:
-                matches.append(candidates)
-        if len(matches) != 1:
+        try:
+            body = editor_compatibility.editor_body(self.page, "tistory", kind="basic")
+        except ValueError as exc:
+            raise AmbiguousElement(str(exc)) from exc
+        if body is None:
             raise EditorUIChanged("Tistory basic editor body is missing or ambiguous")
-        return matches[0]
+        return body[1]
 
     def _clear_basic_body(self) -> None:
         body = self._basic_body()
@@ -969,15 +978,25 @@ class PlaywrightTistoryDriver:
 
     def snapshot_hash(self) -> str:
         _, title = self.resolver.locate("title")
+        _, mode_control = self.resolver.locate("editor-mode")
+        mode = {"기본모드": "basic", "마크다운": "markdown", "Markdown": "markdown", "HTML": "html"}.get(
+            mode_control.inner_text().strip()
+        )
+        if mode is None:
+            raise EditorUIChanged("Tistory current source mode is not observable")
         try:
-            body = self._source_value()
+            body = {"source": self._source_value().replace("\r\n", "\n")}
         except EditorUIChanged:
-            body = self._basic_body().inner_html()
+            body = {"basic": editor_compatibility.rich_body_snapshot(self._basic_body())}
         tags = self.page.locator("#tags, .tag_list, .list_tag")
-        return digest({"title": title.input_value(), "body": body,
+        return digest({"version": self.surface_version, "mode": mode,
+                       "title": title.input_value(), "body": body,
                        "tags": tags.all_text_contents()})
 
     def has_existing_content(self) -> bool:
+        _, title = self.resolver.locate("title")
+        if title.input_value().strip():
+            return True
         try:
             if self._source_value().strip():
                 return True
@@ -1133,17 +1152,12 @@ class TistoryBrowserSession:
     def wait_for_editor(self, timeout_seconds: int = 600) -> Any:
         deadline = time.monotonic() + timeout_seconds
         announced = False
+        resolver = LocatorResolver(self.page, FeatureCatalog.load())
         while time.monotonic() < deadline:
             self._assert_allowed_page()
             host = (urlsplit(str(self.page.url)).hostname or "").casefold()
             if _is_tistory_host(host):
-                title = self.page.locator(
-                    "textarea[placeholder*='제목'], input[placeholder*='제목'], textarea[name='title']"
-                )
-                editable = self.page.locator(
-                    ".CodeMirror, .cm-content[contenteditable='true'], .ProseMirror[contenteditable='true']"
-                )
-                if title.count() >= 1 and editable.count() >= 1:
+                if editor_compatibility.editor_ready(self.page, "tistory", resolver):
                     return self.page
             if not announced:
                 print(
@@ -1241,6 +1255,9 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--draft-url")
     resume.add_argument("--approval-token")
     resume.add_argument("--close-after", action="store_true")
+    verify = sub.add_parser("verify-draft", help="Reopen and compare a saved draft without editing or saving")
+    verify.add_argument("document", type=Path)
+    verify.add_argument("--close-after", action="store_true")
     publish = sub.add_parser("publish")
     publish.add_argument("document", type=Path)
     publish.add_argument("--approval-token")
@@ -1307,6 +1324,22 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         document = _load_document(args.document)
+        if args.command == "verify-draft":
+            store = CheckpointStore(data_dir)
+            checkpoint = store.load_existing(document)
+            draft_url = _verified_draft_url(str(checkpoint.get("draft_url") or ""))
+            if draft_url is None:
+                result = TistoryEditorAutomation(store).verify_draft(document, None)
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 3
+            with TistoryBrowserSession(data_dir=data_dir, editor_url=draft_url) as browser:
+                page = browser.wait_for_editor()
+                driver = PlaywrightTistoryDriver(page, catalog=FeatureCatalog.load(), data_dir=data_dir)
+                result = TistoryEditorAutomation(store).verify_draft(document, driver)
+                if not args.close_after:
+                    browser.keep_open_until_closed()
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result["verification_state"] == "verified" else 3
         if args.command in {"compose", "resume"}:
             preflight = build_privacy_preflight(document)
             editor_url = args.editor_url if args.command == "compose" else None

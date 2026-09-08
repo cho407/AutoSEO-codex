@@ -5,6 +5,7 @@ import json
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -137,3 +138,67 @@ def test_changed_naver_attachment_invalidates_existing_approval(tmp_path) -> Non
 def test_naver_draft_plan_never_contains_publication_settings_or_submit_controls() -> None:
     features = {item["feature_id"] for item in naver_editor.build_operations(naver_document())}
     assert not features & {"publish", "schedule-publish", "publish-dialog", "visibility", "category"}
+
+
+def _saved_checkpoint_and_reader():
+    from editor_safety import CHECKPOINT_DEFAULTS
+
+    url = "https://fixture.tistory.com/manage/post/42"
+    checkpoint = {**CHECKPOINT_DEFAULTS, "document_id": "sample", "publish_state": "not-attempted",
+                  "draft_url": url, "source_hash": "source", "saved_source_hash": "source",
+                  "save_state": "acknowledged", "saved_surface_hash": "content",
+                  "surface_version": 2, "saved_session_id": "first-session"}
+    driver = SimpleNamespace(page=SimpleNamespace(url=url), surface_version=2,
+                             session_id="new-session", snapshot_hash=lambda: "content")
+    return checkpoint, driver
+
+
+@pytest.mark.parametrize("change,expected", [
+    ({"draft_url": "https://other.tistory.com/manage/post/42"}, "mismatch"),
+    ({"draft_url": "https://fixture.tistory.com/manage/post/43"}, "mismatch"),
+    ({"surface_version": None}, "unavailable"),
+    ({"pending_operation_id": "unfinished-save"}, "unavailable"),
+    ({"publish_state": "unknown"}, "unavailable"),
+])
+def test_readback_requires_exact_identity_and_completed_compatible_save(change, expected):
+    from editor_safety import verify_reopened_draft
+
+    checkpoint, driver = _saved_checkpoint_and_reader()
+    checkpoint.update(change)
+    result = verify_reopened_draft(checkpoint, driver)
+    assert result["verification_state"] == expected
+    assert checkpoint["verified_surface_hash"] is None
+
+
+def test_publication_requires_verified_readback_and_content_change_revokes_it():
+    from editor_safety import (
+        invalidate_draft_verification,
+        prepare_publication,
+        verify_reopened_draft,
+    )
+
+    checkpoint, driver = _saved_checkpoint_and_reader()
+    with pytest.raises(ValueError, match="verify-draft"):
+        prepare_publication(driver, {"media": []}, checkpoint, {})
+    assert verify_reopened_draft(checkpoint, driver)["verification_state"] == "verified"
+    prepare_publication(driver, {"media": []}, checkpoint, {})
+    invalidate_draft_verification(checkpoint)
+    with pytest.raises(ValueError, match="verify-draft"):
+        prepare_publication(driver, {"media": []}, checkpoint, {})
+
+
+@pytest.mark.parametrize("module", [naver_editor, tistory_editor])
+def test_verify_command_without_saved_identity_does_not_open_a_browser(tmp_path, monkeypatch, capsys, module):
+    document = naver_document() if module is naver_editor else tistory_document(tmp_path, with_media=False)
+    source = tmp_path / "document.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+    data = tmp_path / "data"
+    module.CheckpointStore(data).load_or_create(document)
+
+    def forbidden(**_):
+        pytest.fail("missing draft identity must not open an account")
+
+    name = "NaverBrowserSession" if module is naver_editor else "TistoryBrowserSession"
+    monkeypatch.setattr(module, name, forbidden)
+    assert module.main(["--data-dir", str(data), "verify-draft", str(source)]) == 3
+    assert json.loads(capsys.readouterr().out)["verification_state"] == "unavailable"

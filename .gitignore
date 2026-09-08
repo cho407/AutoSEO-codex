@@ -7,6 +7,9 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
+# Local agent plans and session state (public roadmap lives in docs/)
+/.omx/
+
 # Credentials and local configuration
 .env
 .env.*
