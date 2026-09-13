@@ -3,9 +3,12 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 SCRIPTS = Path(__file__).resolve().parents[1] / "plugins" / "autoseo" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+import url_safety  # noqa: E402
 from url_safety import is_safe_ip, validate_url  # noqa: E402
 
 
@@ -44,3 +47,16 @@ def test_parser_confusion_and_non_http_schemes_are_rejected() -> None:
     )
     for url in unsafe:
         assert not validate_url(url), url
+
+
+@pytest.mark.parametrize("address", ["100.64.0.1", "100.100.100.200", "100.127.255.254"])
+def test_shared_address_space_is_not_a_public_target(address, monkeypatch) -> None:
+    assert not is_safe_ip(address)
+    assert not validate_url(f"https://{address}/")
+    with pytest.raises(url_safety.URLSafetyError, match="Blocked IP"):
+        url_safety.validate_url_strict(f"https://{address}/")
+    monkeypatch.setattr(url_safety.socket, "getaddrinfo", lambda *a, **k: [
+        (2, 1, 6, "", ("8.8.8.8", 443)), (2, 1, 6, "", (address, 443)),
+    ])
+    with pytest.raises(url_safety.URLSafetyError, match="non-public"):
+        url_safety.validate_url_strict("https://fixture.example/")

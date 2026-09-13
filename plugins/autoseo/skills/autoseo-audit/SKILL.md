@@ -124,9 +124,21 @@ Google-owned data, or drift history only when relevant and authorized.
 
 ### 6. Score
 
-Use the category weights defined by the `autoseo` orchestrator. Mark categories
-without sufficient evidence as `not measured` and renormalize the remaining
-weights. Show the calculation so the score is auditable.
+Use these full-audit category weights (no need to load the router):
+
+| Category | Weight |
+|---|---:|
+| Technical SEO | 25% |
+| Content quality and E-E-A-T | 20% |
+| On-page SEO and intent alignment | 15% |
+| Schema and structured data | 10% |
+| Performance and Core Web Vitals | 10% |
+| Generative search readiness | 10% |
+| Images and visual delivery | 5% |
+| Sitemap and information architecture | 5% |
+
+Mark categories without sufficient evidence as `not measured`, renormalize measured
+weights, and label the result partial. Show the calculation so it is auditable.
 
 For the selected SEO/AEO/GEO/LLMO/NEO readiness lanes, combine the exact generated
 reports separately:

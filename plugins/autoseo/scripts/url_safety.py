@@ -244,7 +244,7 @@ def is_safe_ip(ip_str: str) -> bool:
         ip = ipaddress.ip_address(ip_str)
     except ValueError:
         return False
-    return not (
+    return ip.is_global and not (
         ip.is_private
         or ip.is_loopback
         or ip.is_reserved

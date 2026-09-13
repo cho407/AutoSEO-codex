@@ -90,13 +90,13 @@ def generate_html(comparison: dict) -> str:
     # Build finding cards
     finding_cards = ""
     for finding in triggered:
-        sev = finding.get("severity", "INFO")
+        sev = str(finding.get("severity", "INFO"))
         color = SEVERITY_COLORS.get(sev, COLORS["navy"])
         bg = SEVERITY_BG.get(sev, COLORS["light_gray"])
         finding_cards += f"""
         <div class="finding-card" style="border-left: 4px solid {color}; background: {bg};">
             <div class="finding-header">
-                <span class="severity-badge" style="background: {color}; color: {COLORS['white']};">{sev}</span>
+                <span class="severity-badge" style="background: {color}; color: {COLORS['white']};">{_escape(sev)}</span>
                 <span class="rule-name">{_escape(finding.get('rule', ''))}</span>
             </div>
             <p class="finding-message">{_escape(finding.get('message', ''))}</p>

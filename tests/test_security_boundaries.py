@@ -18,6 +18,7 @@ import backlink_history  # noqa: E402
 import capture_screenshot  # noqa: E402
 import commoncrawl_graph  # noqa: E402
 import domain_history  # noqa: E402
+import drift_report  # noqa: E402
 import file_safety  # noqa: E402
 import free_source_policy  # noqa: E402
 import google_auth  # noqa: E402
@@ -447,6 +448,32 @@ def test_google_html_report_escapes_external_strings(
     assert "<script>alert(1)</script>" not in html
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert 'content: "example.com\\\";color:red Google SEO Report"' in html
+
+
+def test_drift_severity_is_rendered_as_text() -> None:
+    from bs4 import BeautifulSoup
+
+    payload = "</span><script>void 0</script><span>"
+    rendered = drift_report.generate_html({
+        "summary": {"critical": 1, "triggered": 1},
+        "triggered_findings": [{"severity": payload, "message": "fixture"}],
+    })
+    page = BeautifulSoup(rendered, "html.parser")
+    assert not page.find_all("script")
+    assert page.select_one(".severity-badge").get_text() == payload
+
+
+def test_google_report_domain_cannot_close_style_element(tmp_path, monkeypatch) -> None:
+    from bs4 import BeautifulSoup
+
+    monkeypatch.chdir(tmp_path)
+    result = google_report.generate_report(
+        "gsc-performance", {}, "</style><script>void 0</script>", tmp_path,
+        output_format="html",
+    )
+    assert result["error"] is None
+    page = BeautifulSoup(Path(result["files"][0]).read_text(), "html.parser")
+    assert not page.find_all("script")
 
 
 def test_indexnow_host_checks_are_exact_or_subdomain_only() -> None:

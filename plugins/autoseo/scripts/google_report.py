@@ -85,6 +85,7 @@ def _css_string(value: object) -> str:
     return (
         str(value)
         .replace("\\", "\\\\")
+        .replace("<", "\\3c ")
         .replace('"', '\\"')
         .replace("\r", "\\d ")
         .replace("\n", "\\a ")

@@ -1213,6 +1213,7 @@ def _data_path(raw: str | None, *, create: bool = True) -> Path:
 def _compose(
     document: dict[str, Any],
     *,
+    approval_token: str,
     data_dir: Path,
     editor_url: str,
     close_after: bool,
@@ -1223,6 +1224,8 @@ def _compose(
     catalog = FeatureCatalog.load()
     with NaverBrowserSession(data_dir=data_dir, editor_url=editor_url) as browser:
         page = browser.wait_for_editor()
+        if _draft_preview(document, target_url=editor_url)["approval_token"] != approval_token:
+            raise ApprovalRequired("source changed since approval; request a new document preview")
         driver = PlaywrightNaverDriver(
             page, catalog=catalog, data_dir=data_dir
         )
@@ -1359,6 +1362,7 @@ def main(argv: list[str] | None = None) -> int:
                 return 4
             result = _compose(
                 document,
+                approval_token=preview["approval_token"],
                 data_dir=data_dir,
                 editor_url=str(editor_url),
                 close_after=args.close_after,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -11,6 +12,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "plugins/autoseo/scripts"))
 
+import naver_document as naver_document_module  # noqa: E402
 import naver_editor  # noqa: E402
 import tistory_editor  # noqa: E402
 from test_naver_editor import _document as naver_document  # noqa: E402
@@ -133,6 +135,129 @@ def test_changed_naver_attachment_invalidates_existing_approval(tmp_path) -> Non
     before = naver_editor.approval_preview(document, action="publish")["approval_token"]
     photo.write_bytes(b"different-file")
     assert naver_editor.approval_preview(document, action="publish")["approval_token"] != before
+
+
+@pytest.mark.parametrize("field", ["path", "paths", "replace_path"])
+def test_text_block_cannot_introduce_attachment_reads(tmp_path, monkeypatch, field):
+    document = naver_document()
+    file = tmp_path / "unrelated.txt"
+    file.write_text("unrelated local content")
+    document["blocks"][0][field] = [str(file)] if field == "paths" else str(file)
+    monkeypatch.setattr(naver_document_module.os, "open", lambda *a, **k: pytest.fail("unexpected file read"))
+    with pytest.raises(ValueError, match="unsupported attachment fields"):
+        naver_document_module.document_hash(document)
+
+
+@pytest.mark.parametrize("replacement", ["oversized", "fifo"])
+def test_attachment_hash_rechecks_opened_file_after_validation(tmp_path, monkeypatch, replacement):
+    if replacement == "fifo" and not hasattr(os, "mkfifo"):
+        pytest.skip("FIFO requires POSIX")
+    document = naver_document()
+    file = tmp_path / "photo.jpg"
+    file.write_bytes(b"original")
+    document["blocks"].append({"id": "photo", "type": "photo", "path": str(file)})
+    monkeypatch.setattr(naver_document_module, "MAX_IMAGE_BYTES", 16)
+    original_open = os.open
+
+    def replace_before_open(path, flags):
+        if replacement == "fifo":
+            file.unlink()
+            os.mkfifo(file)
+        else:
+            file.write_bytes(b"x" * 17)
+        return original_open(path, flags)
+
+    monkeypatch.setattr(naver_document_module.os, "open", replace_before_open)
+    with pytest.raises(ValueError, match="bounded regular file"):
+        naver_document_module.document_hash(document)
+
+
+@pytest.mark.parametrize("platform", ["naver", "tistory"])
+@pytest.mark.parametrize("changed", [False, True])
+def test_login_wait_preserves_the_approved_attachment_bytes(tmp_path, monkeypatch, platform, changed):
+    module = naver_editor if platform == "naver" else tistory_editor
+    if platform == "naver":
+        document = naver_document()
+        source = tmp_path / "photo.jpg"
+        source.write_bytes(b"approved")
+        document["blocks"].append({"id": "photo", "type": "photo", "path": str(source)})
+        editor_url = "https://blog.naver.com/PostWriteForm.naver"
+        extra = {}
+        token = module._draft_preview(document, target_url=editor_url)["approval_token"]
+        browser_name, driver_name, automation = "NaverBrowserSession", "PlaywrightNaverDriver", module.EditorAutomation
+    else:
+        document = tistory_document(tmp_path)
+        document["media"][0]["privacy"] = {"mode": "none", "strip_metadata": False}
+        source = Path(document["media"][0]["path"])
+        editor_url = "https://fixture.tistory.com/manage/newpost"
+        preflight = module.build_privacy_preflight(document)
+        extra = {"preflight": preflight}
+        token = module.draft_preview(document, privacy_preflight=preflight, target_url=editor_url)["approval_token"]
+        browser_name, driver_name, automation = "TistoryBrowserSession", "PlaywrightTistoryDriver", module.TistoryEditorAutomation
+    document = module.validate_document(document)
+    calls = []
+
+    class Browser:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def wait_for_editor(self):
+            if changed:
+                source.write_bytes(b"unapproved bytes during login")
+            return SimpleNamespace(url=editor_url)
+
+    def apply(self, value, driver, **kwargs):
+        calls.append("account-write")
+        return self.store.load_or_create(value)
+
+    monkeypatch.setattr(module, browser_name, Browser)
+    monkeypatch.setattr(module, driver_name, lambda *a, **k: None)
+    monkeypatch.setattr(automation, "apply", apply)
+    kwargs = dict(data_dir=tmp_path / "data", editor_url=editor_url, close_after=True, approval_token=token, **extra)
+    if changed:
+        with pytest.raises(module.ApprovalRequired, match="source changed"):
+            module._compose(document, **kwargs)
+        assert calls == []
+    else:
+        module._compose(document, **kwargs)
+        assert calls == ["account-write"]
+
+
+def test_tistory_rejects_derivative_changed_during_login(tmp_path, monkeypatch):
+    document = tistory_document(tmp_path)
+    document["media"][0]["privacy"] = {"mode": "none", "strip_metadata": False}
+    preflight = tistory_editor.build_privacy_preflight(document)
+    editor_url = "https://fixture.tistory.com/manage/newpost"
+    token = tistory_editor.draft_preview(document, privacy_preflight=preflight, target_url=editor_url)["approval_token"]
+    prepared = tmp_path / "prepared.jpg"
+    prepared.write_bytes(b"approved derivative")
+    monkeypatch.setattr(tistory_editor, "prepare_media", lambda *a, **k: {"hero": prepared})
+
+    class Browser:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def wait_for_editor(self):
+            prepared.write_bytes(b"changed derivative")
+            return SimpleNamespace(url=editor_url)
+
+    monkeypatch.setattr(tistory_editor, "TistoryBrowserSession", Browser)
+    monkeypatch.setattr(tistory_editor, "PlaywrightTistoryDriver", lambda *a, **k: pytest.fail("must stop before account write"))
+    with pytest.raises(tistory_editor.ApprovalRequired, match="prepared media changed"):
+        tistory_editor._compose(document, preflight=preflight, approval_token=token,
+                                data_dir=tmp_path / "data", editor_url=editor_url, close_after=True)
 
 
 def test_naver_draft_plan_never_contains_publication_settings_or_submit_controls() -> None:

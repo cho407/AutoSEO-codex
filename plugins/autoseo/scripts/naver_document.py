@@ -6,9 +6,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import re
+import stat
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any
 
 from file_safety import resolve_input_file
@@ -220,6 +221,13 @@ def _validate_block(
     block_type = block.get("type")
     if block_type not in BLOCK_TYPES:
         raise ValueError(f"unsupported block type: {block_type}")
+    allowed_paths = {"path"} if block_type in PATH_BLOCK_TYPES else set()
+    if block_type == "photo":
+        allowed_paths.add("replace_path")
+    if block_type in {"group-photo", "multi-attach"}:
+        allowed_paths.add("paths")
+    if (set(block) & {"path", "paths", "replace_path"}) - allowed_paths:
+        raise ValueError(f"unsupported attachment fields for {block_type} block")
     normalized = copy.deepcopy(block)
     text_chars = 0
     attachment_count = 0
@@ -421,17 +429,35 @@ def validate_document(
 
 def document_hash(document: object) -> str:
     normalized = validate_document(document)
-    paths = []
-    if normalized["background"].get("path"):
-        paths.append(normalized["background"]["path"])
+    paths: dict[str, int] = {}
+    if normalized["background"]["type"] == "image":
+        paths[normalized["background"]["path"]] = MAX_IMAGE_BYTES
     for block in normalized["blocks"]:
-        paths.extend(block.get("paths", []))
-        paths.extend(block[key] for key in ("path", "replace_path") if block.get(key))
+        block_type = block["type"]
+        attachments = []
+        if block_type in PATH_BLOCK_TYPES:
+            attachments = [block["path"]]
+            if block_type == "photo" and block.get("replace_path"):
+                attachments.append(block["replace_path"])
+        elif block_type in {"group-photo", "multi-attach"}:
+            attachments = block["paths"]
+        limit = _attachment_limit("photo" if block_type == "group-photo" else block_type, None)
+        for path in attachments:
+            paths[path] = min(paths.get(path, limit), limit)
     attachment_hashes = {}
-    for path in paths:
+    for path, limit in paths.items():
         digest = hashlib.sha256()
-        with Path(path).open("rb") as handle:
+        flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        with os.fdopen(descriptor, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
+                raise ValueError("attachment must be a bounded regular file")
+            total = 0
             for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                total += len(chunk)
+                if total > limit:
+                    raise ValueError("attachment grew beyond its byte limit while hashing")
                 digest.update(chunk)
         attachment_hashes[path] = digest.hexdigest()
     payload = json.dumps(

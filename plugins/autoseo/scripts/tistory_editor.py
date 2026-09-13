@@ -310,6 +310,7 @@ class TistoryEditorAutomation:
         driver: Any,
         *,
         prepared_media: dict[str, Path],
+        prepared_hashes: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         value = validate_document(document)
         if value["publish_settings"]["mode"] != "draft":
@@ -322,6 +323,10 @@ class TistoryEditorAutomation:
         bind_surface(checkpoint, driver)
         for media in value["media"]:
             identifier = media["id"]
+            if attachment_stamps(value) != source_stamps:
+                raise ValueError("source attachment changed since approval; request a new document preview")
+            if prepared_hashes is not None and _sha256_file(prepared_media[identifier]) != prepared_hashes.get(identifier):
+                raise ValueError("prepared media changed since approval; request a new document preview")
             state = checkpoint["media_states"].get(identifier, "pending")
             if state in {"attempting", "unknown"}:
                 raise UploadResultUnknown(
@@ -1212,19 +1217,25 @@ def _compose(
     document: dict[str, Any],
     *,
     preflight: dict[str, dict[str, Any]],
+    approval_token: str,
     data_dir: Path,
     editor_url: str,
     close_after: bool,
 ) -> dict[str, Any]:
     prepared = prepare_media(document, preflight, data_dir=data_dir)
+    prepared_hashes = {identifier: _sha256_file(path) for identifier, path in prepared.items()}
     store = CheckpointStore(data_dir)
     catalog = FeatureCatalog.load()
     with TistoryBrowserSession(data_dir=data_dir, editor_url=editor_url) as browser:
         page = browser.wait_for_editor()
+        if draft_preview(document, privacy_preflight=preflight, target_url=editor_url)["approval_token"] != approval_token:
+            raise ApprovalRequired("source changed since approval; request a new document preview")
+        if any(_sha256_file(prepared[identifier]) != digest for identifier, digest in prepared_hashes.items()):
+            raise ApprovalRequired("prepared media changed since approval; request a new document preview")
         driver = PlaywrightTistoryDriver(page, catalog=catalog, data_dir=data_dir)
         try:
             checkpoint = TistoryEditorAutomation(store).apply(
-                document, driver, prepared_media=prepared
+                document, driver, prepared_media=prepared, prepared_hashes=prepared_hashes
             )
         except Exception:
             if not close_after:
@@ -1358,6 +1369,7 @@ def main(argv: list[str] | None = None) -> int:
             result = _compose(
                 document,
                 preflight=preflight,
+                approval_token=preview["approval_token"],
                 data_dir=data_dir,
                 editor_url=str(editor_url),
                 close_after=args.close_after,
