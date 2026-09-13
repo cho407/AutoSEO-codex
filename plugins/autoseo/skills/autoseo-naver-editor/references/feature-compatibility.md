@@ -9,12 +9,14 @@ feature is deliberately not claimed.
 All live-editor rows remain release-candidate status until the manual checklist
 at the end of this document is completed on a user-owned test draft. Run
 `@autoseo naver-editor learn` first when the editor UI has changed.
+The sanitized Korean control structure and fast-path order are documented in
+[`smarteditor-one-structure.md`](smarteditor-one-structure.md).
 
 ## Automatic
 
 | Feature ID | Supported outcome |
 |---|---|
-| `title` | Fill a uniquely identified title field |
+| `title` | Fill a uniquely identified title field, including a body-preserving title-only revision |
 | `paragraph` | Insert a paragraph block |
 | `heading` | Insert an H2/H3-style subheading block |
 | `quote` | Insert a quote block |
@@ -49,7 +51,7 @@ at the end of this document is completed on a user-owned test draft. Run
 | `sympathy-allowed` | Set the sympathy switch to the requested value |
 | `ccl` | Select the requested CCL setting |
 | `share-allowed` | Set the sharing switch to the requested value |
-| `draft-save` | Save once after an explicit compose request and login; retain a document-bound integrity token |
+| `draft-save` | Save once after an explicit compose/resume or exact-title revision request; retain the applicable integrity binding |
 | `publish-dialog` | Open configuration without clicking the final submit button |
 | `schedule-option` | Select scheduling without submitting publication |
 | `publish` | Click once only after a fresh final-settings approval |

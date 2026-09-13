@@ -15,8 +15,11 @@ performs a fact-preserving semantic polish plus conservative translationese chec
 `OptimizationReport v1` combines only scoreable lane readiness, while
 `TrendEvidence v1` deduplicates and corroborates dated current-topic sources.
 
-The PC Naver Blog SmartEditor ONE adapter uses a dedicated visible Playwright
-profile. Draft writes and every publish/schedule action have separate approval
+The PC Naver Blog SmartEditor ONE adapter can launch regular Chrome with a dedicated
+visible profile or attach over loopback CDP to one already-open editor tab. Learned
+frame/scope hints and catalog-owned selectors avoid repeated full-surface scans, and
+the title-only command verifies that the article body stayed unchanged before one
+draft save. Draft writes and every publish/schedule action have separate approval
 boundaries. Candidate-based controls are guided, ambiguous UI stops safely, and an
 unclear publication result is never retried. Live Naver and Tistory editor
 verification is still required before promoting this release candidate to 0.6.0.

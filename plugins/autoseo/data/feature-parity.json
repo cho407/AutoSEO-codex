@@ -166,7 +166,7 @@
       "id": "naver-editor",
       "skill": "autoseo-naver-editor",
       "status": "supported",
-      "subcommands": ["doctor", "learn", "compose", "resume", "publish", "schedule"],
+      "subcommands": ["doctor", "learn", "compose", "resume", "revise-title", "publish", "schedule"],
       "helpers": ["naver_document.py", "naver_editor.py"]
     },
     {

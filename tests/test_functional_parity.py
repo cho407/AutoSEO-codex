@@ -88,7 +88,7 @@ EXPECTED_PROVIDER_COMMANDS = {
     "geo": {"audit", "citations"},
     "llmo": {"audit", "facts"},
     "neo": {"audit", "visibility", "brief"},
-    "naver-editor": {"doctor", "learn", "compose", "resume", "publish", "schedule"},
+    "naver-editor": {"doctor", "learn", "compose", "resume", "revise-title", "publish", "schedule"},
     "tistory-editor": {
         "doctor",
         "learn",

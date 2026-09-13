@@ -128,6 +128,22 @@ class FeatureCatalog:
             locator = item.get("locator")
             if not isinstance(locator, dict):
                 raise ValueError(f"feature has no locator contract: {identifier}")
+            fast_path = locator.get("fast_path")
+            if fast_path is not None:
+                if (
+                    not isinstance(fast_path, dict)
+                    or fast_path.get("strategy") not in {
+                        "role-name",
+                        "korean-label",
+                        "dom-fallback",
+                    }
+                    or not isinstance(fast_path.get("frame_index"), int)
+                    or fast_path["frame_index"] < 0
+                    or fast_path.get("scope") not in {"document", "toolbar", "dialog"}
+                ):
+                    raise ValueError(f"invalid fast locator contract: {identifier}")
+                if fast_path["strategy"] == "dom-fallback" and not locator.get("dom_fallback"):
+                    raise ValueError(f"fast DOM locator has no catalog selector: {identifier}")
             self.features[identifier] = copy.deepcopy(item)
 
     @classmethod
@@ -1088,6 +1104,32 @@ def _validate_editor_url(value: str) -> str:
     return value
 
 
+def _validate_cdp_endpoint(value: str | None) -> str | None:
+    """Allow attachment only to an explicitly local Chrome debugging endpoint."""
+    if value is None:
+        return None
+    parsed = urlsplit(value)
+    host = (parsed.hostname or "").casefold()
+    if (
+        parsed.scheme != "http"
+        or host not in {"127.0.0.1", "localhost", "::1"}
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("CDP endpoint must be a credential-free loopback HTTP URL")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("CDP endpoint has an invalid port") from exc
+    if port is None or not 1 <= port <= 65535:
+        raise ValueError("CDP endpoint must include a valid port")
+    if parsed.path not in {"", "/"}:
+        raise ValueError("CDP endpoint must not include a path")
+    return value.rstrip("/")
+
+
 def _verified_draft_url(value: str) -> str | None:
     identity = draft_identity(value)
     if identity and identity[0].startswith("naver:") and identity[1]:
@@ -1096,19 +1138,62 @@ def _verified_draft_url(value: str) -> str | None:
 
 
 class NaverBrowserSession:
-    """Headed persistent browser; login, 2FA, and CAPTCHA stay user-controlled."""
+    """Headed browser session; login, 2FA, and CAPTCHA stay user-controlled.
+
+    A loopback CDP endpoint attaches to an already open, dedicated Chrome
+    profile.  AutoSEO neither navigates another tab nor owns/closes that browser.
+    Without CDP, the existing dedicated persistent Playwright profile is used.
+    """
 
     def __init__(
         self,
         *,
         data_dir: Path,
         editor_url: str = DEFAULT_EDITOR_URL,
+        cdp_endpoint: str | None = None,
+        browser_channel: str | None = None,
     ) -> None:
         self.data_dir = _dedicated_directory(data_dir)
         self.editor_url = _validate_editor_url(editor_url)
+        self.cdp_endpoint = _validate_cdp_endpoint(cdp_endpoint)
+        if browser_channel not in {None, "chrome"}:
+            raise ValueError("Naver browser channel must be chrome when specified")
+        if self.cdp_endpoint and browser_channel:
+            raise ValueError("browser channel is not used when attaching over CDP")
+        self.browser_channel = browser_channel
         self.playwright = None
+        self.browser = None
         self.context = None
         self.page = None
+        self.attached = False
+
+    @staticmethod
+    def _editor_page_candidates(browser: Any, editor_url: str) -> list[Any]:
+        # A supplied blog/draft URL must never fall back to another open draft.
+        # Only the generic writer entry point permits selecting a sole editor.
+        generic_target = editor_url.rstrip("/") == DEFAULT_EDITOR_URL
+        pages = []
+        for context in browser.contexts:
+            for page in context.pages:
+                if page.is_closed():
+                    continue
+                page_url = str(page.url)
+                try:
+                    _validate_editor_url(page_url)
+                except ValueError:
+                    continue
+                candidate = urlsplit(page_url)
+                path = candidate.path.casefold().rstrip("/")
+                if (
+                    page_url == editor_url
+                    or generic_target and (
+                        path.endswith("/postwrite")
+                        or path.endswith("/postwriteform.naver")
+                    )
+                ):
+                    pages.append(page)
+        exact = [page for page in pages if str(page.url) == editor_url]
+        return exact or pages
 
     @locked_profile_enter
     def __enter__(self) -> "NaverBrowserSession":
@@ -1119,21 +1204,46 @@ class NaverBrowserSession:
                 "Playwright is unavailable; install the AutoSEO standard profile"
             ) from exc
         self.playwright = sync_playwright().start()
-        self.context = self.playwright.chromium.launch_persistent_context(
-            str(profile_directory(self.data_dir)),
-            headless=False,
-            accept_downloads=False,
-        )
-        self.context.route("**/*", make_safe_playwright_route_handler())
-        self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
-        self.page.goto(self.editor_url, wait_until="domcontentloaded")
-        self._assert_allowed_page()
-        return self
+        try:
+            if self.cdp_endpoint:
+                self.browser = self.playwright.chromium.connect_over_cdp(self.cdp_endpoint)
+                candidates = self._editor_page_candidates(self.browser, self.editor_url)
+                if len(candidates) != 1:
+                    raise EditorUIChanged(
+                        "CDP attachment requires one open Naver editor tab matching the requested URL"
+                    )
+                self.page = candidates[0]
+                self.context = self.page.context
+                self.attached = True
+            else:
+                launch_options: dict[str, Any] = {
+                    "headless": False,
+                    "accept_downloads": False,
+                }
+                if self.browser_channel:
+                    launch_options["channel"] = self.browser_channel
+                self.context = self.playwright.chromium.launch_persistent_context(
+                    str(profile_directory(self.data_dir)),
+                    **launch_options,
+                )
+                self.context.route("**/*", make_safe_playwright_route_handler())
+                self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
+                self.page.goto(self.editor_url, wait_until="domcontentloaded")
+            self._assert_allowed_page()
+            return self
+        except BaseException:
+            try:
+                if self.context is not None and not self.attached:
+                    self.context.close()
+            finally:
+                self.playwright.stop()
+                self.playwright = None
+            raise
 
     @locked_profile_exit
     def __exit__(self, *_: object) -> None:
         try:
-            if self.context is not None:
+            if self.context is not None and not self.attached:
                 self.context.close()
         finally:
             if self.playwright is not None:
@@ -1165,6 +1275,12 @@ class NaverBrowserSession:
         raise EditorUIChanged("SmartEditor ONE was not ready before the login timeout")
 
     def keep_open_until_closed(self) -> None:
+        if self.attached:
+            print(
+                "The externally owned Chrome editor remains open; AutoSEO disconnected without closing it.",
+                file=sys.stderr,
+            )
+            return
         print("The editor remains open for review. Close the browser window to finish.", file=sys.stderr)
         try:
             while self.context.pages:
@@ -1188,6 +1304,79 @@ def learn_compatibility_map(
     editor_url: str,
 ) -> dict[str, Any]:
     return editor_compatibility.build_map(page, catalog, LocatorResolver(page, catalog), editor_url)
+
+
+def revise_title(
+    page: Any,
+    catalog: FeatureCatalog,
+    *,
+    data_dir: Path,
+    expected_current_title: str,
+    new_title: str,
+) -> dict[str, Any]:
+    """Replace only the title in an already-open draft and acknowledge one save.
+
+    The expected current title binds the command to the visible draft.  A body
+    fingerprint is held in memory before and after the edit so a selector drift
+    cannot silently replace article content.  Neither title nor body is written
+    to the compatibility map or checkpoint storage.
+    """
+    expected = str(expected_current_title)
+    replacement = str(new_title)
+    if not expected.strip() or len(expected) > 200:
+        raise ValueError("expected current title must contain between 1 and 200 characters")
+    if not replacement.strip() or len(replacement) > 200:
+        raise ValueError("new title must contain between 1 and 200 characters")
+
+    driver = PlaywrightNaverDriver(page, catalog=catalog, data_dir=data_dir)
+    _, title = driver.resolver.locate("title")
+    current = editor_compatibility._read_locator_text(title)
+    if current != expected:
+        raise EditorUIChanged("visible title does not match the expected current title")
+    body = editor_compatibility.editor_body(page, "naver")
+    if body is None:
+        raise EditorUIChanged("visible Naver document body is unavailable")
+    before_body = digest(editor_compatibility.rich_body_snapshot(body[1]))
+    title_strategy = copy.deepcopy(driver.resolver.last_resolution)
+
+    if current == replacement:
+        return {
+            "schema_version": 1,
+            "action": "revise-title",
+            "changed": False,
+            "save_state": "not-needed",
+            "draft_url": str(page.url),
+            "title_hash": digest(replacement),
+            "title_locator": title_strategy,
+        }
+
+    editor_compatibility.fill_unicode_exact(page, title, replacement)
+    if editor_compatibility._read_locator_text(title) != replacement:
+        raise EditorUIChanged("new title was not preserved exactly")
+    after_body = digest(editor_compatibility.rich_body_snapshot(body[1]))
+    if after_body != before_body:
+        try:
+            editor_compatibility.fill_unicode_exact(page, title, current)
+        finally:
+            raise EditorUIChanged("title edit changed the article body; title was restored")
+
+    receipt = FreshSaveReceipt(page)
+    receipt.begin()
+    driver.resolver.click("draft-save")
+    save_strategy = copy.deepcopy(driver.resolver.last_resolution)
+    if not receipt.confirm():
+        raise EditorUIChanged("new draft save acknowledgement was not observed")
+    return {
+        "schema_version": 1,
+        "action": "revise-title",
+        "changed": True,
+        "save_state": "acknowledged",
+        "draft_url": str(page.url),
+        "title_hash": digest(replacement),
+        "body_hash": before_body,
+        "title_locator": title_strategy,
+        "save_locator": save_strategy,
+    }
 
 
 def _compatibility_path(data_dir: Path) -> Path:
@@ -1248,12 +1437,19 @@ def _compose(
     data_dir: Path,
     editor_url: str,
     close_after: bool,
+    cdp_endpoint: str | None = None,
+    browser_channel: str | None = None,
 ) -> dict[str, Any]:
     if document["publish_settings"]["mode"] != "draft":
         raise ValueError("compose and resume require publish_settings.mode=draft")
     store = CheckpointStore(data_dir)
     catalog = FeatureCatalog.load()
-    with NaverBrowserSession(data_dir=data_dir, editor_url=editor_url) as browser:
+    with NaverBrowserSession(
+        data_dir=data_dir,
+        editor_url=editor_url,
+        cdp_endpoint=cdp_endpoint,
+        browser_channel=browser_channel,
+    ) as browser:
         page = browser.wait_for_editor()
         if _draft_preview(document, target_url=editor_url)["approval_token"] != approval_token:
             raise ApprovalRequired("source changed since approval; request a new document preview")
@@ -1281,28 +1477,52 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-dir", help="override AUTOSEO_DATA_DIR for this command")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor")
+    def add_browser_options(command: argparse.ArgumentParser) -> None:
+        command.add_argument(
+            "--cdp-endpoint",
+            default=os.environ.get("AUTOSEO_NAVER_CDP_ENDPOINT"),
+            help="attach to one already-open Naver editor tab in dedicated Chrome",
+        )
+        command.add_argument(
+            "--browser-channel",
+            choices=["chrome"],
+            default=os.environ.get("AUTOSEO_NAVER_BROWSER_CHANNEL"),
+            help="launch the regular Google Chrome binary with AutoSEO's dedicated profile",
+        )
+
     learn = sub.add_parser("learn")
     learn.add_argument("--editor-url", default=DEFAULT_EDITOR_URL)
     learn.add_argument("--close-after", action="store_true")
+    add_browser_options(learn)
     compose = sub.add_parser("compose")
     compose.add_argument("document", type=Path)
     compose.add_argument("--editor-url", default=DEFAULT_EDITOR_URL)
     compose.add_argument("--approval-token")
     compose.add_argument("--close-after", action="store_true")
+    add_browser_options(compose)
     resume = sub.add_parser("resume")
     resume.add_argument("document", type=Path)
     resume.add_argument("--draft-url")
     resume.add_argument("--approval-token")
     resume.add_argument("--close-after", action="store_true")
+    add_browser_options(resume)
+    revise = sub.add_parser("revise-title")
+    revise.add_argument("--expected-current-title", required=True)
+    revise.add_argument("--title", required=True)
+    revise.add_argument("--editor-url", default=DEFAULT_EDITOR_URL)
+    revise.add_argument("--close-after", action="store_true")
+    add_browser_options(revise)
     publish = sub.add_parser("publish")
     publish.add_argument("document", type=Path)
     publish.add_argument("--approval-token")
     publish.add_argument("--close-after", action="store_true")
+    add_browser_options(publish)
     schedule = sub.add_parser("schedule")
     schedule.add_argument("document", type=Path)
     schedule.add_argument("--at", required=True)
     schedule.add_argument("--approval-token")
     schedule.add_argument("--close-after", action="store_true")
+    add_browser_options(schedule)
     return parser
 
 
@@ -1343,7 +1563,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "learn":
             catalog = FeatureCatalog.load()
             with NaverBrowserSession(
-                data_dir=data_dir, editor_url=args.editor_url
+                data_dir=data_dir,
+                editor_url=args.editor_url,
+                cdp_endpoint=args.cdp_endpoint,
+                browser_channel=args.browser_channel,
             ) as browser:
                 page = browser.wait_for_editor()
                 result = learn_compatibility_map(
@@ -1355,6 +1578,27 @@ def main(argv: list[str] | None = None) -> int:
                     extensions={".json"},
                 )
                 path.chmod(0o600)
+                if not args.close_after:
+                    browser.keep_open_until_closed()
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
+
+        if args.command == "revise-title":
+            catalog = FeatureCatalog.load()
+            with NaverBrowserSession(
+                data_dir=data_dir,
+                editor_url=args.editor_url,
+                cdp_endpoint=args.cdp_endpoint,
+                browser_channel=args.browser_channel,
+            ) as browser:
+                page = browser.wait_for_editor()
+                result = revise_title(
+                    page,
+                    catalog,
+                    data_dir=data_dir,
+                    expected_current_title=args.expected_current_title,
+                    new_title=args.title,
+                )
                 if not args.close_after:
                     browser.keep_open_until_closed()
             print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -1384,6 +1628,8 @@ def main(argv: list[str] | None = None) -> int:
                 data_dir=data_dir,
                 editor_url=str(editor_url),
                 close_after=args.close_after,
+                cdp_endpoint=args.cdp_endpoint,
+                browser_channel=args.browser_channel,
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
@@ -1405,7 +1651,12 @@ def main(argv: list[str] | None = None) -> int:
         draft_url = _verified_draft_url(str(checkpoint.get("draft_url") or ""))
         if draft_url is None:
             raise ValueError("checkpoint has no verified draft URL; compose or resume first")
-        with NaverBrowserSession(data_dir=data_dir, editor_url=draft_url) as browser:
+        with NaverBrowserSession(
+            data_dir=data_dir,
+            editor_url=draft_url,
+            cdp_endpoint=args.cdp_endpoint,
+            browser_channel=args.browser_channel,
+        ) as browser:
             page = browser.wait_for_editor()
             driver = PlaywrightNaverDriver(
                 page, catalog=FeatureCatalog.load(), data_dir=data_dir

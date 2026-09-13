@@ -6,6 +6,7 @@ import stat
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -411,6 +412,72 @@ def test_doctor_does_not_create_profile_or_data_directory(
     assert result in {0, 3}
     assert payload["profile_exists"] is False
     assert not data_dir.exists()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "https://127.0.0.1:9222",
+        "http://example.com:9222",
+        "http://user:secret@127.0.0.1:9222",
+        "http://127.0.0.1:9222/json",
+        "http://127.0.0.1",
+    ],
+)
+def test_cdp_endpoint_rejects_non_loopback_or_credentialed_values(value: str) -> None:
+    with pytest.raises(ValueError, match="CDP endpoint"):
+        naver_editor._validate_cdp_endpoint(value)
+
+
+def test_cdp_endpoint_accepts_loopback_http_port() -> None:
+    assert (
+        naver_editor._validate_cdp_endpoint("http://127.0.0.1:9222/")
+        == "http://127.0.0.1:9222"
+    )
+
+
+@pytest.mark.parametrize(
+    ("target_url", "open_url", "matches"),
+    [
+        (naver_editor.DEFAULT_EDITOR_URL, "https://blog.naver.com/example/postwrite", True),
+        (naver_editor.DEFAULT_EDITOR_URL, "http://blog.naver.com/example/postwrite", False),
+        ("https://blog.naver.com/example/postwrite?logNo=1",
+         "https://blog.naver.com/example/postwrite?logNo=1", True),
+        ("https://blog.naver.com/example/postwrite?logNo=1",
+         "https://blog.naver.com/example/postwrite?logNo=2", False),
+        ("https://blog.naver.com/example/postwrite",
+         "https://blog.naver.com/another/postwrite", False),
+    ],
+)
+def test_cdp_attachment_keeps_explicit_draft_target(target_url, open_url, matches) -> None:
+    page = SimpleNamespace(url=open_url, is_closed=lambda: False)
+    browser = SimpleNamespace(contexts=[SimpleNamespace(pages=[page])])
+    found = naver_editor.NaverBrowserSession._editor_page_candidates(browser, target_url)
+    assert found == ([page] if matches else [])
+
+
+def test_attached_cdp_session_disconnects_without_closing_browser_context() -> None:
+    class FakeContext:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    class FakePlaywright:
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    session = object.__new__(naver_editor.NaverBrowserSession)
+    session.attached = True
+    session.context = FakeContext()
+    session.playwright = FakePlaywright()
+
+    naver_editor.NaverBrowserSession.__exit__.__wrapped__(session)
+
+    assert session.context.closed is False
+    assert session.playwright.stopped is True
 
 
 def test_document_schema_and_checkpoint_ignore_rules_exist() -> None:

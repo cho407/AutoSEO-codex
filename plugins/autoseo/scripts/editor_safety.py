@@ -136,7 +136,7 @@ def locked_profile_enter(method):
             return method(self)
         except BaseException:
             try:
-                if self.context is not None:
+                if self.context is not None and not getattr(self, "attached", False):
                     self.context.close()
                 if self.playwright is not None:
                     self.playwright.stop()
@@ -259,7 +259,7 @@ class FreshSaveReceipt:
         self.page.evaluate("""() => {
             window.__autoseoSaveObserver?.disconnect();
             window.__autoseoSaveAck = false;
-            const message = /임시저장 완료|임시 저장되었습니다|저장되었습니다|Draft saved|Saved as draft|Saved successfully/i;
+            const message = /임시저장이 완료되었습니다|임시저장 완료|임시 저장되었습니다|저장되었습니다|Draft saved|Saved as draft|Saved successfully/i;
             const hasSuccess = () => [...document.querySelectorAll(
                 '[role=status], [role=alert], #status, .se-toast-message, .toast, .wrap_toast'
             )].some(node => !node.closest('[contenteditable=true]') && node.getClientRects().length

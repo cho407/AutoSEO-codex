@@ -71,6 +71,7 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
 - `@autoseo audit all https://example.com`
 - `@autoseo neo visibility "서울 성수동 카페"`
 - `@autoseo naver-editor compose ./article.naver-document.json`
+- `@autoseo naver-editor revise-title --expected-current-title "현재 제목" --title "새 제목"`
 - `@autoseo tistory-editor export-markdown ./article.tistory-document.json`
 - `@autoseo tistory-editor compose ./article.tistory-document.json`
 - `@autoseo images mosaic ./people.jpg`

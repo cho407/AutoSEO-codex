@@ -67,6 +67,7 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/skills/autoseo-writing/SKILL.md" in names
     assert "autoseo/skills/autoseo-naver-editor/SKILL.md" in names
     assert "autoseo/skills/autoseo-naver-editor/references/feature-compatibility.md" in names
+    assert "autoseo/skills/autoseo-naver-editor/references/smarteditor-one-structure.md" in names
     assert "autoseo/skills/autoseo-tistory-editor/SKILL.md" in names
     assert "autoseo/skills/autoseo-tistory-editor/references/feature-compatibility.md" in names
     assert "autoseo/schema/evidence-bundle.schema.json" in names

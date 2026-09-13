@@ -36,6 +36,7 @@ Sources and limitations are included in the result.
 @autoseo naver-editor learn
 @autoseo naver-editor compose <topic-or-document>
 @autoseo naver-editor resume <draft>
+@autoseo naver-editor revise-title
 @autoseo naver-editor publish <draft>
 @autoseo naver-editor schedule <draft-and-time>
 @autoseo tistory-editor doctor

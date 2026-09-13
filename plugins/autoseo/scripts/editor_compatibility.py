@@ -198,13 +198,30 @@ def fill_unicode_exact(page, locator, text: str) -> None:
 
 
 def ui_signature(page) -> str:
-    """Structure only; exclude input values, URLs, free text and frame names."""
+    """Hash a bounded structural probe, excluding values, URLs and article text.
+
+    Earlier versions enumerated every role in every frame.  The targeted counts
+    below detect the editor surfaces that affect our locators with one small DOM
+    evaluation per frame, so loading a compatibility map does not amount to a
+    full-page accessibility or DOM scan on every operation.
+    """
     try:
-        return digest([frame.evaluate("""() => ({
-            editor: !!document.querySelector('.se-main-container, .ProseMirror, .CodeMirror, .cm-content, textarea[name=content]'),
-            tiny: !!document.querySelector('body#tinymce[contenteditable=true]'),
-            roles: [...document.querySelectorAll('[role]')].map(n => n.getAttribute('role')).sort()
-        })""") for frame in page.frames])
+        return digest([frame.evaluate("""() => {
+            const count = selector => document.querySelectorAll(selector).length;
+            return {
+                naverRoot: count('.se-main-container'),
+                naverTitle: count('.se-documentTitle .se-text-paragraph'),
+                naverSave: count("button[data-click-area='tpb.save']"),
+                naverPublish: count("button[data-click-area='tpb.publish']"),
+                proseMirror: count('.ProseMirror[contenteditable=true]'),
+                codeMirror5: count('.CodeMirror'),
+                codeMirror6: count('.cm-content[contenteditable=true]'),
+                textareas: count('textarea[name=content], textarea#editor-textarea'),
+                tinyMce: count('body#tinymce[contenteditable=true]'),
+                dialogs: count('[role=dialog]'),
+                toolbars: count('[role=toolbar]')
+            };
+        }""") for frame in page.frames])
     except Exception:
         return "unknown"
 
@@ -279,8 +296,83 @@ def dialog_scope(page):
     return matches[0] if matches else page
 
 
+def _hint_scope(resolver, feature: dict, hint: dict):
+    """Return one catalog-bounded scope from a learned or shipped fast hint."""
+    frames = getattr(resolver.page, "frames", None)
+    if not isinstance(frames, list):
+        if hint.get("frame_index", 0) != 0 or hint.get("scope", "document") != "document":
+            return None
+        return resolver.page
+    index = hint.get("frame_index")
+    if not isinstance(index, int) or index < 0 or index >= len(frames):
+        return None
+    frame = frames[index]
+    scope = hint.get("scope")
+    if scope == "document":
+        return frame
+    selector = {"dialog": "[role=dialog]:visible", "toolbar": "[role=toolbar]:visible"}.get(scope)
+    if selector is None:
+        return None
+    matches = frame.locator(selector)
+    count = resolver._count(matches)
+    if count > 1:
+        raise resolver.ambiguous_error(f"multiple {scope} scopes matched {feature['id']}")
+    return matches if count == 1 else None
+
+
+def _locate_from_hint(resolver, feature: dict, hint: dict, *, source: str):
+    """Try one previously verified route without accepting arbitrary selectors."""
+    if not isinstance(hint, dict) or hint.get("available") is False:
+        return None
+    contract = feature["locator"]
+    strategy = hint.get("strategy")
+    name = hint.get("name")
+    root = _hint_scope(resolver, feature, hint)
+    if root is None:
+        return None
+
+    if strategy == "role-name":
+        allowed = contract.get("names") or ([contract["name"]] if contract.get("name") else [])
+        if not isinstance(name, str) or name not in allowed or not contract.get("role"):
+            return None
+        control = root.get_by_role(contract["role"], name=name, exact=True)
+    elif strategy == "korean-label":
+        if not isinstance(name, str) or name not in (contract.get("labels") or []):
+            return None
+        control = root.get_by_text(name, exact=True)
+    elif strategy == "dom-fallback":
+        # The selector always comes from the distributed catalog.  Compatibility
+        # files cannot introduce executable selectors.
+        selector = contract.get("dom_fallback")
+        if not selector:
+            return None
+        control = root.locator(selector)
+    else:
+        return None
+
+    count = resolver._count(control)
+    if count > 1:
+        resolver._unique(control, f"{feature['id']} cached {strategy}")
+    if count != 1:
+        return None
+    try:
+        if not control.is_visible():
+            return None
+    except AttributeError:
+        # Lightweight unit fakes need only provide the locator contract.
+        pass
+    resolver.last_resolution = {
+        "strategy": strategy,
+        "name": name,
+        "frame_index": hint.get("frame_index", 0),
+        "scope": hint.get("scope", "document"),
+        "source": source,
+    }
+    return strategy, control
+
+
 def locate(resolver, feature_id: str, *, allow_shortcut: bool = False):
-    """Resolve locale-ranked role/name → label → shortcut → DOM aliases."""
+    """Use a bounded fast route, then resolve role/name → label → shortcut → DOM."""
     feature = resolver.catalog.feature(feature_id)
     contract = feature["locator"]
     language = ui_language(resolver.page)
@@ -289,12 +381,27 @@ def locate(resolver, feature_id: str, *, allow_shortcut: bool = False):
         language,
     )
     hint = (getattr(resolver, "compatibility", None) or {}).get("features", {}).get(feature_id, {})
+    if not isinstance(hint, dict):
+        hint = {}
     if hint.get("name") in names:
         names.remove(hint["name"])
         if language == "en" and not hint["name"].isascii():
             names.append(hint["name"])
         else:
             names.insert(0, hint["name"])
+    learned = _locate_from_hint(resolver, feature, hint, source="learned-map")
+    if learned:
+        return learned
+    shipped_hint = contract.get("fast_path")
+    shipped = _locate_from_hint(
+        resolver,
+        feature,
+        shipped_hint if isinstance(shipped_hint, dict) else {},
+        source="catalog-fast-path",
+    )
+    if shipped:
+        return shipped
+
     candidates = scopes(resolver.page, feature)
 
     def find(strategy, name, factory):
@@ -314,7 +421,8 @@ def locate(resolver, feature_id: str, *, allow_shortcut: bool = False):
             if found:
                 index, scope, control = found[0]
                 resolver.last_resolution = {"strategy": strategy, "name": name,
-                                            "frame_index": index, "scope": scope}
+                                            "frame_index": index, "scope": scope,
+                                            "source": "resolved"}
                 return strategy, control
         return None
 
@@ -334,7 +442,8 @@ def locate(resolver, feature_id: str, *, allow_shortcut: bool = False):
         except Exception:
             focused = False
         if focused:
-            resolver.last_resolution = {"strategy": "shortcut", "name": None}
+            resolver.last_resolution = {"strategy": "shortcut", "name": None,
+                                        "source": "resolved"}
             return "shortcut", contract["shortcut"]
     if contract.get("dom_fallback"):
         result = find("dom-fallback", None, lambda root: root.locator(contract["dom_fallback"]))

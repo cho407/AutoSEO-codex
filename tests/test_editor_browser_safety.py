@@ -70,6 +70,19 @@ def test_old_save_toast_is_not_a_new_save_receipt(page):
     assert receipt.confirm() is True
 
 
+def test_live_korean_save_acknowledgement_is_recognized(page):
+    page.set_content("<button id=save>저장</button><div role=status>준비</div>")
+    page.locator("#save").evaluate("""node => node.onclick = () => {
+        document.querySelector('[role=status]').textContent = '저장 중';
+        setTimeout(() => document.querySelector('[role=status]').textContent =
+            '임시저장이 완료되었습니다.', 20);
+    }""")
+    receipt = FreshSaveReceipt(page)
+    receipt.begin()
+    page.locator("#save").click()
+    assert receipt.confirm() is True
+
+
 @pytest.mark.parametrize("platform", ["naver", "tistory"])
 def test_english_ui_composes_and_saves_korean_draft(page, tmp_path, platform):
     page.goto((ROOT / f"tests/fixtures/{platform}_editor.html").as_uri())
@@ -145,6 +158,86 @@ def test_learn_map_is_consumed_and_expired_maps_are_rejected(page, tmp_path):
     learned["observed_at"] = (datetime.now(timezone.utc) - timedelta(days=8)).isoformat()
     path.write_text(json.dumps(learned), encoding="utf-8")
     assert editor_compatibility.load_map(path, page, catalog) is None
+
+
+def test_learned_fast_path_revises_only_title_and_saves_once(page, tmp_path):
+    catalog = naver_editor.FeatureCatalog.load()
+    current = "현재 제목"
+    replacement = "검색 의도가 분명한 새 제목"
+    page.get_by_role("textbox", name="제목", exact=True).fill(current)
+    page.get_by_role("textbox", name="본문", exact=True).fill("보존할 본문")
+
+    learned = naver_editor.learn_compatibility_map(page, catalog, editor_url=page.url)
+    (tmp_path / "naver-editor-compatibility.json").write_text(
+        json.dumps(learned), encoding="utf-8"
+    )
+    page.evaluate("window.draftSaveClicks = 0")
+    page.get_by_role("button", name="임시저장", exact=True).evaluate(
+        "node => node.addEventListener('click', () => window.draftSaveClicks++)"
+    )
+
+    result = naver_editor.revise_title(
+        page,
+        catalog,
+        data_dir=tmp_path,
+        expected_current_title=current,
+        new_title=replacement,
+    )
+
+    assert result["save_state"] == "acknowledged"
+    assert result["title_locator"]["source"] == "learned-map"
+    assert result["save_locator"]["source"] == "learned-map"
+    assert page.get_by_role("textbox", name="제목", exact=True).input_value() == replacement
+    assert page.get_by_role("textbox", name="본문", exact=True).inner_text() == "보존할 본문"
+    assert page.evaluate("window.draftSaveClicks") == 1
+
+
+def test_title_revision_stops_before_write_on_wrong_visible_title(page, tmp_path):
+    page.get_by_role("textbox", name="제목", exact=True).fill("다른 초안")
+    with pytest.raises(naver_editor.EditorUIChanged, match="expected current title"):
+        naver_editor.revise_title(
+            page,
+            naver_editor.FeatureCatalog.load(),
+            data_dir=tmp_path,
+            expected_current_title="수정할 초안",
+            new_title="새 제목",
+        )
+    assert page.get_by_role("textbox", name="제목", exact=True).input_value() == "다른 초안"
+
+
+def test_shipped_naver_title_and_save_fast_paths_need_no_surface_scan(page, tmp_path):
+    page.set_content("""
+        <div class="se-documentTitle">
+          <div class="se-text-paragraph" contenteditable="true">현재 제목</div>
+        </div>
+        <div class="se-main-container">
+          <div contenteditable="true"><p>보존할 본문</p></div>
+        </div>
+        <button data-click-area="tpb.save">저장</button>
+        <div role="status">준비</div>
+        <script>
+          window.saveClicks = 0;
+          document.querySelector('button').onclick = () => {
+            window.saveClicks++;
+            const status = document.querySelector('[role=status]');
+            status.textContent = '저장 중';
+            setTimeout(() => status.textContent = '임시저장이 완료되었습니다.', 20);
+          };
+        </script>
+    """)
+
+    result = naver_editor.revise_title(
+        page,
+        naver_editor.FeatureCatalog.load(),
+        data_dir=tmp_path,
+        expected_current_title="현재 제목",
+        new_title="빠른 제목 수정",
+    )
+
+    assert result["title_locator"]["source"] == "catalog-fast-path"
+    assert result["save_locator"]["source"] == "catalog-fast-path"
+    assert page.locator(".se-main-container").inner_text() == "보존할 본문"
+    assert page.evaluate("window.saveClicks") == 1
 
 
 def test_frames_dialog_scope_and_ambiguous_controls(page):
