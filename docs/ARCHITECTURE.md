@@ -89,6 +89,11 @@ deduplicates same-source copies, counts independent source groups, computes refr
 status, and exposes component coverage. It fetches nothing itself; Codex-native web
 research or an explicitly safe no-cost provider supplies the cited observations.
 
+New blog articles load the writing skill's `references/blog-workflow.md` for the
+1,500-character minimum, author-topic-first trend selection, hero/diagram assets,
+and one-session draft save. Polish/tone requests load only the shorter entry skill.
+Research and visuals stay in the user's blog workspace, outside the distribution.
+
 ## Naver editor boundary
 
 Analysis and account mutation are separate skills. `NaverDocument v1` validates
@@ -97,14 +102,17 @@ before a visible browser opens. The editor uses a dedicated persistent profile u
 `AUTOSEO_DATA_DIR`; login, two-factor authentication, and CAPTCHA stay manual.
 
 The local feature registry labels every editor control `automatic`, `guided`, or
-`unavailable`. Resolution is fixed to accessibility role/name, Korean label,
-documented shortcut, then a versioned DOM fallback. A duplicate or missing control
+`unavailable`. Resolution is fixed to accessibility role/name, locale-ranked Korean
+or English label, documented shortcut, then a versioned DOM fallback. A duplicate or
+missing control
 stops the operation. Checkpoints retain only the document hash, completed operation
 IDs, verified draft URL, state, and diagnostic filenames, so resume does not duplicate
 completed blocks or persist the article body.
 
-Draft saving and final publication use different document-bound approval tokens.
-Before publishing or scheduling, AutoSEO previews category, visibility, search,
+An explicit compose request authorizes one draft save after login; its internal
+document-bound token still detects source or media changes. Final publication uses a
+separate approval token. Before publishing or scheduling, AutoSEO previews category,
+visibility, search,
 comments, sympathy, CCL, sharing, tags, and time. An unclear result enters an
 `unknown` state and cannot be automatically retried.
 

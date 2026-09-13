@@ -10,9 +10,9 @@
 | Separately billable data endpoint | Not shipped | Reject the workflow and explain the free-only boundary |
 | Search-engine write | Blocked | Exact target preview and explicit approval |
 | Publishing or website mutation | Blocked | Separate, explicit authorization and review |
-| Naver draft write | Preview only | Exact document-bound approval, visible headed browser |
+| Naver draft write | Explicit compose authorization | Exact document-bound integrity token, visible headed browser, one save |
 | Naver publish or schedule | Blocked | Fresh final-settings preview and per-post approval token |
-| Tistory draft write | Preview only | Exact document and image-plan approval, visible headed browser |
+| Tistory draft write | Explicit compose authorization | Exact document/image-plan integrity token, visible headed browser, one save |
 | Tistory publish or schedule | Blocked | Fresh final-settings preview and per-post approval token |
 | Privacy image derivative | Preview only | Source-bound plan, new private file, no original overwrite |
 | Writing identity save/reset | Read-only status by default | Exact profile preview and explicit confirmation |
@@ -74,14 +74,17 @@ two-factor authentication, or CAPTCHA. The top-level page must remain on allowli
 Naver login or Blog hosts, while subresources still pass the public-network route
 guard.
 
-Editor controls are discovered through accessibility role/name, Korean label,
+Editor controls are discovered through accessibility role/name, locale-ranked Korean
+or English label,
 shortcut, and versioned DOM fallback in that order. Multiple matches stop the run.
 Checkpoints contain only a source hash, completed operation IDs, verified draft URL,
 publication state, and diagnostic filenames. A changed source hash cannot silently
 resume an older operation set.
 
-Draft write approval and final publication approval are separate and bound to the
-exact normalized document. Publication is disabled in automated tests. Once a click
+An explicit compose request authorizes one draft write after login; the internal
+document-bound token still detects source or media changes. Final publication
+approval remains separate and bound to the exact normalized document. Publication is
+disabled in automated tests. Once a click
 has an unclear result, the state becomes `unknown` and automatic retry is refused.
 This reduces duplicate-post risk but cannot eliminate platform-side failure or UI
 change risk; live-editor validation remains required for each release candidate.

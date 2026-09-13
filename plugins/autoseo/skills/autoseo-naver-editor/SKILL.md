@@ -1,6 +1,6 @@
 ---
 name: autoseo-naver-editor
-description: Compose, verify saved drafts, resume, diagnose, learn, publish, or schedule a user-owned Naver Blog draft in PC SmartEditor ONE with a dedicated headed browser profile and guarded per-post approval. Use for Naver editor automation and NaverDocument v1.
+description: Compose, save, resume, diagnose, learn, publish, or schedule a user-owned Naver Blog draft in PC SmartEditor ONE with a dedicated headed browser profile and guarded per-post approval. Use for Naver editor automation and NaverDocument v1.
 ---
 
 # AutoSEO Naver Editor
@@ -15,8 +15,9 @@ catalog offers blog search but no rich blog-post writing endpoint.
 - Use the dedicated headed profile under `AUTOSEO_DATA_DIR`. Never read, print,
   export, or copy its cookies outside that profile.
 - The user completes login, two-factor authentication, and CAPTCHA manually.
-- Before compose or resume clicks `임시저장`, show the exact document, block,
-  attachment, tag, and setting scope and obtain immediate confirmation.
+- An explicit compose/resume request authorizes one document-bound `임시저장` after
+  the user completes login. Show the compact document, media, tag, and setting scope
+  in progress, then save once; do not request a second save confirmation.
 - Before every publish or schedule action, show the exact blog/draft URL, content
   and attachment fingerprint, category, visibility, search,
   comments, sympathy, CCL, sharing, tags, and scheduled time. Require the exact
@@ -31,22 +32,23 @@ catalog offers blog search but no rich blog-post writing endpoint.
 | Prompt | Outcome |
 |---|---|
 | `@autoseo naver-editor doctor` | Read-only runtime, catalog, and profile-permission check |
-| `@autoseo naver-editor learn` | Local compatibility map of roles, Korean labels, shortcuts, and DOM fallbacks |
-| `@autoseo naver-editor compose <topic-or-document>` | Build or validate `NaverDocument v1`, then save a confirmed draft |
+| `@autoseo naver-editor learn` | Local compatibility map of roles, locale-ranked Korean/English labels, shortcuts, and DOM fallbacks |
+| `@autoseo naver-editor compose <topic-or-document>` | Build or validate `NaverDocument v1`, then save one draft after login |
 | `@autoseo naver-editor resume <draft>` | Reconcile the same draft and source hash before continuing unfinished operations |
-| `@autoseo naver-editor verify-draft <document>` | Reopen the saved draft in a fresh browser session and compare content without editing or saving |
 | `@autoseo naver-editor publish <draft>` | Preview settings, request approval, click publish once, verify once |
 | `@autoseo naver-editor schedule <draft-and-time>` | Preview time/settings, request approval, schedule once, verify once |
 
 When `compose` receives a topic instead of a ready `NaverDocument v1`, first route
 through `autoseo-writing`: resolve the confirmed writing identity, research any
 current claims, draft in the selected tone, remove Korean translationese, and show
-the measured content checks. Only then convert it to `NaverDocument v1`. This handoff
-does not authorize an editor write or publication.
+the measured content checks. Only then convert it to `NaverDocument v1`. The explicit
+compose request authorizes one draft save after login; publication remains separate.
 
 ## Runtime
 
-Use the standard profile because the editor requires Playwright and Chromium:
+Use the standard profile because the editor requires Playwright and Chromium. The
+visible browser is opened once; the user completes login, 2FA, and CAPTCHA, then the
+requested compose operation continues automatically:
 
 ```text
 <plugin-root>/scripts/autoseo setup --profile standard
@@ -59,11 +61,13 @@ Korean article, show the user the claims and sources needing review, and seriali
 it as `NaverDocument v1` in a user-approved local path. For an existing document,
 validate it without silently rewriting the content.
 
-Pass the validated JSON document to the internal compose or resume helper. The first run without the
-matching `--approval-token` prints the draft-write preview and makes no account
-change. After the user approves that exact scope, rerun with the returned token.
+Pass the validated JSON document to the internal compose or resume helper. An explicit
+compose/resume command consumes its document-bound draft token internally after the
+login gate; a supplied stale `--approval-token` still fails before any account write.
 Use `examples/naver-document-v1.json` from the plugin root as a minimal editable
-starting point; never overwrite the bundled example.
+starting point; never overwrite the bundled example. The title and body language come
+from the writing request, while English UI labels are resolved through the locale-aware
+compatibility catalog.
 
 Publish and schedule likewise print an `approval_token` when called without the
 matching token. Ask the user immediately, then use that token once. Never infer
@@ -89,7 +93,7 @@ the live-editor release checklist.
 ## Learn and resume semantics
 
 `learn` does not train a model or upload user data. It inspects the current
-editor's accessibility names, Korean labels, documented shortcuts, and versioned
+editor's accessibility names, locale-ranked Korean or English labels, documented shortcuts, and versioned
 DOM fallbacks, then writes a local compatibility map containing no page text or
 cookies.
 
@@ -106,24 +110,21 @@ history, or user edits stop for reconciliation; they never silently reset histor
 Use a new document ID for a revision. Legacy checkpoints are not automatically
 migrated across changed hash rules. Document and profile locks prevent overlap.
 
-After reviewing the saved draft, close the existing editor session, then run
-`naver_editor.py verify-draft <document.json>`. This reads the checkpoint's exact
-saved URL in a new dedicated session; it never selects a draft by title or clicks
-save/publish. Do not close a window with unsaved user changes automatically.
-`acknowledged` means a new save notification, while `verification_state=verified`
-means the reopened title, body, inline formatting, links, media references and tags
-match the saved fingerprint. Only hashes, timestamps and random session IDs are
-recorded. A same-session check, missing saved ID or legacy fingerprint stays
-unavailable; changed content becomes mismatch. Do not replace or re-save content
-to make the comparison pass. Publication requires verified readback plus the
+After compose or resume reports `save_state=acknowledged`, keep the editor session
+open for review. `acknowledged` is a new save notification captured by the current
+session, and the checkpoint also records source and surface fingerprints. The
+workflow does not close and reopen the editor to test persistence, so it does not
+create a second login or navigation sequence that can trigger platform protection.
+Do not close a window with unsaved user changes automatically. Publication still
+requires the exact blog/draft identity, the current surface fingerprint, and the
 existing per-post final approval. Advanced components and live UI mappings remain
-subject to the compatibility checklist; a local fixture pass is not live certification.
+subject to the compatibility checklist; a local fixture pass is not live
+certification.
 
-If interrupted at the save boundary, do not retry save. When the journal already
-identifies that draft and all pre-save content matches in a new session,
-`verify-draft` can reconcile it as `save_state=readback-confirmed` without clicking
-save. This is distinct from receiving a save notification; it does not invent a
-remote save timestamp. Other unfinished operations remain unavailable for readback.
+If the process stops at the save boundary, do not retry the save. Resume reports the
+pending operation for manual reconciliation and never guesses whether the remote
+draft exists. A new save acknowledgement must be observed before publication;
+other unfinished operations remain unavailable until they are reconciled.
 
 Publication settings are applied in the final configuration dialog, not during
 draft composition. Scheduled times are normalized to Asia/Seoul at minute precision

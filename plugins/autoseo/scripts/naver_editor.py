@@ -35,7 +35,6 @@ from editor_safety import (
     publication_result,
     record_operation,
     validate_checkpoint,
-    verify_reopened_draft,
 )
 from file_safety import read_text_limited, write_text_atomically
 from naver_document import (
@@ -270,16 +269,6 @@ class EditorAutomation:
         self.store = store
 
     @locked_document
-    def verify_draft(self, document: object, driver: Any) -> dict:
-        value = validate_document(document)
-        checkpoint = self.store.load_existing(value)
-        result = verify_reopened_draft(checkpoint, driver)
-        if document_hash(value) != checkpoint["source_hash"]:
-            raise ValueError("source attachment changed during draft verification")
-        self.store.save(checkpoint)
-        return result
-
-    @locked_document
     def apply(self, document: object, driver: Any) -> dict[str, Any]:
         value = validate_document(document)
         checkpoint = self.store.load_or_create(value)
@@ -304,7 +293,7 @@ class EditorAutomation:
                 if pending and not already_applied and not unchanged:
                     raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
                 if pending and operation["feature_id"] == "draft-save":
-                    raise EditorUIChanged("interrupted save requires verify-draft in a new session; do not save again")
+                    raise EditorUIChanged("interrupted save requires manual reconciliation; do not save again")
                 mark_operation_pending(checkpoint, operation, driver)
                 if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
                     raise ValueError("source attachment hash changed before saving")
@@ -496,7 +485,7 @@ def publish_or_schedule(
 
 
 class LocatorResolver:
-    """Resolve role/name, Korean label, shortcut, then versioned DOM fallback."""
+    """Resolve role/name, locale-ranked labels, shortcut, then DOM fallback."""
 
     def __init__(self, page: Any, catalog: FeatureCatalog) -> None:
         self.page = page
@@ -597,6 +586,20 @@ class PlaywrightNaverDriver:
         selector = COMPONENT_SELECTORS.get(feature_id)
         return int(self.page.locator(selector).count()) if selector else None
 
+    def _click_text_aliases(self, aliases: list[str] | tuple[str, ...], description: str) -> str:
+        """Click one exact visible option, ranked for the current UI locale."""
+        for label in editor_compatibility.ordered_aliases(self.page, aliases):
+            option = self.page.get_by_text(label, exact=True)
+            count = option.count()
+            if count > 1:
+                raise AmbiguousElement(f"{description} is not unique: {label}")
+            if count == 1:
+                option.click()
+                return label
+        raise EditorUIChanged(
+            f"{description} was not found for ui_language={editor_compatibility.ui_language(self.page)}"
+        )
+
     def _apply_style(self, style: dict[str, Any], *, reset_booleans: bool = True) -> dict:
         restore = {}
         boolean_features = {
@@ -642,11 +645,13 @@ class PlaywrightNaverDriver:
                 raise EditorUIChanged(f"current {field} is unknown; use guided formatting")
             restore[field] = previous
             self.resolver.click(feature_id)
-            label = {"left": "왼쪽", "center": "가운데", "right": "오른쪽", "justify": "양쪽"}.get(str(value), str(value))
-            option = self.page.get_by_text(label, exact=True)
-            if option.count() != 1:
-                raise AmbiguousElement(f"format option is not unique: {field}={value}")
-            option.click()
+            aliases = ({
+                "left": ["왼쪽", "Left", "Align left"],
+                "center": ["가운데", "Center", "Align center"],
+                "right": ["오른쪽", "Right", "Align right"],
+                "justify": ["양쪽", "Justify", "Align justify"],
+            }.get(str(value), [str(value)]) if field == "alignment" else [str(value)])
+            self._click_text_aliases(aliases, f"format option {field}={value}")
         return restore
 
     def _insert_text_block(self, operation: dict[str, Any]) -> None:
@@ -723,14 +728,14 @@ class PlaywrightNaverDriver:
         if not selected:
             raise EditorUIChanged("link source text could not be selected uniquely")
         self.resolver.click("link")
-        self._named_textbox(("URL", "링크 주소", "주소")).fill(payload["url"])
+        self._named_textbox(("URL", "Link URL", "링크 주소", "주소")).fill(payload["url"])
         self._confirm_dialog()
         links = self.page.get_by_role("link", name=payload["text"], exact=True)
         self._postconditions[operation["operation_id"]] = links.count() == 1
 
     def _named_textbox(self, names: tuple[str, ...]) -> Any:
         scope = editor_compatibility.dialog_scope(self.page)
-        for name in names:
+        for name in editor_compatibility.ordered_aliases(self.page, names):
             candidate = scope.get_by_role("textbox", name=name, exact=True)
             count = candidate.count()
             if count > 1:
@@ -740,31 +745,52 @@ class PlaywrightNaverDriver:
         raise EditorUIChanged(f"required textbox was not found: {', '.join(names)}")
 
     def _confirm_dialog(self) -> None:
-        confirm = editor_compatibility.dialog_scope(self.page).get_by_role("button", name="확인", exact=True)
-        if confirm.count() != 1:
-            raise AmbiguousElement("component confirmation is missing or ambiguous")
-        confirm.click()
+        scope = editor_compatibility.dialog_scope(self.page)
+        for name in editor_compatibility.ordered_aliases(self.page, ("확인", "Confirm", "OK")):
+            confirm = scope.get_by_role("button", name=name, exact=True)
+            count = confirm.count()
+            if count > 1:
+                raise AmbiguousElement("component confirmation is ambiguous")
+            if count == 1:
+                confirm.click()
+                return
+        raise EditorUIChanged("component confirmation was not found")
 
     def _configure_component(self, feature_id: str, payload: dict[str, Any]) -> None:
         if feature_id == "external-link":
-            self._named_textbox(("URL", "링크 주소", "주소")).fill(payload["url"])
+            self._named_textbox(("URL", "Link URL", "링크 주소", "주소")).fill(payload["url"])
             self._confirm_dialog()
         elif feature_id == "equation":
-            self._named_textbox(("수식", "수식 입력")).fill(payload["expression"])
+            self._named_textbox(("수식", "수식 입력", "Equation", "Equation input")).fill(payload["expression"])
             self._confirm_dialog()
         elif feature_id == "schedule-component":
-            self._named_textbox(("시작", "시작 일시")).fill(payload["start"])
+            self._named_textbox(("시작", "시작 일시", "Start", "Start date and time")).fill(payload["start"])
             if payload.get("end"):
-                self._named_textbox(("종료", "종료 일시")).fill(payload["end"])
+                self._named_textbox(("종료", "종료 일시", "End", "End date and time")).fill(payload["end"])
             if payload.get("text"):
-                self._named_textbox(("일정 제목", "제목")).fill(payload["text"])
+                self._named_textbox(("일정 제목", "제목", "Event title", "Title")).fill(payload["text"])
             self._confirm_dialog()
         elif feature_id == "table":
             rows = payload["rows"]
             columns = max((len(row) for row in rows), default=1)
-            row_control = self.page.get_by_role("spinbutton", name="행", exact=True)
-            column_control = self.page.get_by_role("spinbutton", name="열", exact=True)
-            if row_control.count() != 1 or column_control.count() != 1:
+            scope = editor_compatibility.dialog_scope(self.page)
+            row_control = None
+            column_control = None
+            for name in editor_compatibility.ordered_aliases(self.page, ("행", "Rows", "Number of rows")):
+                candidate = scope.get_by_role("spinbutton", name=name, exact=True)
+                if candidate.count() > 1:
+                    raise AmbiguousElement("table row control is ambiguous")
+                if candidate.count() == 1:
+                    row_control = candidate
+                    break
+            for name in editor_compatibility.ordered_aliases(self.page, ("열", "Columns", "Number of columns")):
+                candidate = scope.get_by_role("spinbutton", name=name, exact=True)
+                if candidate.count() > 1:
+                    raise AmbiguousElement("table column control is ambiguous")
+                if candidate.count() == 1:
+                    column_control = candidate
+                    break
+            if row_control is None or column_control is None:
                 raise EditorUIChanged("table row and column controls were not found")
             row_control.fill(str(len(rows)))
             column_control.fill(str(columns))
@@ -793,14 +819,19 @@ class PlaywrightNaverDriver:
         control.click()
         if value is None:
             return
-        label = {"public": "전체공개", "private": "비공개", "neighbors": "이웃공개",
-                 "mutual-neighbors": "서로이웃공개", "none": "사용 안 함"}.get(str(value), str(value))
-        option = self.page.get_by_text(label, exact=True)
-        if option.count() != 1:
-            raise AmbiguousElement(f"publish option is not unique: {feature_id}")
-        option.click()
+        aliases = [str(value)]
+        if feature_id == "visibility":
+            aliases = {
+                "public": ["전체공개", "Public", "Public post"],
+                "private": ["비공개", "Private", "Private post"],
+                "neighbors": ["이웃공개", "Neighbors", "Visible to neighbors"],
+                "mutual-neighbors": ["서로이웃공개", "Mutual neighbors"],
+            }.get(str(value), aliases)
+        elif feature_id == "ccl" and value == "none":
+            aliases = ["사용 안 함", "None", "Disabled"]
+        self._click_text_aliases(aliases, f"publish option {feature_id}")
         selected = control.get_attribute("data-value") or control.get_attribute("aria-valuetext")
-        if selected not in {str(value), label}:
+        if selected not in {str(value), *aliases}:
             raise EditorUIChanged(f"publish option state is not verifiable: {feature_id}")
 
     def execute(self, operation: dict[str, Any]) -> None:
@@ -810,7 +841,9 @@ class PlaywrightNaverDriver:
         before = self._component_count(feature_id)
         if handler == "fill-title":
             _, locator = self.resolver.locate(feature_id)
-            locator.fill(operation["payload"]["text"])
+            editor_compatibility.fill_unicode_exact(
+                self.page, locator, operation["payload"]["text"]
+            )
         elif handler == "insert-text":
             self._insert_text_block(operation)
         elif handler == "insert-component":
@@ -1023,9 +1056,7 @@ class PlaywrightNaverDriver:
             )
         if settings["mode"] == "schedule":
             self.resolver.click("schedule-option")
-            field = self.page.get_by_role("textbox", name="예약 시간", exact=True)
-            if field.count() != 1:
-                raise AmbiguousElement("schedule time input is missing or ambiguous")
+            field = self._named_textbox(("예약 시간", "Schedule time", "Scheduled time"))
             local = datetime.fromisoformat(local_schedule(settings["scheduled_at"]))
             formatted = local.strftime("%Y-%m-%dT%H:%M")
             field.fill(formatted)
@@ -1237,6 +1268,9 @@ def _compose(
             raise
         checkpoint["draft_url"] = _verified_draft_url(str(page.url))
         store.save(checkpoint)
+        print(json.dumps({"event": "draft-saved", "document_id": document["document_id"],
+                          "save_state": checkpoint["save_state"], "draft_url": checkpoint["draft_url"]}),
+              file=sys.stderr, flush=True)
         if not close_after:
             browser.keep_open_until_closed()
         return checkpoint
@@ -1260,9 +1294,6 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--draft-url")
     resume.add_argument("--approval-token")
     resume.add_argument("--close-after", action="store_true")
-    verify = sub.add_parser("verify-draft", help="Reopen and compare a saved draft without editing or saving")
-    verify.add_argument("document", type=Path)
-    verify.add_argument("--close-after", action="store_true")
     publish = sub.add_parser("publish")
     publish.add_argument("document", type=Path)
     publish.add_argument("--approval-token")
@@ -1330,22 +1361,6 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         document = _load_document(args.document)
-        if args.command == "verify-draft":
-            store = CheckpointStore(data_dir)
-            checkpoint = store.load_existing(document)
-            draft_url = _verified_draft_url(str(checkpoint.get("draft_url") or ""))
-            if draft_url is None:
-                result = EditorAutomation(store).verify_draft(document, None)
-                print(json.dumps(result, ensure_ascii=False, indent=2))
-                return 3
-            with NaverBrowserSession(data_dir=data_dir, editor_url=draft_url) as browser:
-                page = browser.wait_for_editor()
-                driver = PlaywrightNaverDriver(page, catalog=FeatureCatalog.load(), data_dir=data_dir)
-                result = EditorAutomation(store).verify_draft(document, driver)
-                if not args.close_after:
-                    browser.keep_open_until_closed()
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0 if result["verification_state"] == "verified" else 3
         if args.command in {"compose", "resume"}:
             editor_url = args.editor_url if args.command == "compose" else None
             if args.command == "resume":
@@ -1357,7 +1372,10 @@ def main(argv: list[str] | None = None) -> int:
                         "resume requires a verified Naver draft URL with a draft identifier"
                     )
             preview = _draft_preview(document, target_url=str(editor_url))
-            if args.approval_token != preview["approval_token"]:
+            # An explicit compose/resume command authorizes its own draft save.
+            # Keep the document-bound token as an internal integrity check; a
+            # supplied stale token still fails before opening the account write.
+            if args.approval_token not in {None, preview["approval_token"]}:
                 print(json.dumps(preview, ensure_ascii=False, indent=2))
                 return 4
             result = _compose(

@@ -36,7 +36,6 @@ Sources and limitations are included in the result.
 @autoseo naver-editor learn
 @autoseo naver-editor compose <topic-or-document>
 @autoseo naver-editor resume <draft>
-@autoseo naver-editor verify-draft <document>
 @autoseo naver-editor publish <draft>
 @autoseo naver-editor schedule <draft-and-time>
 @autoseo tistory-editor doctor
@@ -45,7 +44,6 @@ Sources and limitations are included in the result.
 @autoseo tistory-editor export-html <document>
 @autoseo tistory-editor compose <topic-or-document>
 @autoseo tistory-editor resume <draft>
-@autoseo tistory-editor verify-draft <document>
 @autoseo tistory-editor publish <draft>
 @autoseo tistory-editor schedule <draft-and-time>
 @autoseo plan <business-context>
@@ -69,10 +67,10 @@ coverage and never predicts rank or traffic.
 
 The Naver editor commands use a dedicated visible Chromium profile under
 `AUTOSEO_DATA_DIR`. Login, two-factor authentication, and CAPTCHA remain manual.
-Compose and resume first show the exact draft scope and require confirmation
-before editing or saving. Publish and schedule show all final settings and require
-a new document-specific approval token for every post. An unclear result is never
-retried automatically.
+An explicit compose or resume request shows a compact draft scope, then edits and
+saves once after login without a second save confirmation. Publish and schedule show
+all final settings and require a new document-specific approval token for every post.
+An unclear result is never retried automatically.
 
 Tistory export commands are local and require no login. Compose uses one Markdown
 or HTML source-buffer write in a separate visible profile. Attached static images
@@ -81,15 +79,26 @@ faces are mosaicked, and ambiguous group photos mosaic all detected faces for
 review. Upload and publication each use one-attempt, approval-bound state; unclear
 results are not retried.
 
-For either editor, close the reviewed saved session and request `verify-draft` to
-reopen the identified draft without writing. A fresh save notification is not a
-readback receipt. `verified` requires matching content in a different browser
-session; missing identity or incompatible mode/fingerprint is unavailable, and
-changed content is a mismatch. Publication requires verified readback and the usual
+For either editor, compose and resume record a fresh save acknowledgement and the
+source/surface fingerprints in the active editor session. The workflow does not
+close and reopen a session to test persistence. An interrupted save stops for
+manual reconciliation and is never retried automatically. Publication still checks
+the exact draft identity and current fingerprint, then requires the usual
 per-post approval. No real-account success is implied by local browser tests.
 
+New Korean blog articles contain at least 1,500 body characters excluding whitespace,
+with a representative hero image and an explanatory diagram or visual summary.
+Supporting images are added where useful. A requested topic is researched directly;
+without one, recent blog topics/categories are sampled once before selecting the
+strongest corroborated current trend in that subject (or across subjects when no
+pattern is observable). Only aggregate author context is retained. The chosen category
+is stored in the document; current drivers apply it in the final publication dialog.
+English editor labels are ranked from page metadata while Korean text stays unchanged.
+Routine writing loads only the relevant guide and skips release tests/repeated diagnostics.
+
 See the [current roadmap](ROADMAP.md) for remaining editor work and the proposed
-search/feed/balanced title candidates; title candidate generation is not yet shipped.
+search/feed/balanced title-candidate command; the no-topic trend routing above is
+already part of blog mode.
 
 ## Site and page workflows
 

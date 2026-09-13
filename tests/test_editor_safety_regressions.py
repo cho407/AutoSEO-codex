@@ -272,58 +272,65 @@ def _saved_checkpoint_and_reader():
     checkpoint = {**CHECKPOINT_DEFAULTS, "document_id": "sample", "publish_state": "not-attempted",
                   "draft_url": url, "source_hash": "source", "saved_source_hash": "source",
                   "save_state": "acknowledged", "saved_surface_hash": "content",
-                  "surface_version": 2, "saved_session_id": "first-session"}
+                  "surface_version": 2, "saved_session_id": "editor-session"}
     driver = SimpleNamespace(page=SimpleNamespace(url=url), surface_version=2,
-                             session_id="new-session", snapshot_hash=lambda: "content")
+                             session_id="editor-session", snapshot_hash=lambda: "content")
     return checkpoint, driver
 
 
-@pytest.mark.parametrize("change,expected", [
-    ({"draft_url": "https://other.tistory.com/manage/post/42"}, "mismatch"),
-    ({"draft_url": "https://fixture.tistory.com/manage/post/43"}, "mismatch"),
-    ({"surface_version": None}, "unavailable"),
-    ({"pending_operation_id": "unfinished-save"}, "unavailable"),
-    ({"publish_state": "unknown"}, "unavailable"),
+@pytest.mark.parametrize("change", [
+    {"draft_url": "https://other.tistory.com/manage/post/42"},
+    {"draft_url": "https://fixture.tistory.com/manage/post/43"},
+    {"surface_version": None},
+    {"publish_state": "unknown"},
+    {"pending_operation_id": "unfinished-save"},
+    {"save_state": "saving"},
+    {"saved_source_hash": "different-source"},
+    {"saved_surface_hash": "different-content"},
 ])
-def test_readback_requires_exact_identity_and_completed_compatible_save(change, expected):
-    from editor_safety import verify_reopened_draft
+def test_publication_requires_exact_identity_and_completed_compatible_save(change):
+    from editor_safety import prepare_publication
 
     checkpoint, driver = _saved_checkpoint_and_reader()
     checkpoint.update(change)
-    result = verify_reopened_draft(checkpoint, driver)
-    assert result["verification_state"] == expected
-    assert checkpoint["verified_surface_hash"] is None
+    with pytest.raises(ValueError):
+        prepare_publication(driver, {"media": []}, checkpoint, {})
 
 
-def test_publication_requires_verified_readback_and_content_change_revokes_it():
-    from editor_safety import (
-        invalidate_draft_verification,
-        prepare_publication,
-        verify_reopened_draft,
-    )
+def test_publication_accepts_current_session_save_acknowledgement():
+    from editor_safety import prepare_publication
 
     checkpoint, driver = _saved_checkpoint_and_reader()
-    with pytest.raises(ValueError, match="verify-draft"):
-        prepare_publication(driver, {"media": []}, checkpoint, {})
-    assert verify_reopened_draft(checkpoint, driver)["verification_state"] == "verified"
     prepare_publication(driver, {"media": []}, checkpoint, {})
-    invalidate_draft_verification(checkpoint)
-    with pytest.raises(ValueError, match="verify-draft"):
+    assert driver._publication["identity"] == ("tistory:fixture.tistory.com", "42")
+
+    checkpoint["save_state"] = "readback-confirmed"  # legacy checkpoints remain publishable
+    prepare_publication(driver, {"media": []}, checkpoint, {})
+
+    driver.snapshot_hash = lambda: "changed-content"
+    with pytest.raises(ValueError, match="fingerprint"):
         prepare_publication(driver, {"media": []}, checkpoint, {})
 
 
 @pytest.mark.parametrize("module", [naver_editor, tistory_editor])
-def test_verify_command_without_saved_identity_does_not_open_a_browser(tmp_path, monkeypatch, capsys, module):
+def test_verify_draft_command_is_removed(module):
+    parser = module.build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["verify-draft", "document.json"])
+
+
+@pytest.mark.parametrize("module", [naver_editor, tistory_editor])
+@pytest.mark.parametrize("supplied_token", [None, "stale-token"])
+def test_compose_request_continues_without_second_approval(tmp_path, monkeypatch, module, supplied_token):
     document = naver_document() if module is naver_editor else tistory_document(tmp_path, with_media=False)
-    source = tmp_path / "document.json"
-    source.write_text(json.dumps(document), encoding="utf-8")
-    data = tmp_path / "data"
-    module.CheckpointStore(data).load_or_create(document)
-
-    def forbidden(**_):
-        pytest.fail("missing draft identity must not open an account")
-
-    name = "NaverBrowserSession" if module is naver_editor else "TistoryBrowserSession"
-    monkeypatch.setattr(module, name, forbidden)
-    assert module.main(["--data-dir", str(data), "verify-draft", str(source)]) == 3
-    assert json.loads(capsys.readouterr().out)["verification_state"] == "unavailable"
+    path = tmp_path / "document.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(module, "_compose", lambda *args, **kwargs: calls.append(kwargs) or {"save_state": "acknowledged"})
+    args = ["--data-dir", str(tmp_path / "data"), "compose", str(path)]
+    if module is tistory_editor:
+        args += ["--editor-url", "https://fixture.tistory.com/manage/newpost"]
+    if supplied_token is not None:
+        args += ["--approval-token", supplied_token]
+    assert module.main(args) == (0 if supplied_token is None else 4)
+    assert len(calls) == (1 if supplied_token is None else 0)

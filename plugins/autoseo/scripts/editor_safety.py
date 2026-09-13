@@ -18,6 +18,8 @@ CHECKPOINT_DEFAULTS = {
     "saved_source_hash": None, "saved_surface_hash": None, "surface_hash": None,
     "target_url": None, "saved_at": None,
     "surface_version": None, "saved_session_id": None,
+    # Kept only so checkpoints created by older releases remain readable. The
+    # editor flow no longer performs a close-and-reopen draft verification.
     "verification_state": "not-verified", "verification_reason": None,
     "verified_at": None, "verified_surface_hash": None, "verified_session_id": None,
 }
@@ -41,58 +43,6 @@ def mark_operation_pending(checkpoint: dict, operation: dict, driver) -> None:
                       pending_feature_id=operation["feature_id"],
                       pending_session_id=getattr(driver, "session_id", None),
                       save_state="saving" if operation["feature_id"] == "draft-save" else "dirty")
-
-
-def verify_reopened_draft(checkpoint: dict, driver) -> dict:
-    """Read-only editor check; no navigation, mode switching, input or save."""
-    invalidate_draft_verification(checkpoint)
-    identity = draft_identity(checkpoint.get("draft_url") or "")
-    pending = checkpoint.get("pending_operation_id")
-    interrupted_save = bool(pending and checkpoint.get("pending_feature_id") == "draft-save"
-                            and checkpoint.get("save_state") == "saving")
-    expected_hash = checkpoint.get("surface_hash") if interrupted_save else checkpoint.get("saved_surface_hash")
-    saved_session = checkpoint.get("pending_session_id") if interrupted_save else checkpoint.get("saved_session_id")
-    reason = None
-    state = "unavailable"
-    if checkpoint.get("publish_state") != "not-attempted" or pending and not interrupted_save:
-        reason = "unfinished-or-publication-state"
-    elif not identity or not identity[1]:
-        reason = "saved-draft-identity-unavailable"
-    elif driver is None:
-        reason = "saved-editor-url-unavailable"
-    elif draft_identity(str(driver.page.url)) != identity:
-        state, reason = "mismatch", "different-blog-or-draft"
-    elif (not interrupted_save and (checkpoint.get("save_state") not in {"acknowledged", "readback-confirmed"}
-                                   or checkpoint.get("source_hash") != checkpoint.get("saved_source_hash"))
-          or not expected_hash
-          or checkpoint.get("surface_version") != getattr(driver, "surface_version", None)
-          or not saved_session):
-        reason = "save-provenance-unavailable"
-    elif not getattr(driver, "session_id", None) or driver.session_id == saved_session:
-        reason = "fresh-browser-session-required"
-    else:
-        try:
-            actual = driver.snapshot_hash()
-        except Exception:
-            reason = "editor-content-unavailable"
-        else:
-            if actual != expected_hash:
-                state, reason = "mismatch", "saved-content-or-format-differs"
-            else:
-                if interrupted_save:
-                    checkpoint["completed_operation_ids"] = sorted(set(checkpoint["completed_operation_ids"]) | {pending})
-                    checkpoint.update(save_state="readback-confirmed", saved_surface_hash=actual,
-                                      saved_source_hash=checkpoint["source_hash"], saved_session_id=saved_session,
-                                      saved_at=None, pending_operation_id=None,
-                                      pending_feature_id=None, pending_session_id=None)
-                    reason = "interrupted-save-confirmed-without-resaving"
-                state = "verified"
-                checkpoint.update(verified_surface_hash=actual, verified_session_id=driver.session_id,
-                                  verified_at=datetime.now(timezone.utc).isoformat())
-    checkpoint.update(verification_state=state, verification_reason=reason)
-    return {"schema_version": 1, "document_id": checkpoint["document_id"],
-            "verification_state": state, "reason": reason,
-            "target_url": checkpoint.get("draft_url"), "verified_at": checkpoint["verified_at"]}
 
 
 def local_schedule(value: str | None) -> str | None:
@@ -309,7 +259,7 @@ class FreshSaveReceipt:
         self.page.evaluate("""() => {
             window.__autoseoSaveObserver?.disconnect();
             window.__autoseoSaveAck = false;
-            const message = /임시저장 완료|임시 저장되었습니다|저장되었습니다/;
+            const message = /임시저장 완료|임시 저장되었습니다|저장되었습니다|Draft saved|Saved as draft|Saved successfully/i;
             const hasSuccess = () => [...document.querySelectorAll(
                 '[role=status], [role=alert], #status, .se-toast-message, .toast, .wrap_toast'
             )].some(node => !node.closest('[contenteditable=true]') && node.getClientRects().length
@@ -336,22 +286,20 @@ class FreshSaveReceipt:
 
 
 def prepare_publication(driver, document: dict, checkpoint: dict, settings: dict) -> None:
-    if (checkpoint.get("verification_state") != "verified"
-        or not checkpoint.get("verified_surface_hash")
-        or checkpoint.get("verified_surface_hash") != checkpoint.get("saved_surface_hash")
-        or not checkpoint.get("verified_session_id")
-        or checkpoint.get("verified_session_id") == checkpoint.get("saved_session_id")
-        or checkpoint.get("surface_version") != getattr(driver, "surface_version", None)):
-        raise ValueError("verify-draft in a fresh browser session is required before publication")
+    if checkpoint.get("publish_state") != "not-attempted":
+        raise ValueError("prior publication exists or is unknown; reconcile before publication")
+    if checkpoint.get("surface_version") != getattr(driver, "surface_version", None):
+        raise ValueError("editor surface version changed; reconcile before publication")
     target = checkpoint.get("draft_url")
     identity = draft_identity(target or "")
     if not identity or not identity[1] or draft_identity(str(driver.page.url)) != identity:
         raise ValueError("exact blog and saved draft identity must match before publication")
-    if (checkpoint.get("save_state") not in {"acknowledged", "readback-confirmed"}
+    if (checkpoint.get("pending_operation_id")
+        or checkpoint.get("save_state") not in {"acknowledged", "readback-confirmed"}
         or checkpoint.get("saved_source_hash") != checkpoint.get("source_hash")
         or not checkpoint.get("saved_surface_hash")
         or driver.snapshot_hash() != checkpoint["saved_surface_hash"]):
-        raise ValueError("saved draft content differs; reconcile and approve a new preview")
+        raise ValueError("saved draft acknowledgement or content fingerprint is unavailable; reconcile and approve a new preview")
     media_urls = list(checkpoint.get("media_urls", {}).values())
     if "media" not in document:
         for frame in driver.page.frames:

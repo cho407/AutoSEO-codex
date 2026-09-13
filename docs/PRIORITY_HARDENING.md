@@ -95,8 +95,9 @@ search-disabled model state.
   checked; prior toggle/menu state is restored. Unknown style state stops rather
   than pretending success. Tistory includes TinyMCE iframe body discovery.
 - Fresh save acknowledgements are distinct from pending operations and last saved
-  source/surface hashes. Old toasts are not receipts. A toast alone does not prove
-  reopening/persistence; live save/reopen tests remain required.
+  source/surface hashes. Old toasts are not receipts. The acknowledgement is
+  checked in the active editor session; no close-and-reopen persistence step is
+  automated.
 - Same-ID revisions, changed attachment bytes, corrupt checkpoints, changed draft
   surfaces and concurrent document/profile runs cannot reset or overwrite history.
   Interrupted insertions are checked before replay; unknown non-idempotent actions
@@ -123,34 +124,31 @@ keep lightweight Python validation. No scheduled workflows or account artifacts
 are added. `verify_git_archive.py --ref <tree-or-commit>` can check an isolated
 index snapshot without committing or changing the developer's normal staging area.
 
-Still required: user-authorized live draft/save/reopen and publication/schedule
-checks, guided advanced-component recovery validation, complete platform result
-adapters, image/privacy convergence for Naver, and the later P1 research-to-content
-and measured-exposure feedback work. Do not call these completed based on mocks.
+Still required: user-authorized live draft/save and publication/schedule checks,
+guided advanced-component recovery validation, complete platform result adapters,
+image/privacy convergence for Naver, and the later P1 research-to-content and
+measured-exposure feedback work. Do not call these completed based on mocks.
 
-## Follow-up — 2026-09-08
+## Follow-up — 2026-09-14
 
 Both editors now share visible-body discovery across frames, including Tistory
-basic/TinyMCE and source modes. The new `verify-draft` command reopens the saved
-URL in a separate dedicated browser session and compares its fingerprint without
-editing, mode conversion, upload or save. Same-session inspection, missing saved
-IDs, unfinished non-save operations and legacy provenance remain unavailable. Different content
-invalidates readback; publication now requires it as well as the existing approval.
+basic/TinyMCE and source modes. Both editors retain a fresh current-session save
+acknowledgement and source/surface fingerprint; the former close-and-reopen draft
+comparison path has been removed to avoid an unnecessary protected-session
+transition. Interrupted saves remain manual reconciliation cases and are never
+resaved automatically.
 
 Surface fingerprint v2 includes Naver inline rendered styles, structural content,
 media/link attributes and tags, and normalizes Tistory source line endings. Old
-fingerprints are not promoted automatically. A local mock server tests independent
-browser-session readback and resume without rewriting, including media references.
-An interrupted final save can become `readback-confirmed` only with the recorded
-draft ID, pre-save fingerprint and a matching new-session readback; the command
-never resaves or invents a remote save timestamp. Existing user-entered titles are
-protected even when the body is empty. This proves the implemented
-comparison path, not that a live platform's draft URL or editor transformation is
-already supported. These fixtures use already identified draft URLs, not an
-unverified newpost-to-draft-ID mapping. Actual UI identity discovery, incompatible mode reconciliation,
-advanced components, private/scheduled result adapters and live-account checks
-remain release gates. See [the roadmap](ROADMAP.md) for priorities and the title
-strategy evaluation. No screenshots or account data were committed as fixtures.
+fingerprints are not promoted automatically. Local fixtures cover current-session
+save acknowledgement and resume without rewriting, including media references.
+Existing user-entered titles are protected even when the body is empty. This proves
+the implemented editor checks, not that a live platform's draft URL or editor
+transformation is already supported. Actual UI identity discovery, incompatible
+mode reconciliation, advanced components, private/scheduled result adapters and
+live-account checks remain release gates. See [the roadmap](ROADMAP.md) for
+priorities and the title strategy evaluation. No screenshots or account data were
+committed as fixtures.
 
 Pre-push regression checks also cover CodeMirror controls nested inside the generic
 editor container, lost ancestor-applied underline/strikethrough, and meaningful

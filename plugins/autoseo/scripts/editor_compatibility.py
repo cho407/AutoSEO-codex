@@ -104,6 +104,99 @@ def browser_signature(page) -> str:
         return "unknown"
 
 
+def ui_language(page) -> str:
+    """Return the editor UI language from page metadata, never document text.
+
+    The page language is used only to rank accessibility aliases.  It must not
+    change the language, spelling, or Unicode form of the article payload.
+    """
+    try:
+        values = page.evaluate("""() => {
+            const root = document.documentElement;
+            const declared = root?.getAttribute('lang') || '';
+            const browser = navigator.language || '';
+            const list = Array.isArray(navigator.languages) ? navigator.languages : [];
+            return [declared, browser, ...list].filter(value => typeof value === 'string' && value);
+        }""")
+    except Exception:
+        return "unknown"
+    if not isinstance(values, (list, tuple)):
+        return "unknown"
+    for value in values:
+        language = str(value).strip().casefold().replace("_", "-").split("-", 1)[0]
+        if language in {"en", "ko"}:
+            return language
+    return "unknown"
+
+
+def _ordered_aliases(values, language: str) -> list[str]:
+    aliases = [str(value) for value in (values or []) if isinstance(value, str) and value]
+    if language != "en":
+        return aliases
+    # English editors commonly expose English accessible names while the
+    # payload remains Korean. Prefer those aliases without broad matching.
+    ordered = sorted(enumerate(aliases), key=lambda item: (not item[1].isascii(), item[0]))
+    return [value for _, value in ordered]
+
+
+def ordered_aliases(page, values) -> list[str]:
+    """Rank a bounded alias list using the editor's UI language.
+
+    The ranking is deliberately limited to aliases supplied by the feature
+    catalog or a driver.  It never performs fuzzy matching or translates the
+    article payload.
+    """
+    return _ordered_aliases(values, ui_language(page))
+
+
+def _read_locator_text(locator) -> str:
+    try:
+        return str(locator.input_value())
+    except Exception:
+        return str(locator.inner_text())
+
+
+def fill_unicode_exact(page, locator, text: str) -> None:
+    """Fill a text control and preserve the exact Unicode payload.
+
+    ``insert_text`` is a bounded fallback for an OS keyboard layout or an
+    editor that transforms ``fill`` input.  It runs in the same control and
+    session; no browser restart or second login is introduced.
+    """
+    expected = str(text)
+    locator.fill(expected)
+    try:
+        if _read_locator_text(locator) == expected:
+            return
+    except Exception:
+        pass
+    try:
+        locator.click()
+        focused = locator.evaluate("""node => {
+            if (document.activeElement !== node && !node.contains(document.activeElement)) return false;
+            if (node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement) {
+                node.select();
+            } else if (node.isContentEditable) {
+                const range = document.createRange(); range.selectNodeContents(node);
+                const selection = window.getSelection();
+                selection.removeAllRanges(); selection.addRange(range);
+            } else return false;
+            return true;
+        }""")
+        if not focused:
+            raise ValueError("the intended text control did not retain focus")
+        page.keyboard.insert_text(expected)
+        if _read_locator_text(locator) == expected:
+            return
+    except Exception as exc:
+        raise ValueError(
+            f"editor text control did not preserve exact Unicode input (ui_language={ui_language(page)})"
+        ) from exc
+    raise ValueError(
+        f"editor text control did not preserve exact Unicode input (ui_language={ui_language(page)})"
+    )
+
+
 def ui_signature(page) -> str:
     """Structure only; exclude input values, URLs, free text and frame names."""
     try:
@@ -187,14 +280,21 @@ def dialog_scope(page):
 
 
 def locate(resolver, feature_id: str, *, allow_shortcut: bool = False):
-    """Preserve role/name → label → shortcut → DOM; cached hints only rank aliases."""
+    """Resolve locale-ranked role/name → label → shortcut → DOM aliases."""
     feature = resolver.catalog.feature(feature_id)
     contract = feature["locator"]
-    names = list(contract.get("names") or ([contract["name"]] if contract.get("name") else []))
+    language = ui_language(resolver.page)
+    names = _ordered_aliases(
+        contract.get("names") or ([contract["name"]] if contract.get("name") else []),
+        language,
+    )
     hint = (getattr(resolver, "compatibility", None) or {}).get("features", {}).get(feature_id, {})
     if hint.get("name") in names:
         names.remove(hint["name"])
-        names.insert(0, hint["name"])
+        if language == "en" and not hint["name"].isascii():
+            names.append(hint["name"])
+        else:
+            names.insert(0, hint["name"])
     candidates = scopes(resolver.page, feature)
 
     def find(strategy, name, factory):
@@ -223,7 +323,7 @@ def locate(resolver, feature_id: str, *, allow_shortcut: bool = False):
             result = find("role-name", name, lambda root: root.get_by_role(contract["role"], name=name, exact=True))
             if result:
                 return result
-    for label in contract.get("labels") or []:
+    for label in _ordered_aliases(contract.get("labels"), language):
         result = find("korean-label", label, lambda root: root.get_by_text(label, exact=True))
         if result:
             return result

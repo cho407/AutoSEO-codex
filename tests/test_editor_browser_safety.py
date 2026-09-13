@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -69,6 +68,62 @@ def test_old_save_toast_is_not_a_new_save_receipt(page):
     receipt.begin()
     page.get_by_role("button", name="임시저장", exact=True).click()
     assert receipt.confirm() is True
+
+
+@pytest.mark.parametrize("platform", ["naver", "tistory"])
+def test_english_ui_composes_and_saves_korean_draft(page, tmp_path, platform):
+    page.goto((ROOT / f"tests/fixtures/{platform}_editor.html").as_uri())
+    page.evaluate("""() => {
+        document.documentElement.lang = 'en';
+        const names = {'제목':'Title', '본문':'Body', '태그':'Tags', '사진':'Photo',
+            '굵게':'Bold', '기울임꼴':'Italic', '밑줄':'Underline', '취소선':'Strikethrough',
+            '위 첨자':'Superscript', '아래 첨자':'Subscript', '정렬':'Alignment',
+            '기본모드':'Basic mode', '마크다운':'Markdown', '임시저장':'Save draft',
+            '왼쪽':'Left', '가운데':'Center', '오른쪽':'Right'};
+        document.querySelectorAll('[aria-label]').forEach(node => {
+            const value = names[node.getAttribute('aria-label')];
+            if (value) node.setAttribute('aria-label', value);
+        });
+        document.querySelectorAll('button').forEach(node => {
+            if (names[node.textContent]) node.textContent = names[node.textContent];
+        });
+        window.draftSaveClicks = 0;
+        const save = document.querySelector('#save, #draft-save');
+        save.addEventListener('click', () => {
+            window.draftSaveClicks++;
+            document.querySelector('#status').textContent = 'Saving';
+            setTimeout(() => document.querySelector('#status').textContent = 'Draft saved', 60);
+        });
+    }""")
+    module = naver_editor if platform == "naver" else tistory_editor
+    driver_type = module.PlaywrightNaverDriver if platform == "naver" else module.PlaywrightTistoryDriver
+    driver = driver_type(page, catalog=module.FeatureCatalog.load(), data_dir=tmp_path)
+    document = _document() if platform == "naver" else _tistory_document(tmp_path, with_media=False)
+    if platform == "naver":
+        document["blocks"] = [document["blocks"][0]]
+    store = module.CheckpointStore(tmp_path)
+    automation = module.EditorAutomation(store) if platform == "naver" else module.TistoryEditorAutomation(store)
+    result = automation.apply(document, driver, **({} if platform == "naver" else {"prepared_media": {}}))
+    assert editor_compatibility.ui_language(page) == "en"
+    assert page.get_by_role("textbox", name="Title", exact=True).input_value() == document["title"]
+    assert result["save_state"] == "acknowledged"
+    assert result["saved_surface_hash"]
+    assert page.evaluate("window.draftSaveClicks") == 1
+    assert driver.verify({"feature_id": "tags", "payload": {"tags": document["tags"]}})
+
+
+@pytest.mark.parametrize("markup", [
+    '<textarea aria-label="Title"></textarea>',
+    '<div contenteditable="true" role="textbox" aria-label="Title"></div>',
+])
+def test_unicode_title_replacement_is_scoped_to_title(page, monkeypatch, markup):
+    page.set_content(markup + '<div contenteditable="true" id="body">보존할 본문</div>')
+    title = page.get_by_role("textbox", name="Title", exact=True)
+    fill = title.fill
+    monkeypatch.setattr(title, "fill", lambda _: fill("gksrmf whrma"))
+    editor_compatibility.fill_unicode_exact(page, title, "한국어 제목을 그대로 입력")
+    assert editor_compatibility._read_locator_text(title) == "한국어 제목을 그대로 입력"
+    assert page.locator("#body").inner_text() == "보존할 본문"
 
 
 def test_recreated_old_toast_is_not_a_fresh_acknowledgement(page):
@@ -244,7 +299,7 @@ def _persisted_page(browser, platform, server):
 
 
 @pytest.mark.parametrize("platform", ["tistory", "naver"])
-def test_draft_survives_new_session_and_resume_does_not_save_or_insert_again(browser, tmp_path, platform):
+def test_draft_resume_stays_in_the_active_session_and_does_not_save_again(browser, tmp_path, platform):
     from PIL import Image
 
     server = {}
@@ -266,38 +321,23 @@ def test_draft_survives_new_session_and_resume_does_not_save_or_insert_again(bro
     options = {} if platform == "naver" else {"prepared_media": {"hero": photo}}
     saved = automation.apply(document, driver, **options)
     assert saved["save_state"] == "acknowledged"
-    assert automation.verify_draft(document, driver)["verification_state"] == "unavailable"
-    context.close()
+    assert not hasattr(automation, "verify_draft")
+    saves = server["saves"]
+    resumed = automation.apply(document, driver, **options)
+    assert resumed["save_state"] == "acknowledged"
+    assert server["saves"] == saves
+    assert page.evaluate("window.publishClicks || 0") == 0
+    assert document["title"] not in store.path_for(document["document_id"]).read_text()
 
-    reopened_context, reopened_page = _persisted_page(browser, platform, server)
-    try:
-        reopened_driver = driver_type(reopened_page, catalog=module.FeatureCatalog.load(), data_dir=tmp_path)
-        result = automation.verify_draft(document, reopened_driver)
-        assert result["verification_state"] == "verified"
-        verified = store.load_existing(document)
-        assert verified["saved_session_id"] != verified["verified_session_id"]
-        saves = server["saves"]
-        automation.apply(document, reopened_driver, **options)
-        assert server["saves"] == saves
-        assert reopened_page.evaluate("window.publishClicks || 0") == 0
-        assert document["title"] not in store.path_for(document["document_id"]).read_text()
-        # Identical text with a lost inline format must invalidate the readback.
-        if platform == "naver":
-            reopened_page.locator(".se-main-container b").first.evaluate("node => node.replaceWith(...node.childNodes)")
-        else:
-            original_mode = reopened_page.locator("#mode-button").inner_text()
-            reopened_page.locator("#mode-button").evaluate("node => node.textContent = 'HTML'")
-            assert automation.verify_draft(document, reopened_driver)["verification_state"] == "mismatch"
-            reopened_page.locator("#mode-button").evaluate("(node, text) => node.textContent = text", original_mode)
-            reopened_page.locator("#source-body").fill("사용자가 직접 바꾼 내용")
-        result = automation.verify_draft(document, reopened_driver)
-        assert result["verification_state"] == "mismatch"
-        assert store.load_existing(document)["verified_surface_hash"] is None
-        with pytest.raises((ValueError, module.EditorUIChanged)):
-            automation.apply(document, reopened_driver, **options)
-        assert server["saves"] == saves
-    finally:
-        reopened_context.close()
+    # A same-session content change blocks resume rather than reopening or saving.
+    if platform == "naver":
+        page.locator(".se-main-container b").first.evaluate("node => node.replaceWith(...node.childNodes)")
+    else:
+        page.locator("#source-body").fill("사용자가 직접 바꾼 내용")
+    with pytest.raises((ValueError, module.EditorUIChanged)):
+        automation.apply(document, driver, **options)
+    assert server["saves"] == saves
+    context.close()
 
 
 def test_style_only_change_affects_naver_fingerprint(page, tmp_path):
@@ -333,19 +373,9 @@ def test_markdown_indentation_is_preserved_in_the_fingerprint(page, tmp_path):
     assert driver.snapshot_hash() != paragraph_hash
 
 
-def test_legacy_or_unidentified_checkpoint_cannot_claim_reopened_verification(page, tmp_path):
-    from editor_safety import verify_reopened_draft
-
-    driver = naver_editor.PlaywrightNaverDriver(page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path)
-    checkpoint = naver_editor.CheckpointStore._new(naver_editor.validate_document(_document()))
-    checkpoint.update(save_state="acknowledged", saved_surface_hash=driver.snapshot_hash(), saved_source_hash=checkpoint["source_hash"])
-    result = verify_reopened_draft(deepcopy(checkpoint), driver)
-    assert result["verification_state"] == "unavailable"
-
-
 @pytest.mark.parametrize("platform", ["naver", "tistory"])
 @pytest.mark.parametrize("after_save", [False, True])
-def test_crash_at_save_is_reconciled_from_new_session_without_resaving(browser, tmp_path, platform, after_save):
+def test_crash_at_save_requires_manual_reconciliation_without_resaving(browser, tmp_path, platform, after_save):
     class ProcessStopped(BaseException):
         pass
 
@@ -371,18 +401,9 @@ def test_crash_at_save_is_reconciled_from_new_session_without_resaving(browser, 
     options = {} if platform == "naver" else {"prepared_media": {}}
     with pytest.raises(ProcessStopped):
         automation.apply(document, driver, **options)
-    context.close()
-    reopened_context, reopened_page = _persisted_page(browser, platform, server)
     try:
-        reader = driver_type(reopened_page, catalog=module.FeatureCatalog.load(), data_dir=tmp_path)
-        result = automation.verify_draft(document, reader)
-        if after_save:
-            assert result["verification_state"] == "verified"
-            assert store.load_existing(document)["save_state"] == "readback-confirmed"
-            automation.apply(document, reader, **options)
-        else:
-            assert result["verification_state"] != "verified"
+        with pytest.raises(module.EditorUIChanged, match="manual reconciliation"):
+            automation.apply(document, driver, **options)
         assert server.get("saves", 0) == int(after_save)
-        assert reopened_page.evaluate("window.publishClicks || 0") == 0
     finally:
-        reopened_context.close()
+        context.close()

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "catalog_version": "2026-09-07.1",
+  "catalog_version": "2026-09-14.1",
   "editor": "Tistory PC editor",
   "features": [
     {
@@ -11,10 +11,14 @@
         "role": "textbox",
         "names": [
           "제목",
-          "제목을 입력하세요"
+          "제목을 입력하세요",
+          "Title",
+          "Post title"
         ],
         "labels": [
-          "제목"
+          "제목",
+          "Title",
+          "Post title"
         ],
         "dom_fallback": "textarea[placeholder*='제목'], input[placeholder*='제목'], textarea[name='title']"
       },
@@ -36,12 +40,22 @@
           "에디터 모드",
           "기본모드",
           "마크다운",
-          "HTML"
+          "HTML",
+          "Editor mode",
+          "Mode",
+          "Basic",
+          "Basic mode",
+          "Markdown"
         ],
         "labels": [
           "기본모드",
           "마크다운",
-          "HTML"
+          "HTML",
+          "Editor mode",
+          "Mode",
+          "Basic",
+          "Basic mode",
+          "Markdown"
         ],
         "dom_fallback": "button[id*='mode'], button[class*='mode']"
       },
@@ -60,10 +74,14 @@
       "locator": {
         "role": "menuitem",
         "names": [
-          "기본모드"
+          "기본모드",
+          "Basic",
+          "Basic mode"
         ],
         "labels": [
-          "기본모드"
+          "기본모드",
+          "Basic",
+          "Basic mode"
         ],
         "dom_fallback": "button[data-mode='basic'], [role='menuitem'][data-value='basic']"
       },
@@ -129,10 +147,14 @@
         "role": "textbox",
         "names": [
           "본문",
-          "내용"
+          "내용",
+          "Body",
+          "Content"
         ],
         "labels": [
-          "본문"
+          "본문",
+          "Body",
+          "Content"
         ],
         "dom_fallback": ".CodeMirror, .cm-content[contenteditable='true'], textarea[name='content']"
       },
@@ -153,11 +175,17 @@
         "names": [
           "사진",
           "이미지",
-          "사진 첨부"
+          "사진 첨부",
+          "Photo",
+          "Image",
+          "Add image"
         ],
         "labels": [
           "사진",
-          "이미지"
+          "이미지",
+          "Photo",
+          "Image",
+          "Add image"
         ],
         "dom_fallback": "button[aria-label*='사진'], button[title*='사진']",
         "file_input": "input[type='file'][accept*='image']"
@@ -178,10 +206,14 @@
         "role": "textbox",
         "names": [
           "태그",
-          "태그 입력"
+          "태그 입력",
+          "Tags",
+          "Add tag"
         ],
         "labels": [
-          "태그"
+          "태그",
+          "Tags",
+          "Add tag"
         ],
         "dom_fallback": "input[placeholder*='태그'], input[name='tag']"
       },
@@ -200,10 +232,12 @@
       "locator": {
         "role": "combobox",
         "names": [
-          "카테고리"
+          "카테고리",
+          "Category"
         ],
         "labels": [
-          "카테고리"
+          "카테고리",
+          "Category"
         ],
         "dom_fallback": "select[name='category'], button[aria-label*='카테고리']"
       },
@@ -223,11 +257,17 @@
         "role": "group",
         "names": [
           "공개 설정",
-          "공개"
+          "공개",
+          "Visibility",
+          "Visibility settings",
+          "Public"
         ],
         "labels": [
           "공개",
-          "비공개"
+          "비공개",
+          "Visibility",
+          "Visibility settings",
+          "Public"
         ],
         "dom_fallback": "[class*='visibility'], [class*='open-type']"
       },
@@ -247,11 +287,15 @@
         "role": "checkbox",
         "names": [
           "댓글 허용",
-          "댓글"
+          "댓글",
+          "Allow comments",
+          "Comments"
         ],
         "labels": [
           "댓글 허용",
-          "댓글"
+          "댓글",
+          "Allow comments",
+          "Comments"
         ],
         "dom_fallback": "input[type='checkbox'][name*='comment']"
       },
@@ -270,10 +314,14 @@
       "locator": {
         "role": "button",
         "names": [
-          "임시저장"
+          "임시저장",
+          "Save draft",
+          "Draft"
         ],
         "labels": [
-          "임시저장"
+          "임시저장",
+          "Save draft",
+          "Draft"
         ],
         "shortcut": "Control+S",
         "dom_fallback": "button[class*='save'], button[data-action='draft']"
@@ -294,10 +342,14 @@
         "role": "button",
         "names": [
           "완료",
-          "발행 설정"
+          "발행 설정",
+          "Done",
+          "Publish settings"
         ],
         "labels": [
-          "완료"
+          "완료",
+          "Done",
+          "Publish settings"
         ],
         "dom_fallback": "button[class*='publish'], button[data-action='publish']"
       },
@@ -317,11 +369,15 @@
         "role": "button",
         "names": [
           "공개 발행",
-          "발행"
+          "발행",
+          "Publish",
+          "Publish publicly"
         ],
         "labels": [
           "공개 발행",
-          "발행"
+          "발행",
+          "Publish",
+          "Publish publicly"
         ],
         "dom_fallback": "button[data-action='publish-confirm'], button[class*='publish-confirm']"
       },
@@ -340,10 +396,12 @@
       "locator": {
         "role": "radio",
         "names": [
-          "예약"
+          "예약",
+          "Schedule"
         ],
         "labels": [
-          "예약"
+          "예약",
+          "Schedule"
         ],
         "dom_fallback": "input[type='radio'][value*='schedule'], button[data-action='schedule-option']"
       },
@@ -362,10 +420,14 @@
       "locator": {
         "role": "button",
         "names": [
-          "예약 발행"
+          "예약 발행",
+          "Schedule post",
+          "Schedule publish"
         ],
         "labels": [
-          "예약 발행"
+          "예약 발행",
+          "Schedule post",
+          "Schedule publish"
         ],
         "dom_fallback": "button[data-action='schedule'], button[class*='schedule-confirm']"
       },

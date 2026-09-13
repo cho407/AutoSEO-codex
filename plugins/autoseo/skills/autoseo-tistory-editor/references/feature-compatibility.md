@@ -14,11 +14,11 @@ verified against the live, user-owned PC editor before a stable release.
 | Original preservation and EXIF/GPS stripping | automatic | Private derived file; original overwrite rejected |
 | Dedicated Tistory browser profile | automatic | Permissions and host allowlist tested |
 | Kakao login, 2FA, CAPTCHA | guided | User completes these in the visible browser |
-| Markdown/HTML mode selection | automatic candidate | Accessibility names, Korean labels, then versioned DOM fallback |
+| Markdown/HTML mode selection | automatic candidate | Locale-ranked accessibility names, Korean/English labels, then versioned DOM fallback |
 | One-buffer title/body/tag draft write | automatic candidate | Content hash and postconditions checked |
 | Image upload and hosted URL capture | automatic candidate | One upload attempt; ambiguous result stops |
 | Category, visibility, comments | automatic candidate | Applied only in the final publish dialog |
-| Draft save | automatic candidate | Requires an observable save postcondition |
+| Draft save | automatic candidate | Explicit compose request after login; requires an observable save postcondition |
 | Publish and schedule | approval-gated | One click after per-post approval; no unclear-result retry |
 | Protected-post password | unavailable | Secret-bearing workflow intentionally excluded |
 | Animated GIF face mosaic | unavailable | Use a static derivative or explicitly disable privacy processing |
@@ -33,7 +33,8 @@ not permission to guess.
 Local validation date: 2026-09-07, synthetic Tistory PC fixture v1. Markdown source
 write, image URL capture and new save acknowledgement are browser-tested. TinyMCE
 iframe discovery is tested separately, not as an entire live TinyMCE workflow.
-Private/scheduled result mapping and live save/reopen remain unverified.
+Private/scheduled result mapping and cross-session persistence are outside the
+automation path; current-session save acknowledgement is covered.
 
 ## Live release checklist
 

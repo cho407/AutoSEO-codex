@@ -49,7 +49,7 @@ at the end of this document is completed on a user-owned test draft. Run
 | `sympathy-allowed` | Set the sympathy switch to the requested value |
 | `ccl` | Select the requested CCL setting |
 | `share-allowed` | Set the sharing switch to the requested value |
-| `draft-save` | Save only after a document-bound draft approval |
+| `draft-save` | Save once after an explicit compose request and login; retain a document-bound integrity token |
 | `publish-dialog` | Open configuration without clicking the final submit button |
 | `schedule-option` | Select scheduling without submitting publication |
 | `publish` | Click once only after a fresh final-settings approval |
@@ -82,8 +82,8 @@ automatic comments, sympathy, neighbor actions, or login bypass.
 
 Controls are resolved in this fixed order:
 
-1. accessibility role and accessible name;
-2. exact Korean screen label;
+1. accessibility role and locale-ranked accessible name;
+2. exact Korean or English screen label;
 3. documented shortcut;
 4. versioned DOM fallback.
 
@@ -112,4 +112,5 @@ Local validation (2026-09-07): the synthetic PC fixture covers title, paragraph,
 bold-to-plain restoration, alignment, tags and fresh draft acknowledgement. Separate
 tests cover map expiry, dialog/frame scoping and ambiguity. Advanced component
 controls, guided recovery, and post-publication visibility/schedule mapping are
-still live-unverified. A new save toast is not a save/reopen durability test.
+still live-unverified. The save acknowledgement is checked in the active editor
+session; the workflow does not close and reopen a session as a durability test.

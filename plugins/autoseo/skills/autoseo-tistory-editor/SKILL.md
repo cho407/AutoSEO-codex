@@ -1,6 +1,6 @@
 ---
 name: autoseo-tistory-editor
-description: Export, compose, verify saved drafts, resume, diagnose, learn, publish, or schedule a user-owned Tistory post through Markdown or HTML with guarded browser automation and optional local bystander mosaics. Use for Tistory editor automation and TistoryDocument v1.
+description: Export, compose, save, resume, diagnose, learn, publish, or schedule a user-owned Tistory post through Markdown or HTML with guarded browser automation and optional local bystander mosaics. Use for Tistory editor automation and TistoryDocument v1.
 ---
 
 # AutoSEO Tistory Editor
@@ -17,9 +17,8 @@ local Markdown and HTML export remains available without a browser or login.
 | `@autoseo tistory-editor learn` | Local compatibility map for the current Tistory editor UI |
 | `@autoseo tistory-editor export-markdown <document>` | Render `TistoryDocument v1` as GitHub-style Markdown without account access |
 | `@autoseo tistory-editor export-html <document>` | Render the same structured document as escaped HTML |
-| `@autoseo tistory-editor compose <topic-or-document>` | Prepare images, fill one source buffer, then save a confirmed draft |
+| `@autoseo tistory-editor compose <topic-or-document>` | Prepare images, fill one source buffer, then save one draft after login |
 | `@autoseo tistory-editor resume <draft>` | Resume only uploads and operations with a known safe state |
-| `@autoseo tistory-editor verify-draft <document>` | Reopen the saved draft in a fresh browser session and compare it without editing or saving |
 | `@autoseo tistory-editor publish <draft>` | Preview final settings, require approval, click once, verify once |
 | `@autoseo tistory-editor schedule <draft-and-time>` | Preview the time and settings, require approval, schedule once |
 
@@ -27,7 +26,8 @@ When `compose` receives a topic instead of a ready `TistoryDocument v1`, first r
 through `autoseo-writing`: apply the confirmed identity and tone, verify current
 claims, remove Korean translationese, and complete draft-quality checks. Convert the
 approved text to `TistoryDocument v1` only after that writing pass. This does not
-authorize account access, upload, draft save, or publication.
+authorize publication. The explicit compose request authorizes one account draft save
+after login; account access, uploads, and the save remain bounded to that one flow.
 
 ## Runtime and document flow
 
@@ -41,7 +41,9 @@ photos need face privacy processing:
 <plugin-root>/scripts/autoseo run tistory_editor.py doctor
 ```
 
-Create or validate `TistoryDocument v1` before opening the account. It supports
+Create or validate `TistoryDocument v1` before opening the account. An explicit
+compose/resume request authorizes one document- and media-bound draft save after the
+user completes login; no second save confirmation is required. It supports
 paragraphs, headings, quotes, ordered and unordered lists, code, tables, dividers,
 images, captions, tags, category, visibility, comments, and scheduled time. Use
 Markdown by default; choose HTML when exact generated markup is useful. Do not
@@ -49,16 +51,17 @@ switch modes after body insertion because the editor can transform content betwe
 modes.
 
 For a new post, require the user's own HTTPS `*.tistory.com/manage/newpost` URL.
-The first compose or resume run prints a document- and image-plan-bound approval
-token and makes no account change. After immediate confirmation, prepare privacy
-derivatives, upload each once, fill the full source buffer once, set tags, and save
-the draft. Checkpoints store operation hashes, upload states, hosted media URLs,
+Prepare privacy derivatives, upload each once, fill the full source buffer once, set
+tags, and save the draft after the login gate. The internal document- and
+image-plan-bound token still detects a changed document or derivative; a supplied
+stale token fails before any account write. Checkpoints store operation hashes, upload states, hosted media URLs,
 and verified post state; they never store the title, article body, source paths,
 cookies, or credentials.
 
 The local learned map is consumed only while its origin, catalog hash, browser/UI
 signatures and seven-day validity still match. Controls are checked again in the
-current dialog, toolbar, document or editor frame. TinyMCE iframe body discovery
+current dialog, toolbar, document or editor frame, with Korean/English aliases ranked
+from page language metadata. TinyMCE iframe body discovery
 is supported; this does not claim all live TinyMCE controls are verified.
 
 Resume validates the exact blog/draft, surface hash and completed operations.
@@ -67,24 +70,19 @@ or changed source requires reconciliation or a new document ID, never a reset of
 publication history. Pending uploads remain non-retriable when their result is
 unknown. Profile/document locks reject overlapping runs.
 
-After the user reviews the saved draft and closes its editor session, run
-`tistory_editor.py verify-draft <document.json>`. It opens only the checkpoint's
-identified saved draft in a new session. It never switches modes, reuploads,
-rewrites or clicks save/publish. The observed source mode must match the saved
-representation; if the platform reopens a different mode, reconcile it with the
-user rather than silently converting content. Do not close unsaved user work.
-The result distinguishes `verified`, `mismatch` and `unavailable`; a same-session
-check or a missing/legacy save identity cannot prove persistence. Readback compares
-title, normalized source (including formatting, links and media references), and
-tags. It stores hashes, timestamps and random session IDs, not draft content.
-Publication requires verified readback in addition to the final per-post approval.
-Actual account UI/ID mappings and publication results still need live validation.
+After compose or resume reports `save_state=acknowledged`, keep the current editor
+session open for review. The checkpoint records a fresh save acknowledgement plus
+source and surface fingerprints from that session. The workflow does not close and
+reopen the editor to test persistence, so it does not add a second login or
+navigation sequence that can trigger platform protection. Do not close unsaved user
+work. Publication still requires the exact blog/draft identity, current content
+fingerprint, and the final per-post approval. Actual account UI/ID mappings and
+publication results still need live validation.
 
-An interrupted final save is never automatically repeated. If its exact draft ID
-was already recorded and the pre-save content matches in a new session,
-`verify-draft` may reconcile it as `save_state=readback-confirmed` without another
-write. This records observed persistence, not a fabricated save toast or remote
-save time. Other unfinished operations still need their own reconciliation.
+An interrupted final save is never automatically repeated. Resume reports the
+pending save for manual reconciliation and never guesses whether the remote draft
+exists. A new save acknowledgement must be observed before publication; other
+unfinished operations still need their own reconciliation.
 
 ## Attached-image privacy default
 

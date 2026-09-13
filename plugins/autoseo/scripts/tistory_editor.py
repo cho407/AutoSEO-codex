@@ -37,7 +37,6 @@ from editor_safety import (
     publication_result,
     record_operation,
     validate_checkpoint,
-    verify_reopened_draft,
 )
 from file_safety import read_text_limited, resolve_input_file, write_text_atomically
 from privacy_mosaic import (
@@ -294,16 +293,6 @@ class TistoryEditorAutomation:
         self.store = store
 
     @locked_document
-    def verify_draft(self, document: object, driver: Any) -> dict:
-        value = validate_document(document)
-        checkpoint = self.store.load_existing(value)
-        result = verify_reopened_draft(checkpoint, driver)
-        if document_hash(value) != checkpoint["source_hash"]:
-            raise ValueError("source attachment changed during draft verification")
-        self.store.save(checkpoint)
-        return result
-
-    @locked_document
     def apply(
         self,
         document: object,
@@ -379,7 +368,7 @@ class TistoryEditorAutomation:
                 if pending and not already_applied and not unchanged:
                     raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
                 if pending and operation["feature_id"] == "draft-save":
-                    raise EditorUIChanged("interrupted save requires verify-draft in a new session; do not save again")
+                    raise EditorUIChanged("interrupted save requires manual reconciliation; do not save again")
                 mark_operation_pending(checkpoint, operation, driver)
                 if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
                     raise ValueError("source attachment hash changed before saving")
@@ -696,7 +685,7 @@ def publish_or_schedule(
 
 
 class LocatorResolver:
-    """Resolve accessible role/name, Korean label, shortcut, then DOM fallback."""
+    """Resolve accessible role/name, locale-ranked labels, shortcut, then DOM fallback."""
 
     def __init__(self, page: Any, catalog: FeatureCatalog) -> None:
         self.page = page
@@ -767,6 +756,20 @@ class PlaywrightTistoryDriver:
         self._save_receipt = FreshSaveReceipt(page)
         self._current_format: str | None = None
         self._postconditions: dict[str, bool] = {}
+
+    def _click_text_aliases(self, aliases: list[str] | tuple[str, ...], description: str) -> str:
+        """Click one exact option, preferring labels in the active UI locale."""
+        for label in editor_compatibility.ordered_aliases(self.page, aliases):
+            option = self.page.get_by_text(label, exact=True)
+            count = option.count()
+            if count > 1:
+                raise AmbiguousElement(f"{description} is not unique: {label}")
+            if count == 1:
+                option.click()
+                return label
+        raise EditorUIChanged(
+            f"{description} was not found for ui_language={editor_compatibility.ui_language(self.page)}"
+        )
 
     @property
     def _select_all(self) -> str:
@@ -903,7 +906,9 @@ class PlaywrightTistoryDriver:
                 self._switch_mode(payload["format"])
             elif feature_id == "title":
                 _, locator = self.resolver.locate("title")
-                locator.fill(payload["text"])
+                editor_compatibility.fill_unicode_exact(
+                    self.page, locator, payload["text"]
+                )
             elif feature_id == "body-source":
                 if self._current_format != payload["format"]:
                     raise EditorUIChanged("Tistory source mode changed unexpectedly")
@@ -937,20 +942,21 @@ class PlaywrightTistoryDriver:
         payload = operation["payload"]
         try:
             if feature_id == "editor-mode":
-                expected_label = {
-                    "basic": "기본모드",
-                    "markdown": "마크다운",
-                    "html": "HTML",
+                aliases = {
+                    "basic": ["기본모드", "Basic", "Basic mode"],
+                    "markdown": ["마크다운", "Markdown"],
+                    "html": ["HTML"],
                 }[payload["format"]]
-                matches = (
-                    self.page.get_by_role(
+                for expected_label in editor_compatibility.ordered_aliases(self.page, aliases):
+                    matches = self.page.get_by_role(
                         "button", name=expected_label, exact=True
                     ).count()
-                    == 1
-                )
-                if matches:
-                    self._current_format = payload["format"]
-                return matches
+                    if matches > 1:
+                        return False
+                    if matches == 1:
+                        self._current_format = payload["format"]
+                        return True
+                return False
             if feature_id == "title":
                 _, locator = self.resolver.locate("title")
                 return locator.input_value() == payload["text"]
@@ -984,7 +990,8 @@ class PlaywrightTistoryDriver:
     def snapshot_hash(self) -> str:
         _, title = self.resolver.locate("title")
         _, mode_control = self.resolver.locate("editor-mode")
-        mode = {"기본모드": "basic", "마크다운": "markdown", "Markdown": "markdown", "HTML": "html"}.get(
+        mode = {"기본모드": "basic", "Basic": "basic", "Basic mode": "basic",
+                "마크다운": "markdown", "Markdown": "markdown", "HTML": "html"}.get(
             mode_control.inner_text().strip()
         )
         if mode is None:
@@ -1018,8 +1025,19 @@ class PlaywrightTistoryDriver:
         try:
             tag_name = locator.evaluate("node => node.tagName.toLowerCase()")
             if tag_name == "select":
-                locator.select_option(label=str(value))
-                if locator.locator("option:checked").inner_text() != str(value):
+                aliases = self._option_aliases(feature_id, value)
+                options = locator.locator("option").all_text_contents()
+                selected_label = None
+                for label in editor_compatibility.ordered_aliases(self.page, aliases):
+                    if options.count(label) > 1:
+                        raise AmbiguousElement(f"Tistory option is ambiguous: {feature_id}")
+                    if label in options:
+                        selected_label = label
+                        break
+                if selected_label is None:
+                    raise EditorUIChanged(f"Tistory option was not found: {feature_id}")
+                locator.select_option(label=selected_label)
+                if locator.locator("option:checked").inner_text() != selected_label:
                     raise EditorUIChanged(f"Tistory option did not match: {feature_id}")
             elif isinstance(value, bool):
                 checked = bool(locator.is_checked())
@@ -1029,19 +1047,27 @@ class PlaywrightTistoryDriver:
                     raise EditorUIChanged(f"Tistory option did not match: {feature_id}")
             else:
                 locator.click()
-                option = self.page.get_by_text(str(value), exact=True)
-                if option.count() != 1:
-                    raise AmbiguousElement(
-                        f"Tistory option is missing or ambiguous for {feature_id}"
-                    )
-                option.click()
+                aliases = self._option_aliases(feature_id, value)
+                self._click_text_aliases(
+                    aliases, f"Tistory option {feature_id}"
+                )
                 selected = locator.get_attribute("data-value") or locator.get_attribute("aria-valuetext")
-                if selected != str(value):
+                if selected not in {str(value), *aliases}:
                     raise EditorUIChanged(f"Tistory option state is unknown: {feature_id}")
         except EditorError:
             raise
         except Exception as exc:
             raise EditorUIChanged(f"Tistory setting failed for {feature_id}") from exc
+
+    @staticmethod
+    def _option_aliases(feature_id: str, value: Any) -> list[str]:
+        """Return exact semantic aliases without guessing user category names."""
+        if feature_id == "visibility":
+            return {
+                "public": ["공개", "전체공개", "Public", "Public post"],
+                "private": ["비공개", "Private", "Private post"],
+            }.get(str(value), [str(value)])
+        return [str(value)]
 
     def apply_publish_settings(self, settings: dict[str, Any]) -> None:
         self.resolver.click("publish-dialog")
@@ -1243,6 +1269,9 @@ def _compose(
             raise
         checkpoint["draft_url"] = _verified_draft_url(str(page.url))
         store.save(checkpoint)
+        print(json.dumps({"event": "draft-saved", "document_id": document["document_id"],
+                          "save_state": checkpoint["save_state"], "draft_url": checkpoint["draft_url"]}),
+              file=sys.stderr, flush=True)
         if not close_after:
             browser.keep_open_until_closed()
         return checkpoint
@@ -1266,9 +1295,6 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--draft-url")
     resume.add_argument("--approval-token")
     resume.add_argument("--close-after", action="store_true")
-    verify = sub.add_parser("verify-draft", help="Reopen and compare a saved draft without editing or saving")
-    verify.add_argument("document", type=Path)
-    verify.add_argument("--close-after", action="store_true")
     publish = sub.add_parser("publish")
     publish.add_argument("document", type=Path)
     publish.add_argument("--approval-token")
@@ -1335,22 +1361,6 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         document = _load_document(args.document)
-        if args.command == "verify-draft":
-            store = CheckpointStore(data_dir)
-            checkpoint = store.load_existing(document)
-            draft_url = _verified_draft_url(str(checkpoint.get("draft_url") or ""))
-            if draft_url is None:
-                result = TistoryEditorAutomation(store).verify_draft(document, None)
-                print(json.dumps(result, ensure_ascii=False, indent=2))
-                return 3
-            with TistoryBrowserSession(data_dir=data_dir, editor_url=draft_url) as browser:
-                page = browser.wait_for_editor()
-                driver = PlaywrightTistoryDriver(page, catalog=FeatureCatalog.load(), data_dir=data_dir)
-                result = TistoryEditorAutomation(store).verify_draft(document, driver)
-                if not args.close_after:
-                    browser.keep_open_until_closed()
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 0 if result["verification_state"] == "verified" else 3
         if args.command in {"compose", "resume"}:
             preflight = build_privacy_preflight(document)
             editor_url = args.editor_url if args.command == "compose" else None
@@ -1363,7 +1373,10 @@ def main(argv: list[str] | None = None) -> int:
                         "resume requires a verified Tistory manage/post draft URL"
                     )
             preview = draft_preview(document, privacy_preflight=preflight, target_url=str(editor_url))
-            if args.approval_token != preview["approval_token"]:
+            # An explicit compose/resume command authorizes its own draft save.
+            # Keep the document- and media-bound token as an internal integrity
+            # check; a supplied stale token still fails before account writes.
+            if args.approval_token not in {None, preview["approval_token"]}:
                 print(json.dumps(preview, ensure_ascii=False, indent=2))
                 return 4
             result = _compose(
