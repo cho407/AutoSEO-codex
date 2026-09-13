@@ -213,6 +213,7 @@ def ui_signature(page) -> str:
                 naverTitle: count('.se-documentTitle .se-text-paragraph'),
                 naverSave: count("button[data-click-area='tpb.save']"),
                 naverPublish: count("button[data-click-area='tpb.publish']"),
+                naverTags: count("input[placeholder*='태그']"),
                 proseMirror: count('.ProseMirror[contenteditable=true]'),
                 codeMirror5: count('.CodeMirror'),
                 codeMirror6: count('.cm-content[contenteditable=true]'),

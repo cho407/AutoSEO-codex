@@ -240,6 +240,41 @@ def test_shipped_naver_title_and_save_fast_paths_need_no_surface_scan(page, tmp_
     assert page.evaluate("window.saveClicks") == 1
 
 
+def test_shipped_naver_tag_fast_path_appends_each_validated_tag(page, tmp_path):
+    page.set_content("""
+        <div class="se-main-container">
+          <div contenteditable="true"><p>보존할 본문</p></div>
+        </div>
+        <input aria-label="태그 입력 (최대 30개)" placeholder="태그 입력 (최대 30개)">
+        <div id="tags"></div>
+        <script>
+          const input = document.querySelector('input');
+          input.onkeydown = event => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            const tag = document.createElement('span');
+            tag.textContent = input.value;
+            document.querySelector('#tags').append(tag);
+            input.value = '';
+          };
+        </script>
+    """)
+    driver = naver_editor.PlaywrightNaverDriver(
+        page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path
+    )
+    operation = {
+        "operation_id": "tags:fast-path",
+        "feature_id": "tags",
+        "payload": {"tags": ["생애최초대출", "DSR"]},
+    }
+
+    driver.execute(operation)
+
+    assert driver.resolver.last_resolution["source"] == "catalog-fast-path"
+    assert page.locator("#tags span").all_text_contents() == ["생애최초대출", "DSR"]
+    assert page.locator(".se-main-container").inner_text() == "보존할 본문"
+
+
 def test_frames_dialog_scope_and_ambiguous_controls(page):
     page.set_content('<button>확인</button><div role="dialog"><button>확인</button></div>')
     catalog = naver_editor.FeatureCatalog.load()

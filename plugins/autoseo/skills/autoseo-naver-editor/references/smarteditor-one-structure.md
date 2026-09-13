@@ -19,6 +19,7 @@ identifier, cookie, or session value.
 | Region | Observed controls or anchor | Automation use |
 |---|---|---|
 | Top command bar | `저장`, `임시저장된 글 보기`, `발행`, `더보기` | Save and guarded publication boundaries |
+| Publication settings | `태그 입력 (최대 30개)`, existing tag chips, `발행 설정 닫기` | Append document tags before draft save; final publication remains guarded |
 | Component toolbar | `사진 추가`, `MYBOX 추가`, `동영상 추가`, `스티커 추가`, `인용구 추가`, `구분선 추가`, `링크 추가`, `파일 추가`, `일정 추가`, `소스코드 추가`, `표 추가`, `수식 추가`, `장소 추가`, `내돈내산 상품 첨부`, `글감 검색 열기`, `내 클립 열기`, `라이브러리 열기`, `템플릿 열기` | Component insertion |
 | Format toolbar | `서체 변경`, `글자 크기 변경`, `정렬 열기`, `특수문자 열기`, `번역`, `맞춤법` | Bounded formatting operations |
 | Document | title block followed by `.se-main-container` | Title and body scoping |
@@ -33,16 +34,18 @@ A learned compatibility file may choose among them but cannot add a selector.
 |---|---|---|
 | Title | `.se-documentTitle .se-text-paragraph` | Main document frame |
 | Editor root | `.se-main-container` | Visible frame containing editable descendants |
+| Tags | `input[placeholder*='태그']` | Visible publication-settings panel; one tag followed by Enter |
 | Photo | `button[data-name='image']` | Main document frame |
 | Video | `button[data-name='video']` | Main document frame |
 | File | `button[data-name='file']` | Main document frame |
 | Draft save | `button[data-click-area='tpb.save']` | Main document frame |
 | Publish settings | `button[data-click-area='tpb.publish']` | Main document frame; guarded publish flow only |
 
-The title and draft-save controls use shipped fast hints because they are the
-two controls needed by `revise-title`. Each hint must resolve to exactly one
-visible element. Zero matches fall back to the bounded resolver; multiple
-matches stop the run as ambiguous.
+The title, tags, and draft-save controls use shipped fast hints because they are
+common narrow edits. Each hint must resolve to exactly one visible element.
+Zero matches fall back to the bounded resolver; multiple matches stop the run
+as ambiguous. Tag values come only from the validated document; the structure
+map never stores personal tags.
 
 ## Resolution order
 
