@@ -56,6 +56,38 @@ def test_doctor_is_read_only_and_machine_readable(tmp_path: Path) -> None:
     assert not data_dir.exists()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX launcher")
+@pytest.mark.parametrize("invalid_override", [False, True])
+def test_launcher_finds_versioned_python_without_ignoring_an_explicit_override(
+    tmp_path: Path, invalid_override: bool,
+) -> None:
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    for name in ("py", "python", "python3", "python3.14"):
+        executable = binaries / name
+        executable.write_text("#!/bin/sh\nexit 1\n")
+        executable.chmod(0o755)
+    (binaries / "python3.13").symlink_to(sys.executable)
+    data_dir = tmp_path / "runtime-data"
+    env = os.environ.copy()
+    env["PATH"] = str(binaries) + os.pathsep + os.defpath
+    env["AUTOSEO_DATA_DIR"] = str(data_dir)
+    env.pop("AUTOSEO_PYTHON", None)
+    if invalid_override:
+        env["AUTOSEO_PYTHON"] = str(binaries / "python3")
+    result = subprocess.run(
+        ["/bin/bash", str(SCRIPTS / "autoseo"), "doctor", "--json"],
+        cwd=ROOT, env=env, capture_output=True, text=True, check=False,
+    )
+    if invalid_override:
+        assert result.returncode == 2
+        assert "AUTOSEO_PYTHON is not a usable" in result.stderr
+    else:
+        assert result.returncode == 3
+        assert json.loads(result.stdout)["python_version"] == f"{sys.version_info.major}.{sys.version_info.minor}"
+    assert not data_dir.exists()
+
+
 def test_unlighthouse_never_auto_downloads_packages() -> None:
     text = (SCRIPTS / "unlighthouse_run.py").read_text(encoding="utf-8")
     for forbidden in ("npx", "npm install", "--yes", "--package"):

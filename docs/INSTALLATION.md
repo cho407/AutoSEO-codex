@@ -21,6 +21,13 @@ Resolve the installed AutoSEO directory as `<plugin-root>` and run:
 `doctor` does not install packages or access the network. A `setup required` result
 is normal until a workflow needs a Python helper.
 
+Python 3.10 or newer must already be installed. The launcher checks `py -3`,
+`python3`, `python`, then versioned `python3.14` through `python3.10` executables,
+so an older system `python3` does not hide a compatible Homebrew installation.
+`AUTOSEO_PYTHON` can explicitly select an executable path and takes precedence;
+an invalid explicit override is reported rather than silently ignored. The launcher
+never installs Python globally or changes the user's shell configuration.
+
 ## Optional analysis runtime
 
 Run setup only when you want the bundled deterministic helpers. The standard
