@@ -47,7 +47,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "optimization_report.py", "parasite_risk.py", "parse_html.py", "preload_check.py", "privacy_mosaic.py", "render_page.py",
         "rdap_lookup.py", "schema_ecommerce_validate.py", "schema_generate.py",
         "autoseo_updates.py", "search_evidence.py",
-        "sitemap_discovery.py", "tistory_document.py", "tistory_editor.py", "trend_evidence.py", "ucp_check.py", "unlighthouse_run.py",
+        "sitemap_discovery.py", "tistory_document.py", "tistory_editor.py", "trend_collect.py", "trend_evidence.py", "ucp_check.py", "unlighthouse_run.py",
         "url_safety.py", "verify_backlinks.py",
         "workflow_catalog.py", "writing_identity.py", "youtube_search.py",
     }

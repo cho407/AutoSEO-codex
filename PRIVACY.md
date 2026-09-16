@@ -44,6 +44,14 @@ Public website, Common Crawl, RDAP, PageSpeed, and IndexNow requests likewise go
 directly from the user's environment. AutoSEO does not proxy or retain requests on
 publisher-controlled infrastructure and ships no separately billable data service.
 
+On-demand trend collection requests a public Google Trends RSS feed directly,
+sending the chosen market without provider credentials or browser cookies.
+Supplementary category queries use the existing Codex-native web tools. Local
+research records contain selected keywords, public source URLs/headlines, dates and
+category reasons, not article bodies or account profiles. The collector only writes
+a report when an output path is explicitly supplied; it does not enable recurring
+collection. User-selected research queries should not contain private information.
+
 Optional legacy Naver Search and DataLab requests go directly to Naver with keys read
 from `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET`. NAVER API HUB uses separate
 `NAVER_API_HUB_CLIENT_ID` and `NAVER_API_HUB_CLIENT_SECRET` values and remains

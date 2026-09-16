@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "method": "keyword-rule-v1",
+  "description": "AutoSEO local editorial taxonomy, not an official search-provider category or ranking.",
+  "categories": [
+    {"id": "technology", "label": "IT·기술·가전", "aliases": ["IT", "기술", "가전", "테크"], "terms": ["AI", "인공지능", "반도체", "스마트폰", "소프트웨어", "가전", "아이폰", "갤럭시", "technology", "software"]},
+    {"id": "economy", "label": "경제·비즈니스", "aliases": ["경제", "비즈니스", "금융", "재테크"], "terms": ["경제", "금리", "환율", "주식", "증시", "물가", "부동산", "창업", "economy", "inflation", "stocks"]},
+    {"id": "travel", "label": "여행·나들이", "aliases": ["여행", "나들이", "캠핑"], "terms": ["여행", "관광", "나들이", "캠핑", "항공", "숙소", "호텔", "축제", "롯데월드", "에버랜드", "travel", "tourism", "camping"]},
+    {"id": "food", "label": "음식·맛집", "aliases": ["음식", "맛집", "요리", "푸드"], "terms": ["맛집", "레시피", "요리", "카페", "식품", "음식", "베이커리", "디저트", "restaurant", "recipe", "food"]},
+    {"id": "beauty", "label": "뷰티·패션", "aliases": ["뷰티", "패션", "미용"], "terms": ["화장품", "뷰티", "패션", "스킨케어", "메이크업", "의류", "코디", "beauty", "fashion", "skincare"]},
+    {"id": "parenting", "label": "육아·교육", "aliases": ["육아", "교육", "출산"], "terms": ["육아", "출산", "유아", "어린이", "교육", "입시", "수능", "유치원", "parenting", "education"]},
+    {"id": "health", "label": "건강·운동", "aliases": ["건강", "운동", "헬스"], "terms": ["건강", "운동", "다이어트", "영양", "질환", "예방", "계단 오르기", "health", "fitness", "nutrition"]},
+    {"id": "lifestyle", "label": "생활·쇼핑", "aliases": ["생활", "쇼핑", "리빙", "살림"], "terms": ["다이소", "코스트코", "생활용품", "인테리어", "정리수납", "살림", "청소", "신제품", "쇼핑", "shopping", "household"]},
+    {"id": "entertainment", "label": "연예·방송", "aliases": ["연예", "방송", "드라마"], "terms": ["드라마", "예능", "방송", "배우", "아이돌", "가수", "컴백", "연예", "entertainment", "celebrity"]},
+    {"id": "sports", "label": "스포츠", "aliases": ["축구", "야구"], "terms": ["스포츠", "축구", "야구", "농구", "배구", "올림픽", "월드컵", "KBO", "EPL", "sports", "football", "baseball"]},
+    {"id": "culture", "label": "문화·게임", "aliases": ["문화", "게임", "공연", "영화"], "terms": ["영화", "전시", "공연", "콘서트", "도서", "게임", "뮤지컬", "culture", "gaming", "concert", "cinema"]},
+    {"id": "politics", "label": "정치", "aliases": ["정책", "선거"], "terms": ["정치", "국회", "대통령", "선거", "정당", "의원", "politics", "election"]},
+    {"id": "society", "label": "사회·지역", "aliases": ["사회", "지역", "날씨"], "terms": ["사회", "교통", "날씨", "태풍", "폭우", "지진", "재난", "노동", "해병대", "society", "weather"]},
+    {"id": "world", "label": "국제", "aliases": ["국제", "세계", "해외"], "terms": ["국제", "외교", "정상회담", "유엔", "전쟁", "국제사회", "diplomacy", "geopolitics"]}
+  ]
+}

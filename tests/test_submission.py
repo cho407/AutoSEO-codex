@@ -77,12 +77,17 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/schema/writing-identity.schema.json" in names
     assert "autoseo/schema/optimization-report.schema.json" in names
     assert "autoseo/schema/trend-evidence.schema.json" in names
+    assert "autoseo/schema/trend-research.schema.json" in names
+    assert "autoseo/schema/trend-collection.schema.json" in names
+    assert "autoseo/data/trend-categories.json" in names
+    assert "autoseo/skills/autoseo-search-data/references/trend-collection.md" in names
     assert "autoseo/data/naver-editor-features.json" in names
     assert "autoseo/data/tistory-editor-features.json" in names
     assert "autoseo/examples/naver-document-v1.json" in names
     assert "autoseo/examples/tistory-document-v1.json" in names
     assert "autoseo/examples/writing-identity-v1.json" in names
     assert "autoseo/examples/trend-evidence-v1.json" in names
+    assert "autoseo/examples/trend-research-v1.json" in names
     assert "autoseo/requirements-image.txt" in names
     assert "autoseo/data/feature-parity.json" in names
     assert "autoseo/data/free-sources.json" in names
@@ -93,6 +98,7 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/scripts/rdap_lookup.py" in names
     assert "autoseo/scripts/search_evidence.py" in names
     assert "autoseo/scripts/trend_evidence.py" in names
+    assert "autoseo/scripts/trend_collect.py" in names
     assert "autoseo/scripts/optimization_report.py" in names
     assert "autoseo/scripts/writing_identity.py" in names
     assert "autoseo/scripts/naver_document.py" in names

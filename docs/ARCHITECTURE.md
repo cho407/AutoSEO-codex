@@ -18,6 +18,7 @@ analysis over versioned contracts.
 | Tistory editor boundary | Markdown/HTML document, privacy derivatives, hosted-media map, checkpointed Playwright adapter | `tistory_document.py`, `tistory_editor.py`, `privacy_mosaic.py` |
 | Writing identity boundary | Confirmed writer basis, audience, tone, and terms without draft storage | `writing_identity.py`, `schema/writing-identity.schema.json` |
 | Current-topic evidence | Dated, deduplicated, corroborated relative trend observations | `trend_evidence.py`, `schema/trend-evidence.schema.json` |
+| Category trend collection | One public RSS fetch plus validated native-web observations; transparent category grouping | `trend_collect.py`, `data/trend-categories.json`, `schema/trend-{collection,research}.schema.json` |
 
 ## Request flow
 
@@ -83,7 +84,22 @@ the unresolved planning questions and may continue one-off without saving. A con
 `WritingIdentity v1` is atomically stored with owner-only permissions and never
 contains a draft body.
 
-Current-topic research records `TrendEvidence v1` before drafting. The deterministic
+Trend discovery first uses `trend_collect.py`: fixed-host DNS-pinned HTTP with no
+ambient credentials/cookies/redirects, a 2 MiB RSS bound, UTF-8 XML without DTD/entities,
+one fetch across all selected categories and no automatic article fetches. The
+category catalog is local and versioned, not a claim about provider taxonomy.
+Native Codex web research supplies dated `TrendResearch v1` rows whose URLs must
+match their executed-query ledger. The helper checks scope, timestamps, fields and
+public URL syntax without following imported URLs. Malformed local input fails;
+provider outage retains valid research and reports partial coverage. `plan` never
+claims searches have run. No subscription SDK, local scheduler or global cache is added.
+
+`TrendCollection v1` exposes source/date/category reasons, exclusions, duplicates,
+per-category candidate IDs and raw traffic buckets. No demand score combines news
+mentions with search surges. A limited current feed cannot provide complete category
+coverage or historical backfill; category research fills topic-discovery gaps only.
+
+Selected-topic research records `TrendEvidence v1` before drafting. The deterministic
 helper validates timezone-aware dates and finite relative metrics, canonicalizes URLs,
 deduplicates same-source copies, counts independent source groups, computes refresh
 status, and exposes component coverage. It fetches nothing itself; Codex-native web

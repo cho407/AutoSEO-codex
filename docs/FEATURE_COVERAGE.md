@@ -96,6 +96,17 @@ publication time, source group, and optional relative trend values. The helper
 removes tracking-URL duplicates, requires independent source groups for a confirmed
 trend, and computes a transparent research-priority score from measured freshness,
 relevance, corroboration, and relative velocity. Exact search volume remains null.
+Interest level (`trend_index`) is preserved but no longer substituted for velocity.
+
+`TrendCollection v1` collects one account-free Google RSS snapshot and combines it
+with inspected Codex-native category research (`TrendResearch v1`). Fourteen local
+categories, Korean aliases, multi-category selection, keyword/exclusion filters,
+date bounds, deduplication, source-failure reporting and optional JSON export are
+implemented. Category research is a skill-orchestrated web workflow, not a hidden
+search API in the Python helper. No new dependency or provider credential is needed.
+The feed is only a sample; category inference and observed demand are separate,
+and news-only candidates retain unmeasured search demand. Daily scheduling,
+historical demand databases and automatic daily article queues are not included.
 
 ## Naver editor compatibility
 

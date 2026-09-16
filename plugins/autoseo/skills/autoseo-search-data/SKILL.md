@@ -1,6 +1,6 @@
 ---
 name: autoseo-search-data
-description: Build SEO research evidence from Codex-native web research, public pages, Common Crawl, RDAP, first-party property data, and transparent local proxies. Use for SERP samples, keyword intent, relative demand, competitors, rankings, domain facts, listings, content, and AI-result mentions without a data subscription.
+description: Research and collect overall or category-specific trending keywords and current topics, plus SEO evidence from Codex-native web research, public pages, Common Crawl, RDAP, and first-party data. Use for 전체/카테고리별 트렌드 수집, 최신 글감, SERP samples, keyword intent, relative demand, competitors, domain facts, listings, and AI-result mentions without a data subscription.
 ---
 
 ## Safety Boundaries
@@ -34,7 +34,8 @@ always labeled as a proxy and is comparable only when the capture method matches
 | `@autoseo search-data intersection <domains>` | Shared queries, pages, result domains, and citations |
 | `@autoseo search-data traffic <domain>` | First-party analytics when authorized; otherwise no numeric estimate |
 | `@autoseo search-data subdomains <domain>` | Sitemap, DNS-visible, Common Crawl, and public-result discovery |
-| `@autoseo search-data trending <market>` | Dated public trend and current-result evidence |
+| `@autoseo search-data trending <market> [--category <name> ...]` | Collect public RSS once, group by category, and research requested categories using current web sources |
+| `@autoseo search-data categories` | Show the local category catalog and Korean aliases |
 | `@autoseo search-data onpage <url>` | Direct fetch, render, metadata, content, and schema checks |
 | `@autoseo search-data tech <domain>` | Crawl, headers, robots, sitemap, rendering, and performance checks |
 | `@autoseo search-data rdap <domain>` | Public registration status, events, registrar roles, and nameservers |
@@ -93,31 +94,32 @@ window and sample limit plus a later capture. Missing/mismatched dimensions retu
 
 ## Current and trending topics
 
-When the user asks for issues, latest information, trend keywords, or a current
-article, do not rely on model memory. Use current Codex-native web research and
-primary sources, then normalize the observations as `TrendEvidence v1`.
+When asked for overall/category trends, keyword collection, latest issues or a
+current article, load [the trend collection workflow](references/trend-collection.md).
+Use `trend_collect.py` for a dated `TrendCollection v1`: one account-free RSS fetch,
+14 local categories, multiple category filters, custom keywords and exclusions.
+For a requested category, execute bounded Codex-native web research as well; a
+generated query plan alone is not completed research. Do not fill an empty category
+with unrelated global trends. No extra provider login/key is needed for this path.
 
-1. Fix the market, language, and window before collection. Default to `24h` for
-   breaking topics and `7d` for sustained interest; `4h`, `48h`, and `30d` are also
-   supported when the request warrants them.
-2. Use Google Trends Trending Now export or RSS as an optional relative signal. Its
-   official interface supports 4-hour, 24-hour, 48-hour, and 7-day views and related
-   news; it is not exact search volume. Do not depend on the limited-access Trends API.
-3. Search the exact topic, core entities, and one disambiguating phrase. Keep the
-   query set small and reproducible, and record observed and published timestamps.
-4. Prefer an official or first-party source for the event itself, then corroborate
-   it with an independent source. Deduplicate tracking URLs and same-publisher copies.
-5. Mark a one-source item `emerging` or `measured-single-source`; do not call it a
-   confirmed trend. Separate event date, publication date, and observation date.
-6. Run the deterministic normalizer:
+The collection explicitly separates observed search surges from recent topics with
+unmeasured demand. It does not compute a popularity score or infer exact volume.
+`trends <keywords>` continues to mean comparable snapshots over time; it is not
+an alias for a complete real-time trend database.
+
+Before a collected candidate becomes an article brief, inspect its original event
+and an independent source. Keep `TrendEvidence v1` as the existing per-topic
+verification handoff; do not turn RSS-linked headlines into inspected sources or
+copy traffic buckets/interest levels into `velocity_index`:
 
 ```text
 <plugin-root>/scripts/autoseo run trend_evidence.py validate <trend-evidence.json>
 <plugin-root>/scripts/autoseo run trend_evidence.py analyze <trend-evidence.json>
 ```
 
-The resulting opportunity score averages only measured freshness, topic relevance,
-source corroboration, and relative velocity. It exposes component coverage and
+The resulting research-priority score averages only measured freshness, topic
+relevance, source corroboration, and supplied relative velocity. A relative interest
+level (`trend_index`) is not growth velocity. It exposes component coverage and
 always returns `exact_search_volume: null`. A stale or uncorroborated topic must be
 refreshed before it becomes the factual basis of a content brief.
 Check `evaluated_at`, `refresh.needs_refresh`, `freshness.stale_for_window` and

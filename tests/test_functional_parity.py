@@ -74,6 +74,7 @@ EXPECTED_PROVIDER_COMMANDS = {
         "traffic",
         "subdomains",
         "trending",
+        "categories",
         "onpage",
         "tech",
         "rdap",

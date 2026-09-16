@@ -146,3 +146,10 @@ def test_one_hostname_cannot_claim_multiple_independent_source_groups() -> None:
 
     with pytest.raises(ValueError, match="one source_group"):
         validate_trend_evidence(value)
+
+
+def test_interest_level_is_not_treated_as_growth_velocity() -> None:
+    value = _evidence()
+    value["evidence"][0]["metrics"] = {"trend_index": 100}
+    result = analyze_trends(value, as_of=value["observed_at"])
+    assert result["opportunity"]["components"]["relative_velocity"] is None

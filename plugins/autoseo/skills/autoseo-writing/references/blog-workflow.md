@@ -16,12 +16,18 @@ authorization take precedence over these defaults.
    that subject; if no stable subject is observable, compare across all subjects in
    the target market/language. Do not choose a general trend first and force it into
    an unrelated blog category.
-3. Use `autoseo-search-data` for current trends. Record market, language, source URLs,
+3. Use `autoseo-search-data`'s category trend collection workflow for current trends
+   in that subject. Its `trend_collect.py` helper reuses one public RSS fetch across
+   categories; supplement the short global feed with actual category web research.
+   Distinguish `observed-surge-single-provider` from current topics with `unmeasured`
+   demand. An empty category is not permission to substitute unrelated headlines.
+   Record market, language, source URLs,
    comparable trend signals, and observation/publication times as `TrendEvidence v1`;
    run `trend_evidence.py analyze <trend-evidence.json>` once. Default freshness is
    24 hours for breaking topics and 7 days for sustained interest. Require at least
    two independent source groups. Prefer the strongest corroborated current demand
-   or growth among observed candidates, using relevance and freshness as tie-breakers.
+   or growth among observed candidates when comparable demand data exists; otherwise
+   select by topic relevance and verified freshness and disclose unmeasured demand.
    Do not present incomparable metrics or a small sample as an absolute global #1.
 4. If no candidate is confirmed, state the evidence limit and use the best-supported
    current topic; ask only if no defensible candidate exists. Research the selected

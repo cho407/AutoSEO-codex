@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "TrendResearch",
+  "market": "KR",
+  "language": "ko",
+  "window": "24h",
+  "queries": [
+    {
+      "query": "예시 여행 축제 공식 발표",
+      "searched_at": "2026-09-16T06:00:00+00:00",
+      "urls": ["https://example.org/festival-announcement"]
+    }
+  ],
+  "observations": [
+    {
+      "keyword": "예시 가을 축제",
+      "title": "테스트용 가상 축제 일정 발표 — 실제 트렌드 아님",
+      "url": "https://example.org/festival-announcement",
+      "source_type": "primary-source",
+      "published_at": "2026-09-16T03:00:00+00:00",
+      "observed_at": "2026-09-16T06:00:00+00:00",
+      "query": "예시 여행 축제 공식 발표",
+      "categories": ["travel"],
+      "category_reason": "계약 설명용 가상 여행 일정이며 실제 검색 관측값이 아님"
+    }
+  ]
+}

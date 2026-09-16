@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrendCollection v1",
+  "description": "A bounded current snapshot, not an exhaustive category ranking or exact demand measurement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "scope", "collected_at", "refresh_after", "status", "sources", "items", "groups", "research_queries", "counts", "coverage", "research_plan", "limitations"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "kind": {"const": "TrendCollection"},
+    "scope": {"type": "object", "required": ["market", "language", "window", "categories", "keywords", "exclude", "limit"]},
+    "collected_at": {"type": "string", "format": "date-time"},
+    "refresh_after": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["ok", "partial", "unavailable"]},
+    "sources": {"type": "array", "items": {"type": "object", "required": ["id", "url", "status", "mode"]}},
+    "items": {
+      "type": "array", "maxItems": 100,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "keyword", "categories", "category_hints", "evidence", "newest_at", "exact_search_volume", "demand_status", "next_action"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-f0-9]{16}$"},
+          "keyword": {"type": "string", "minLength": 1, "maxLength": 200},
+          "categories": {"type": "array", "items": {"type": "object", "required": ["id", "label", "method", "confidence", "reason", "matched_terms"]}},
+          "category_hints": {"type": "array", "description": "Headline-context matches awaiting review; never used directly as category filters.", "items": {"type": "object", "required": ["id", "label", "method", "confidence", "reason", "matched_terms"]}},
+          "evidence": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["source", "source_type", "method", "url", "title", "observed_at", "traffic_bucket"]}},
+          "newest_at": {"type": "string", "format": "date-time"},
+          "exact_search_volume": {"type": "null"},
+          "demand_status": {"enum": ["observed-surge-single-provider", "unmeasured"]},
+          "next_action": {"const": "verify-event-and-demand-before-brief"}
+        }
+      }
+    },
+    "groups": {"type": "array", "items": {"type": "object", "required": ["id", "label", "count", "item_ids"]}},
+    "research_queries": {"type": "array", "maxItems": 8},
+    "counts": {"type": "object", "required": ["feed_items", "research_observations", "duplicate_observations", "excluded", "fresh_candidates", "needs_category_review", "matched", "returned", "truncated"]},
+    "coverage": {"type": "object", "required": ["exhaustive", "research_status", "query_count", "recent_query_count"], "properties": {"exhaustive": {"const": false}, "research_status": {"enum": ["collected", "not-run", "stale"]}}},
+    "research_plan": {"type": "object", "required": ["kind", "status", "queries"], "properties": {"kind": {"const": "TrendResearchPlan"}, "status": {"const": "not-run"}}},
+    "limitations": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+  }
+}

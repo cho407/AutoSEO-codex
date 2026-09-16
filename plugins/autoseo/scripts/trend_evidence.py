@@ -247,8 +247,6 @@ def _opportunity_components(
         metrics = item.get("metrics", {})
         if "velocity_index" in metrics:
             velocity_values.append(metrics["velocity_index"])
-        elif "trend_index" in metrics:
-            velocity_values.append(metrics["trend_index"])
     return {
         "freshness": _mean(freshness_values),
         "relevance": _mean(relevance_values),

@@ -21,6 +21,14 @@ conversational, warm, concise, persuasive, or custom voice. Current topics use
 dated, corroborated trend evidence; scores expose their measured coverage and never
 stand in for Google or Naver ranking data.
 
+Trend collection supports overall results and 14 editorial categories, including
+travel, IT, economy, food and parenting. One public Google Trends RSS request is
+reused across categories; requested category research adds inspected current web
+sources through Codex. No extra provider account or API key is required. Observed
+search surges and recent topics with unmeasured demand remain separate; the sample
+is not an exhaustive ranking. Reports include dates, sources, category reasons,
+keyword/exclusion filters and optional local JSON export.
+
 The five lanes answer different questions:
 
 | Lane | Measures |
@@ -68,6 +76,9 @@ Restart the ChatGPT desktop app or start a new Codex session after installation.
 - `@autoseo writing polish ./draft.md`
 - `@autoseo writing score https://example.com/guide`
 - `@autoseo search-data trending KR`
+- `@autoseo 여행과 IT 카테고리별 최신 트렌드를 조사하고 수집해줘.`
+- `@autoseo search-data trending KR --category 여행 --keyword 캠핑 --window 7d`
+- `@autoseo search-data categories`
 - `@autoseo audit all https://example.com`
 - `@autoseo neo visibility "서울 성수동 카페"`
 - `@autoseo naver-editor compose ./article.naver-document.json`

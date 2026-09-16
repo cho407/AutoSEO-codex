@@ -26,8 +26,8 @@
       "access": "public",
       "subscription_required": false,
       "official_url": "https://support.google.com/trends/answer/3076011?hl=en",
-      "use_cases": ["current topic discovery", "relative trend direction", "related news evidence"],
-      "limitations": ["relative signal rather than exact volume", "market and time window must match", "one trend feed alone is not cross-source confirmation"]
+      "use_cases": ["account-free current RSS collection", "local category grouping", "current topic discovery", "related news discovery"],
+      "limitations": ["traffic buckets rather than exact volume", "market and time window must match", "one trend feed alone is not cross-source confirmation", "limited current snapshot, not exhaustive category rankings or a historical archive", "local category inference is not official provider classification", "category research uses separate Codex-native inspected sources; news mentions do not measure search demand"]
     },
     {
       "id": "sitemaps-robots",

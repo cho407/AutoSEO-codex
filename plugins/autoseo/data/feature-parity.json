@@ -243,8 +243,8 @@
       "id": "search-data",
       "skill": "autoseo-search-data",
       "status": "supported",
-      "subcommands": ["serp", "serp-images", "serp-youtube", "youtube", "keywords", "demand", "difficulty", "intent", "trends", "backlinks", "competitors", "ranked", "intersection", "traffic", "subdomains", "trending", "onpage", "tech", "rdap", "content", "listings", "ai-results", "ai-mentions", "methods"],
-      "helpers": ["search_evidence.py", "trend_evidence.py", "rdap_lookup.py", "commoncrawl_graph.py", "backlink_history.py"]
+      "subcommands": ["serp", "serp-images", "serp-youtube", "youtube", "keywords", "demand", "difficulty", "intent", "trends", "backlinks", "competitors", "ranked", "intersection", "traffic", "subdomains", "trending", "categories", "onpage", "tech", "rdap", "content", "listings", "ai-results", "ai-mentions", "methods"],
+      "helpers": ["search_evidence.py", "trend_collect.py", "trend_evidence.py", "rdap_lookup.py", "commoncrawl_graph.py", "backlink_history.py"]
     },
     {
       "id": "authority",

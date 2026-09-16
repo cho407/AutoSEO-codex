@@ -170,6 +170,9 @@ are transparent proxies; they are not exact search volume, traffic, rank, or dif
 @autoseo search-data traffic <domain>
 @autoseo search-data subdomains <domain>
 @autoseo search-data trending <location>
+@autoseo search-data trending KR --category 여행 --category IT
+@autoseo search-data trending KR --keyword 캠핑 --exclude 사고 --window 7d
+@autoseo search-data categories
 @autoseo search-data onpage <url>
 @autoseo search-data tech <domain>
 @autoseo search-data rdap <domain>
@@ -180,11 +183,43 @@ are transparent proxies; they are not exact search volume, traffic, rank, or dif
 @autoseo search-data methods
 ```
 
-For current or trending content, the default research window is 24 hours for a
-breaking topic and 7 days for sustained interest. AutoSEO can use Google Trends
-Trending Now RSS/export as one relative signal, but it requires an independent
-dated source before calling a topic confirmed. Duplicate URLs are removed and the
-result exposes freshness, relevance, corroboration, relative velocity, and refresh time.
+Overall collection fetches the public Google Trends RSS once and groups its sample
+into local categories. Category requests also execute bounded Codex-native web
+research for the selected subject; no extra provider login/API key is needed.
+The default window is 24 hours; use 7 days for sustained topics. A wider window
+does not backfill feed history. Repeated category/keyword filters use OR, exclusions
+win, and an empty category is never replaced by unrelated headlines.
+
+The 14 categories cover IT/technology/appliances, economy/business, travel, food,
+beauty/fashion, parenting/education, health/exercise, lifestyle/shopping,
+entertainment, sports, culture/games, politics, society/local and world. These are
+AutoSEO editorial categories, not official provider categories. Unrecognized custom
+subjects can use `--keyword`; `categories` lists IDs and Korean aliases.
+Headline-only matches are review hints, not category assignments; an unrelated
+celebrity keyword does not become a travel topic just because its news mentions travel.
+
+For direct helper usage:
+
+```text
+<plugin-root>/scripts/autoseo run trend_collect.py categories
+<plugin-root>/scripts/autoseo run trend_collect.py plan --category 여행
+<plugin-root>/scripts/autoseo run trend_collect.py collect --market KR
+<plugin-root>/scripts/autoseo run trend_collect.py collect --category 여행 --research-input <research.json> --output <collection.json>
+```
+
+`plan` only creates query suggestions. The skill executes them with native web
+tools and records inspected URLs/dates under `TrendResearch v1`; `collect` imports
+those observations and returns `TrendCollection v1`. Output defaults to stdout,
+and existing output files require `--overwrite`. `--rss-file` replaces live HTTP
+with a supplied snapshot, and `--as-of` is for explicit historical evaluation.
+
+Results distinguish a Google-observed search surge from a dated topic with
+unmeasured demand. Feed traffic buckets stay buckets, exact volume stays null,
+and sorting by newest evidence is not a search/popularity ranking. The collector
+does not claim complete coverage, Naver realtime ranks or immediate updates.
+Before drafting, corroborate original facts with independent dated sources using
+the existing per-topic `trend_evidence.py` workflow. Relative interest is not growth
+velocity. Collection alone does not create articles, schedules or publications.
 
 ## Authority and backlinks
 

@@ -15,6 +15,15 @@ performs a fact-preserving semantic polish plus conservative translationese chec
 `OptimizationReport v1` combines only scoreable lane readiness, while
 `TrendEvidence v1` deduplicates and corroborates dated current-topic sources.
 
+`TrendCollection v1` adds account-free public RSS collection, 14 local categories,
+multi-category/keyword/exclusion filters and explicit local JSON export. Category
+research uses bounded Codex web searches imported as `TrendResearch v1`; generated
+queries alone are not completed research. News discovery does not imply measured
+search demand, and the short RSS sample is not a complete category ranking.
+Ask `@autoseo 여행과 IT 카테고리별 트렌드를 조사하고 수집해줘` or use
+`@autoseo search-data trending KR --category 여행`. No additional browser, provider
+login, subscription service or runtime dependency is needed beyond the existing lite runtime.
+
 The PC Naver Blog SmartEditor ONE adapter can launch regular Chrome with a dedicated
 visible profile or attach over loopback CDP to one already-open editor tab. Learned
 frame/scope hints and catalog-owned selectors avoid repeated full-surface scans, and
