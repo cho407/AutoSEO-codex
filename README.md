@@ -21,6 +21,12 @@ conversational, warm, concise, persuasive, or custom voice. Current topics use
 dated, corroborated trend evidence; scores expose their measured coverage and never
 stand in for Google or Naver ranking data.
 
+Presentation quality is split into a universal `balanced-editorial` floor and
+optional local profiles. The personal `tactile-howto` profile supports centered
+short prose, tactile square covers, 4:5 procedure images, navy/coral callouts and
+real source screenshots without changing the universal default or claiming a
+ranking effect. See [the blog presentation standard](docs/BLOG_STYLE_STANDARD.md).
+
 Trend collection supports overall results and 14 editorial categories, including
 travel, IT, economy, food and parenting. One public Google Trends RSS request is
 reused across categories; requested category research adds inspected current web
@@ -118,6 +124,7 @@ See [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md) for details.
 
 - [Installation](docs/INSTALLATION.md)
 - [Command guide](docs/COMMANDS.md)
+- [Blog presentation standard](docs/BLOG_STYLE_STANDARD.md)
 - [Feature coverage](docs/FEATURE_COVERAGE.md)
 - [Naver editor compatibility](plugins/autoseo/skills/autoseo-naver-editor/references/feature-compatibility.md)
 - [Tistory editor compatibility](plugins/autoseo/skills/autoseo-tistory-editor/references/feature-compatibility.md)

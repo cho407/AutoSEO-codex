@@ -49,7 +49,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "autoseo_updates.py", "search_evidence.py",
         "sitemap_discovery.py", "tistory_document.py", "tistory_editor.py", "trend_collect.py", "trend_evidence.py", "ucp_check.py", "unlighthouse_run.py",
         "url_safety.py", "verify_backlinks.py",
-        "blog_format.py", "workflow_catalog.py", "writing_identity.py", "youtube_search.py",
+        "blog_format.py", "blog_style.py", "workflow_catalog.py", "writing_identity.py", "youtube_search.py",
     }
 )
 REDACTIONS = (

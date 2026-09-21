@@ -42,6 +42,25 @@ summary card before the introduction by default. Vary purpose, not just color;
 prefer one useful photo over several interchangeable cards. Image count and style
 are editorial choices, not assumed ranking signals.
 
+### Optional `tactile-howto` profile
+
+When the writer has explicitly selected this personal profile, use the following
+as a production target rather than a universal template:
+
+- Use a 1:1 cover and 4:5 procedure images with a cream/grid paper base, navy ink,
+  coral callouts and restrained handmade/collage texture.
+- Keep one short handwritten-style headline per image. Pair a real official or
+  user-authorized screenshot with a clean paper frame and one circle/arrow around
+  the exact control being explained.
+- Keep the article's short centered prose and quote-like section rhythm, but never
+  rasterize paragraphs, sources or dense comparison tables into an image.
+- Redact personal data, record the source/freshness note and disclose any AI-made
+  cover. Never redraw an app interface, invent a badge or copy the reference art.
+
+The profile is a local presentation choice. It does not change SEO/AEO/NEO scoring,
+does not imply that the image caused a view, and must not replace the six visual
+checks below.
+
 ## Compile one brief
 
 Use `examples/blog-image-brief-v1.json`: `schema_version: 1`, factual `topic`, short

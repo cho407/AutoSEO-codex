@@ -115,6 +115,18 @@ def _data_directory(data_dir: str | os.PathLike[str] | None, *, create: bool) ->
     return path
 
 
+def data_directory(
+    data_dir: str | os.PathLike[str] | None = None, *, create: bool = False
+) -> Path:
+    """Return the isolated AutoSEO data directory after the same safety checks.
+
+    Other local preference stores use this helper so that identity, presentation
+    preferences and editor checkpoints cannot accidentally diverge to unsafe
+    locations or follow a directory symlink.
+    """
+    return _data_directory(data_dir, create=create)
+
+
 def profile_path(data_dir: str | os.PathLike[str] | None = None) -> Path:
     return _data_directory(data_dir, create=False) / PROFILE_FILENAME
 

@@ -10,5 +10,6 @@
   "palette": "contextual",
   "layout": "social-card",
   "aspect_ratio": "1:1",
+  "style_profile": "balanced-editorial",
   "reference_urls": []
 }

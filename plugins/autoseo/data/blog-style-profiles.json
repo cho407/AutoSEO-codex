@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "kind": "BlogStyleCatalog",
+  "default_profile": "balanced-editorial",
+  "quality_floor": {
+    "purpose": "A reusable quality floor for blog drafts; it is not a ranking guarantee.",
+    "title": {
+      "pattern": "[서비스·혜택] + [독자가 하려는 행동] + [현재 기준·결과]",
+      "rules": [
+        "Name the concrete subject and reader task without hiding the answer behind clickbait.",
+        "Use a current date or policy qualifier only when it is verified and materially useful.",
+        "Keep one main intent in the title; put secondary keywords in the introduction or headings."
+      ]
+    },
+    "article": [
+      "Answer the reader's main question near the beginning.",
+      "Use short paragraphs, clear section hierarchy and a visible next step.",
+      "Record the market, language, observation date and source ledger for material claims.",
+      "Separate sourced facts, user experience and editorial inference.",
+      "Keep numbers, labels, links and policy conditions faithful to their sources."
+    ],
+    "visual": [
+      "Choose a concrete visual job before choosing a template.",
+      "Keep required labels readable at mobile width and leave a safe crop margin.",
+      "Use real source or user-authorized images for evidence; never invent an app screen or statistic.",
+      "Remove personal data from screenshots and preserve provenance for every asset.",
+      "Inspect the actual asset at full size and at a 375px-wide preview before handoff."
+    ],
+    "boundaries": [
+      "A style profile changes presentation guidance, not search ranking rules.",
+      "No profile promises exposure, clicks, citations or a particular model response.",
+      "Reference traits are abstracted; private URLs, images and account identifiers are never bundled."
+    ]
+  },
+  "profiles": {
+    "balanced-editorial": {
+      "label": "균형 잡힌 정보형",
+      "scope": "universal",
+      "description": "A neutral, readable baseline for new blogs and unfamiliar topics.",
+      "format_preset": "blog-centered",
+      "image_profile": "clean-editorial",
+      "article_sequence": [
+        "answer-first",
+        "context-and-date",
+        "sectioned-explanation",
+        "evidence-or-example",
+        "final-checklist",
+        "source-note"
+      ],
+      "text": {
+        "body_alignment": "center",
+        "heading_alignment": "center",
+        "source_alignment": "left",
+        "body_size": 16,
+        "body_line_spacing": 1.8,
+        "section_heading_size": 24,
+        "paragraph_max_sentences": 3
+      },
+      "visual": {
+        "hero_ratio": "1:1",
+        "supporting_ratio": "16:9",
+        "composition": "subject-led editorial or one-message social card",
+        "palette": "contextual",
+        "annotations": "only when they explain a real object or step"
+      },
+      "keep": [
+        "one clear subject per image",
+        "natural topic-specific color and light",
+        "supporting images beside the prose they clarify"
+      ],
+      "avoid": [
+        "dense presentation grids",
+        "tiny footnotes or long paragraphs inside images",
+        "generic decorative icons standing in for evidence"
+      ],
+      "uncertain": [
+        "whether a visual treatment improves exposure cannot be inferred without a controlled comparison"
+      ]
+    },
+    "tactile-howto": {
+      "label": "촉감형 단계 안내",
+      "scope": "personal",
+      "description": "An optional personal profile for warm, practical Korean how-to posts with a handmade editorial feel.",
+      "format_preset": "blog-centered",
+      "image_profile": "tactile-howto",
+      "article_sequence": [
+        "answer-first",
+        "why-this-matters",
+        "current-rule-or-date",
+        "short-quoted-sections",
+        "evidence-step",
+        "final-checklist",
+        "source-and-freshness-note"
+      ],
+      "text": {
+        "body_alignment": "center",
+        "heading_alignment": "center",
+        "source_alignment": "center",
+        "body_size": 16,
+        "body_line_spacing": 1.9,
+        "section_heading_size": 19,
+        "paragraph_max_sentences": 3,
+        "section_heading_style": "centered-quote"
+      },
+      "visual": {
+        "hero_ratio": "1:1",
+        "step_ratio": "4:5",
+        "base": "cream grid or tactile paper",
+        "primary": "#253B50",
+        "accent": "#E86D4E",
+        "muted": "#666666",
+        "table_header": "#F5EFDF",
+        "headline": "one short handwritten-style phrase, never a paragraph",
+        "composition": "a tactile cover or real screenshot in a clean paper frame",
+        "annotation": "one coral circle or arrow that points to the exact control or fact",
+        "series_rule": "Keep palette and type treatment consistent while varying crop and composition",
+        "provenance": "Use actual user-authorized or official source screenshots for procedures; never redraw UI with a model"
+      },
+      "keep": [
+        "short centered prose blocks with a strong section rhythm",
+        "a square cover that establishes the topic without repeating the whole article",
+        "one 4:5 step image for each genuinely distinct action",
+        "real source screenshots framed with generous whitespace and a clear callout",
+        "small tables or checklists when a reader must compare thresholds or verify completion",
+        "a freshness note that states the date and warns that policy or screens can change"
+      ],
+      "avoid": [
+        "a beige template applied to unrelated topics",
+        "PPT-like grids, dense bullets or tiny text",
+        "made-up app controls, logos, badges, numbers or testimonials",
+        "copying a reference image, layout or distinctive artwork",
+        "using the personal profile as proof of ranking or engagement causality"
+      ],
+      "uncertain": [
+        "the observed search inflow is a small post-level sample and does not isolate the image effect",
+        "handwritten accents may reduce legibility for a different audience or topic"
+      ]
+    }
+  }
+}

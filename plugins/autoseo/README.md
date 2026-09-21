@@ -15,6 +15,12 @@ performs a fact-preserving semantic polish plus conservative translationese chec
 `OptimizationReport v1` combines only scoreable lane readiness, while
 `TrendEvidence v1` deduplicates and corroborates dated current-topic sources.
 
+Presentation guidance is split into a universal `balanced-editorial` quality floor
+and optional local profiles. The personal `tactile-howto` profile supports centered
+short prose, tactile square covers, 4:5 procedure images, navy/coral callouts and
+real source screenshots; it is not a ranking signal or a universal default. See
+`skills/autoseo-writing/references/blog-style-standard.md`.
+
 `TrendCollection v1` adds account-free public RSS collection, 14 local categories,
 multi-category/keyword/exclusion filters and explicit local JSON export. Category
 research uses bounded Codex web searches imported as `TrendResearch v1`; generated

@@ -14,8 +14,8 @@ polish or tone changes, preserve the supplied meaning and length unless expansio
 is requested; do not start image generation or account access automatically.
 
 Optional commands: `@autoseo writing draft <topic>`, `@autoseo writing polish <draft>`,
-`@autoseo writing tone <preset>`, `@autoseo writing identity`, and
-`@autoseo writing score <draft-or-url>`.
+`@autoseo writing tone <preset>`, `@autoseo writing identity`,
+`@autoseo writing style`, and `@autoseo writing score <draft-or-url>`.
 Natural language requests enter the same flow; command syntax is unnecessary.
 
 ## Context and runtime
@@ -28,7 +28,8 @@ blog's consistent style. Never require a real name, workplace, or saved profile.
 Resolve `<plugin-root>` from the containing `.codex-plugin/plugin.json`. Before a
 needed helper, run `<plugin-root>/scripts/autoseo doctor --json` once per session.
 Helpers use `<plugin-root>/scripts/autoseo run <script.py> [args]`. If ready, check
-`writing_identity.py status` once and reuse the preferences. If unavailable, use
+`writing_identity.py status` and `blog_style.py status` once and reuse the
+preferences. If unavailable, use
 conversation context and native tools for independent writing; do not install
 packages silently or claim browser composition can run without its runtime.
 
@@ -37,6 +38,22 @@ On an explicit request to save defaults, preview the preference profile, then us
 <profile.json> --confirm` after consent. A one-article tone change is temporary.
 Presets are `friendly`, `professional`, `expert-friendly`, `conversational`, `warm`,
 `concise`, `persuasive`, and `custom`; the current request overrides the preset.
+
+Presentation profiles are separate from writer identity. The generic
+`balanced-editorial` profile is the fallback for every environment. An explicitly
+confirmed local `tactile-howto` profile is a personal option for warm Korean
+how-to posts: centered short prose, quote-like section headings, a square tactile
+cover, 4:5 step images, cream/grid paper, navy and coral accents, and real source
+screenshots with one precise callout. It is not a ranking rule, a universal beige
+template, or permission to invent UI. Keep the quality floor (facts, source date,
+privacy redaction, mobile legibility and provenance) even when the personal
+profile is selected. Put `style_profile` in each generated image brief so the
+direction is hash-bound and reviewable.
+
+On an explicit request to save a presentation preference, preview the profile and
+then use `blog_style.py set <profile> --confirm`. The local file contains only the
+profile name and confirmation time; article text, URLs, images, cookies and account
+identifiers never enter the distributed plugin.
 
 ## Evidence and prose
 
@@ -53,6 +70,9 @@ Presets are `friendly`, `professional`, `expert-friendly`, `conversational`, `wa
   short paragraphs, Korean word order, and a consistent honorific level. Polish once
   for meaning and rhythm; remove translationese, empty abstractions, repetitive
   transitions, hype, and unsupported personal claims.
+- Prefer a clear title pattern of `[서비스·혜택] + [독자가 하려는 행동] +
+  [현재 기준·결과]` when it fits the topic. Verify any date or policy qualifier;
+  never hide the main answer behind artificial curiosity or promise exposure.
 
 ## Efficient checks and boundaries
 

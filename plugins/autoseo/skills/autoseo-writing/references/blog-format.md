@@ -4,6 +4,22 @@ Use for **new** Naver/Tistory articles. This is an editorial default, not a rank
 requirement. Do not restyle a published post, overwrite a saved document or migrate
 an in-progress checkpoint unless requested. User choices override the preset.
 
+## Quality floor and personal presentation profiles
+
+The format preset controls safe document alignment and hierarchy. The separate
+`blog_style.py` catalog controls optional editorial direction. `balanced-editorial`
+is the universal fallback; `tactile-howto` is a personal profile that may add a
+warm paper/grid treatment, centered short prose, a square cover and 4:5 procedure
+images. It was abstracted from an inspected Korean how-to reference, but it is not
+the reference's artwork, a Naver ranking rule or a default for other authors.
+
+Every profile keeps the same quality floor: answer first, dated source ledger,
+fact-preserving edits, readable mobile type, privacy-redacted evidence images and
+honest provenance. A profile can guide composition and tone, but it cannot prove
+that an image caused a view or guarantee search exposure. Put the selected profile
+name in a generated image brief's `style_profile` so the prompt and visual review
+remain bound to the document.
+
 ## Select once per article
 
 New blog drafts use `layout_preset: "blog-centered"`. Reuse an explicit saved/requested

@@ -22,6 +22,7 @@ Sources and limitations are included in the result.
 @autoseo writing polish <draft>
 @autoseo writing tone <preset>
 @autoseo writing identity
+@autoseo writing style
 @autoseo writing score <draft-or-url>
 @autoseo aeo audit <target>
 @autoseo aeo brief <target>
@@ -69,6 +70,13 @@ For a draft, `writing score` reports measured style diagnostics, not factual or 
 the selected readiness lanes and combines them as `OptimizationReport v1` only when
 every selected lane is independently scoreable; the report always shows evidence
 coverage and never predicts rank or traffic.
+
+Presentation profiles are local and optional. `balanced-editorial` is the universal
+fallback. After reviewing the profile, an author may select the personal
+`tactile-howto` direction with `blog_style.py set tactile-howto --confirm`; it
+guides centered short prose, square/4:5 image ratios, tactile paper, navy/coral
+accents and real screenshot callouts. It is not a ranking signal or a promise of
+views. See [the blog presentation standard](BLOG_STYLE_STANDARD.md).
 
 The Naver editor commands use a dedicated visible Chromium profile under
 `AUTOSEO_DATA_DIR`. Login, two-factor authentication, and CAPTCHA remain manual.

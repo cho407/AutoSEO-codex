@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cho407/AutoSEO-codex/schema/blog-style-selection-v1.json",
+  "title": "BlogStyleSelection v1",
+  "type": "object",
+  "required": ["schema_version", "kind", "profile", "confirmed_at"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "BlogStyleSelection"},
+    "profile": {"type": "string", "enum": ["balanced-editorial", "tactile-howto"]},
+    "confirmed_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

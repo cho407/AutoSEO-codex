@@ -18,7 +18,8 @@
     "palette": {"enum": ["contextual", "sage", "blue", "clay"], "description": "Defaults to contextual for social-card/editorial/cover/photo; sage for explicit card/steps templates."},
     "layout": {"enum": ["social-card", "editorial", "cover", "photo", "card", "steps"], "default": "social-card"},
     "items": {"type": "array", "maxItems": 4, "items": {"type": "string", "minLength": 1, "maxLength": 50}},
-    "reference_urls": {"type": "array", "maxItems": 5, "items": {"type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2048}}
+    "reference_urls": {"type": "array", "maxItems": 5, "items": {"type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2048}},
+    "style_profile": {"type": "string", "enum": ["balanced-editorial", "tactile-howto"], "default": "balanced-editorial", "description": "Optional local presentation profile; it does not affect ranking signals."}
   },
   "allOf": [
     {"if": {"required": ["layout"], "properties": {"layout": {"const": "steps"}}},

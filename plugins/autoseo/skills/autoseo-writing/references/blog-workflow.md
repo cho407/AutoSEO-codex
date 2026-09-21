@@ -42,9 +42,13 @@ authorization take precedence over these defaults.
 
 - Apply [blog-format.md](blog-format.md) once: new drafts use
   `layout_preset: "blog-centered"`, short centered prose, consistent H2/H3 styles,
-  and left-aligned detail/source blocks. Explicit user styles win. Use
-  `article-readable` for a requested left-aligned article; never force new defaults
-  onto old drafts. Styled Tistory documents use `format: "auto"`/`"html"`.
+  and left-aligned detail/source blocks. Explicit user styles win. Resolve the
+  optional local presentation profile with `blog_style.py status`; the fallback is
+  `balanced-editorial`, while a confirmed personal profile may refine the rhythm,
+  image ratios and palette. Never force a personal profile onto another user or
+  treat it as a ranking signal. Use `article-readable` for a requested left-aligned
+  article; never force new defaults onto old drafts. Styled Tistory documents use
+  `format: "auto"`/`"html"`.
 - Write at least **1,500 body characters excluding whitespace** for a new Korean blog
   article. Count visible prose, headings, and lists; exclude title, markup, URLs,
   captions, alt text, and source ledger. Report the count after one final polish.
@@ -77,8 +81,10 @@ authorization take precedence over these defaults.
   slide. Preserve purposeful reference traits such as tactile covers or actual
   source photos without imposing them on every post. After one failed regeneration
   or an unavailable host tool, do not automatically replace imagery with a card.
-  Local templates require an explicit card/steps choice. Declare all
-  generated assets in `generated_images` with brief/review before editor handoff.
+  Local templates require an explicit card/steps choice. If a presentation profile
+  is selected, copy its profile name into each brief's `style_profile`; otherwise
+  use `balanced-editorial`. Declare all generated assets in `generated_images` with
+  brief/review before editor handoff.
 - Save images under the approved blog directory with descriptive filenames,
   dimensions, concise alt text, captions, and source/AI provenance where required.
   Preserve originals. Use local privacy derivatives for user photos as supported;

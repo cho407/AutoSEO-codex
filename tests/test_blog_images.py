@@ -29,6 +29,7 @@ def test_policy_is_injected_without_model_inventing_style():
     prompt = generation_prompt(brief())
     assert "1600" in prompt and "watermark" in prompt
     assert "clean-editorial" in prompt
+    assert "balanced-editorial" in prompt
     with pytest.raises(ValueError):
         validate_brief(brief(layout="<script>"))
     with pytest.raises(ValueError):
@@ -44,12 +45,28 @@ def test_default_is_subject_led_not_a_slide_or_implicit_title_card():
     assert normalized["layout"] == "social-card"
     assert normalized["aspect_ratio"] == "1:1"
     assert normalized["palette"] == "contextual"
+    assert normalized["style_profile"] == "balanced-editorial"
     prompt = generation_prompt(value)
     assert "Title and subtitle are metadata" in generation_prompt({**value, "layout": "editorial"})
     assert "presentation slide" in prompt
     assert "창가 책상" in prompt
     with pytest.raises(ValueError, match="visual_subject"):
         validate_brief({key: val for key, val in value.items() if key != "visual_subject"})
+
+
+def test_personal_style_profile_is_explicit_and_changes_only_visual_guidance():
+    value = brief(
+        layout="social-card",
+        visual_subject="공식 앱 화면을 종이 프레임 안에 배치한 단계 안내",
+        style_profile="tactile-howto",
+        aspect_ratio="4:5",
+    )
+    normalized = validate_brief(value)
+    assert normalized["style_profile"] == "tactile-howto"
+    prompt = generation_prompt(value)
+    assert "tactile-howto" in prompt
+    assert "cream grid or tactile paper" in prompt
+    assert "4:5" in prompt
 
 
 @pytest.mark.parametrize("layout", ["editorial", "cover", "photo", "social-card"])

@@ -108,11 +108,14 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/scripts/tistory_editor.py" in names
     for required in (
         "scripts/blog_image.py", "scripts/editor_protocol.py",
-        "scripts/blog_format.py", "data/blog-format-presets.json",
+        "scripts/blog_format.py", "scripts/blog_style.py", "data/blog-format-presets.json",
+        "data/blog-style-profiles.json", "schema/blog-style-selection.schema.json",
         "skills/autoseo-writing/references/blog-format.md",
+        "skills/autoseo-writing/references/blog-style-standard.md",
+        "skills/autoseo-image-gen/references/blog-quality.md",
         "data/blog-image-policy.json", "data/editor-decision-tree.json",
         "schema/blog-image-brief.schema.json", "schema/blog-image-review.schema.json",
-        "examples/blog-image-brief-v1.json", "skills/autoseo-image-gen/references/blog-quality.md",
+        "examples/blog-image-brief-v1.json",
     ):
         assert f"autoseo/{required}" in names
     assert "autoseo/scripts/workflow_catalog.py" in names
