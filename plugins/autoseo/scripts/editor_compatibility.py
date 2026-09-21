@@ -10,6 +10,45 @@ from editor_safety import digest
 from file_safety import read_text_limited
 
 
+def format_toggle_states(page, catalog, feature_ids):
+    """Batch-read a simple visible toolbar; complex/ambiguous UI falls back.
+
+    This never clicks or executes document-provided selectors. Only the shipped
+    aliases are compared; actual changes still use the full accessible resolver.
+    """
+    contracts = {key: catalog.feature(key)["locator"].get("names", []) for key in feature_ids}
+    found = []
+    for frame in page.frames:
+        if frame != page.main_frame and not frame.frame_element().is_visible():
+            continue
+        result = frame.evaluate("""async contracts => {
+            // Selection-change toolbar updates are queued by the browser. Read
+            // after that task, not a stale aria-pressed value from the old range.
+            await new Promise(resolve => setTimeout(resolve, 0));
+            const visible = n => !!n.getClientRects().length &&
+                getComputedStyle(n).visibility !== 'hidden' && !n.closest('[aria-hidden=true]');
+            if ([...document.querySelectorAll('[role=dialog]')].some(visible)) return null;
+            const bars = [...document.querySelectorAll('[role=toolbar]')].filter(visible);
+            if (bars.length !== 1) return null;
+            const buttons = [...bars[0].querySelectorAll('button, [role=button]')].filter(visible);
+            const name = n => n.hasAttribute('aria-labelledby') ?
+                n.getAttribute('aria-labelledby').split(/\\s+/).map(id => document.getElementById(id)?.textContent || '').join(' ').trim() :
+                (n.getAttribute('aria-label') || n.textContent || '').trim();
+            const result = {};
+            for (const [key, aliases] of Object.entries(contracts)) {
+                const matches = buttons.filter(n => aliases.includes(name(n)));
+                if (matches.length !== 1 || matches[0].disabled || matches[0].getAttribute('aria-disabled') === 'true') return null;
+                const state = matches[0].getAttribute('aria-pressed');
+                if (state !== 'true' && state !== 'false') return null;
+                result[key] = state;
+            }
+            return result;
+        }""", contracts)
+        if result is not None:
+            found.append(result)
+    return found[0] if len(found) == 1 else None
+
+
 def editor_body(page, platform: str, *, kind: str | None = None):
     """One visible body across frames, shared by readiness and driver access."""
     selectors = {

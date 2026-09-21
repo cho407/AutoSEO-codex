@@ -15,6 +15,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlsplit
 
+from blog_format import (
+    html_attributes,
+    requires_html,
+    validate_preset,
+    validate_role,
+    validate_style,
+)
+from blog_image import normalize_generated_images
 from file_safety import read_text_limited, resolve_input_file, write_text_safely
 
 SCHEMA_VERSION = 1
@@ -209,6 +217,13 @@ def _validate_block(value: object) -> tuple[dict[str, Any], int]:
     if block_type not in BLOCK_TYPES:
         raise ValueError(f"unsupported Tistory block type: {block_type}")
     result = {"id": identifier, "type": block_type}
+    validate_role(value)
+    if "format_role" in value:
+        result["format_role"] = value["format_role"]
+    if "style" in value:
+        if block_type not in {"paragraph", "heading", "quote"}:
+            raise ValueError("style is supported on text blocks only")
+        result["style"] = validate_style(value["style"])
     characters = 0
     if block_type in {"paragraph", "quote"}:
         result["text"] = _text(value.get("text"), field=f"{block_type}.text")
@@ -296,6 +311,7 @@ def validate_document(value: object) -> dict[str, Any]:
     if not isinstance(document_id, str) or not DOCUMENT_ID_RE.fullmatch(document_id):
         raise ValueError("TistoryDocument requires a stable document_id")
     title = _text(value.get("title"), field="title", limit=200).strip()
+    preset = validate_preset(value["layout_preset"]) if "layout_preset" in value else None
     raw_format = value.get("format", "auto")
     if raw_format not in {"auto", "markdown", "html"}:
         raise ValueError("format must be auto, markdown, or html")
@@ -329,6 +345,11 @@ def validate_document(value: object) -> dict[str, Any]:
     unreferenced = media_ids - referenced_media
     if unreferenced:
         raise ValueError(f"unreferenced media entries: {sorted(unreferenced)}")
+    styled = requires_html({"layout_preset": preset, "blocks": blocks})
+    if styled:
+        if raw_format == "markdown":
+            raise ValueError("layout presets and block styles require HTML; use format=auto/html or remove styling")
+        output_format = "html"
     tags_raw = value.get("tags") or []
     if not isinstance(tags_raw, list) or not len(tags_raw) <= 30:
         raise ValueError("tags must be a list with at most 30 entries")
@@ -348,6 +369,8 @@ def validate_document(value: object) -> dict[str, Any]:
         "media": media,
         "tags": tags,
         "publish_settings": _publish_settings(value.get("publish_settings")),
+        **({"layout_preset": preset} if preset is not None else {}),
+        **({"generated_images": normalize_generated_images(value)} if "generated_images" in value else {}),
     }
 
 
@@ -407,6 +430,8 @@ def render_document(
     target = output_format or document["format"]
     if target not in {"markdown", "html"}:
         raise ValueError("output_format must be markdown or html")
+    if target == "markdown" and requires_html(document):
+        raise ValueError("styled documents require HTML; Markdown cannot preserve the layout")
     media = {item["id"]: item for item in document["media"]}
     rendered: list[str] = []
     for block in document["blocks"]:
@@ -449,23 +474,27 @@ def render_document(
                     value += f"\n\n*{_markdown_text(item['caption'])}*"
                 rendered.append(value)
         else:
+            attrs = html_attributes(block, document.get("layout_preset"))
+            def text(content):
+                escaped = html.escape(content)
+                return escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>") if attrs else escaped
             if block_type == "paragraph":
-                rendered.append(f"<p>{html.escape(block['text'])}</p>")
+                rendered.append(f"<p{attrs}>{text(block['text'])}</p>")
             elif block_type == "heading":
                 rendered.append(
-                    f"<h{block['level']}>{html.escape(block['text'])}</h{block['level']}>"
+                    f"<h{block['level']}{attrs}>{text(block['text'])}</h{block['level']}>"
                 )
             elif block_type == "quote":
-                rendered.append(f"<blockquote>{html.escape(block['text'])}</blockquote>")
+                rendered.append(f"<blockquote{attrs}>{text(block['text'])}</blockquote>")
             elif block_type in {"unordered-list", "ordered-list"}:
                 tag = "ul" if block_type == "unordered-list" else "ol"
                 items = "".join(f"<li>{html.escape(item)}</li>" for item in block["items"])
-                rendered.append(f"<{tag}>{items}</{tag}>")
+                rendered.append(f"<{tag}{attrs}>{items}</{tag}>")
             elif block_type == "code":
                 language = html.escape(block["language"], quote=True)
                 class_name = f' class="language-{language}"' if language else ""
                 rendered.append(
-                    f"<pre><code{class_name}>{html.escape(block['code'])}</code></pre>"
+                    f"<pre{attrs}><code{class_name}>{html.escape(block['code'])}</code></pre>"
                 )
             elif block_type == "table":
                 headers = "".join(f"<th>{html.escape(item)}</th>" for item in block["headers"])
@@ -473,20 +502,22 @@ def render_document(
                     "<tr>" + "".join(f"<td>{html.escape(item)}</td>" for item in row) + "</tr>"
                     for row in block["rows"]
                 )
-                rendered.append(f"<table><thead><tr>{headers}</tr></thead><tbody>{rows}</tbody></table>")
+                table = f"<table{attrs}><thead><tr>{headers}</tr></thead><tbody>{rows}</tbody></table>"
+                rendered.append(f'<div style="overflow-x:auto">{table}</div>' if attrs else table)
             elif block_type == "divider":
-                rendered.append("<hr>")
+                rendered.append(f"<hr{attrs}>")
             elif block_type == "image":
                 item = media[block["media_id"]]
                 source = html.escape(_media_source(item, media_urls), quote=True)
                 alt = html.escape(item["alt"], quote=True)
+                caption_attrs = html_attributes({"type": "paragraph", "format_role": "caption"}, document.get("layout_preset"))
                 caption = (
-                    f"<figcaption>{html.escape(item['caption'])}</figcaption>"
+                    f"<figcaption{caption_attrs}>{html.escape(item['caption'])}</figcaption>"
                     if item["caption"]
                     else ""
                 )
                 rendered.append(
-                    f'<figure class="imageblock"><img src="{source}" alt="{alt}">{caption}</figure>'
+                    f'<figure class="imageblock"{attrs}><img src="{source}" alt="{alt}">{caption}</figure>'
                 )
     return "\n\n".join(rendered).strip() + "\n"
 

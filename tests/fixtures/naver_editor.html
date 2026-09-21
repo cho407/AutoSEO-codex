@@ -12,6 +12,12 @@
   <button aria-label="정렬" data-value="left" id="align">정렬</button>
   <div id="align-menu" hidden><button data-align="left">왼쪽</button><button data-align="center">가운데</button><button data-align="right">오른쪽</button></div>
   <button aria-label="사진" id="photo">사진</button>
+  <button aria-label="글자 크기" data-value="16" data-menu="size">글자 크기</button>
+  <div data-options="size" hidden><button data-size="14">14</button><button data-size="16">16</button><button data-size="18">18</button><button data-size="20">20</button><button data-size="24">24</button></div>
+  <button aria-label="글자색" data-value="#333333" data-menu="color">글자색</button>
+  <div data-options="color" hidden><button data-color="#333333">#333333</button><button data-color="#666666">#666666</button></div>
+  <button aria-label="줄 간격" data-value="1.8" data-menu="line_spacing">줄 간격</button>
+  <div data-options="line_spacing" hidden><button data-line_spacing="1.6">1.6</button><button data-line_spacing="1.8">1.8</button></div>
 </div>
 <div class="se-main-container"><div role="textbox" aria-label="본문" contenteditable="true"><p><br></p></div></div>
 <input type="file" accept="image/*" id="upload" hidden>
@@ -26,6 +32,21 @@ function syncFormatButtons() {
   document.querySelectorAll('[data-format]').forEach(button => button.setAttribute('aria-pressed', String(document.queryCommandState(button.dataset.format))));
 }
 document.addEventListener('selectionchange', syncFormatButtons);
+document.querySelector('[contenteditable]').style.cssText = 'font-size:16px;line-height:1.8;color:#333333';
+document.querySelectorAll('[data-menu]').forEach(button => button.onclick = () => {
+  document.querySelector(`[data-options="${button.dataset.menu}"]`).hidden = false;
+});
+for (const [field, property] of [['size','fontSize'],['color','color'],['line_spacing','lineHeight']]) {
+  document.querySelectorAll(`[data-${field}]`).forEach(button => button.onclick = () => {
+    const selection = window.getSelection();
+    const anchor = selection.anchorNode;
+    const element = anchor.nodeType === Node.TEXT_NODE ? anchor.parentElement : anchor;
+    const paragraph = element.closest('p,h2,h3,blockquote');
+    paragraph.style[property] = button.dataset[field] + (field === 'size' ? 'px' : '');
+    document.querySelector(`[data-menu="${field}"]`).dataset.value = button.dataset[field];
+    document.querySelector(`[data-options="${field}"]`).hidden = true;
+  });
+}
 document.querySelectorAll('[data-format]').forEach(button => button.onclick = () => {
   document.execCommand(button.dataset.format);
   syncFormatButtons();

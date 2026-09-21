@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "description": "Ordered local rules. Facts only: never execute selectors, code or model-supplied actions.",
+  "rules": [
+    {"when": {"publication": true}, "action": "approval-required"},
+    {"when": {"unavailable": true}, "action": "stop"},
+    {"when": {"pending": true, "save": true}, "action": "reconcile"},
+    {"when": {"completed": true, "save": true}, "action": "skip"},
+    {"when": {"completed": true, "verified": true}, "action": "skip"},
+    {"when": {"completed": true}, "action": "reconcile"},
+    {"when": {"pending": true, "verified": true}, "action": "record"},
+    {"when": {"pending": true, "unchanged": false}, "action": "reconcile"},
+    {"when": {"guided": true}, "action": "guide"},
+    {"when": {}, "action": "execute"}
+  ]
+}

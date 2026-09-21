@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BlogImageBrief v1",
+  "type": "object",
+  "required": ["schema_version", "topic", "title"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 1},
+    "topic": {"type": "string", "minLength": 1, "maxLength": 200},
+    "title": {"type": "string", "minLength": 1, "maxLength": 70},
+    "subtitle": {"type": "string", "maxLength": 120},
+    "visual_subject": {"type": "string", "minLength": 1, "maxLength": 240, "pattern": "\\S"},
+    "art_direction": {"type": "string", "minLength": 1, "maxLength": 600, "pattern": "\\S"},
+    "article_context": {"type": "string", "minLength": 1, "maxLength": 300, "pattern": "\\S"},
+    "aspect_ratio": {"enum": ["16:9", "4:3", "1:1", "4:5", "1.91:1"]},
+    "role": {"enum": ["hero", "explainer", "og"], "default": "hero"},
+    "theme": {"const": "clean-editorial"},
+    "palette": {"enum": ["contextual", "sage", "blue", "clay"], "description": "Defaults to contextual for social-card/editorial/cover/photo; sage for explicit card/steps templates."},
+    "layout": {"enum": ["social-card", "editorial", "cover", "photo", "card", "steps"], "default": "social-card"},
+    "items": {"type": "array", "maxItems": 4, "items": {"type": "string", "minLength": 1, "maxLength": 50}},
+    "reference_urls": {"type": "array", "maxItems": 5, "items": {"type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2048}}
+  },
+  "allOf": [
+    {"if": {"required": ["layout"], "properties": {"layout": {"const": "steps"}}},
+     "then": {"required": ["items"], "properties": {"items": {"minItems": 2}}},
+     "else": {"properties": {"items": {"maxItems": 0}}}},
+    {"if": {"properties": {"layout": {"enum": ["social-card", "editorial", "cover"]}}},
+     "then": {"required": ["visual_subject"]}},
+    {"if": {"required": ["layout"], "properties": {"layout": {"enum": ["card", "steps"]}}},
+     "then": {"properties": {"palette": {"enum": ["sage", "blue", "clay"]}}}},
+    {"if": {"required": ["role"], "properties": {"role": {"const": "og"}}},
+     "then": {"properties": {"aspect_ratio": {"const": "1.91:1"}}},
+     "else": {"properties": {"aspect_ratio": {"enum": ["16:9", "4:3", "1:1", "4:5"]}}}}
+  ]
+}

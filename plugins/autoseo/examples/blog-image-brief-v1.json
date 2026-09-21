@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "role": "hero",
+  "topic": "새로운 블로그 글을 준비하는 방법",
+  "title": "좋은 글은 차분한 준비에서",
+  "visual_subject": "창가 책상 위 펼친 노트와 연필, 옆에 놓인 한 잔의 차",
+  "art_direction": "인스타 카드뉴스처럼 짧고 선명한 제목과 노트 삽화를 하나의 구도로 배치한다. 종이 결과 부드러운 자연광, 명확한 글자 위계. 한 장에 한 메시지만 전달하고 빽빽한 목록과 반복 박스는 쓰지 않는다.",
+  "article_context": "자료를 읽고 초고를 준비하는 도입부의 분위기. 실제 취재나 사용자의 책상을 촬영한 사진으로 소개하지 않는다.",
+  "theme": "clean-editorial",
+  "palette": "contextual",
+  "layout": "social-card",
+  "aspect_ratio": "1:1",
+  "reference_urls": []
+}

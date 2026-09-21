@@ -2,6 +2,7 @@
   "schema_version": 1,
   "document_id": "example-korean-guide",
   "title": "검색 사용자가 바로 이해하는 근거 중심 글쓰기",
+  "layout_preset": "blog-centered",
   "background": {
     "type": "none"
   },
@@ -9,10 +10,10 @@
     {
       "id": "answer",
       "type": "paragraph",
+      "format_role": "intro",
       "text": "좋은 검색 콘텐츠는 질문에 먼저 답하고 중요한 주장 가까이에 확인 가능한 근거를 둡니다.",
       "style": {
-        "bold": true,
-        "alignment": "left"
+        "bold": true
       },
       "links": []
     },

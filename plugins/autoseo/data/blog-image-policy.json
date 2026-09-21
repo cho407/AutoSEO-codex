@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "theme": "clean-editorial",
+  "roles": {
+    "hero": {"width": 1600, "height": 900, "min_width": 1280, "min_height": 720},
+    "explainer": {"width": 1600, "height": 900, "min_width": 1280, "min_height": 720},
+    "og": {"width": 1200, "height": 630, "min_width": 1200, "min_height": 630}
+  },
+  "aspect_ratios": {
+    "16:9": {"width": 1600, "height": 900, "min_width": 1280, "min_height": 720},
+    "4:3": {"width": 1600, "height": 1200, "min_width": 1200, "min_height": 900},
+    "1:1": {"width": 1600, "height": 1600, "min_width": 1200, "min_height": 1200},
+    "4:5": {"width": 1280, "height": 1600, "min_width": 1080, "min_height": 1350}
+  },
+  "max_bytes": 8388608,
+  "max_pixels": 24000000,
+  "aspect_tolerance": 0.03,
+  "max_regenerations": 1,
+  "palettes": {
+    "sage": {"background": "#F7F8F4", "ink": "#182B26", "accent": "#326853", "panel": "#E6EEE7"},
+    "blue": {"background": "#F5F7FA", "ink": "#142B42", "accent": "#305B8C", "panel": "#E5EBF3"},
+    "clay": {"background": "#FAF7F2", "ink": "#342820", "accent": "#985236", "panel": "#F0E5D9"}
+  },
+  "visual_checks": ["topic_match", "clean_composition", "legible_at_mobile", "no_visual_artifacts", "truthful", "safe_crop"],
+  "visual_check_guidance": {
+    "topic_match": "A concrete subject supports the adjacent prose; a generic headline on a blank canvas is not enough for editorial/photo layouts.",
+    "clean_composition": "Reject a generic presentation slide with interchangeable boxes, dense bullets or unrelated icons. Social-card layouts may use a prominent headline, designed panels and strong hierarchy when they deliver one clear message with a relevant image. Judge the stated purpose, not a ban on large text or all cards.",
+    "legible_at_mobile": "Inspect at 375px wide. Main subject and any required labels must survive; do not rasterize paragraphs or add tiny decorative footnotes.",
+    "no_visual_artifacts": "Inspect actual objects, texture, perspective and text, not only image dimensions. Reject broken geometry, garbled letters and plastic-looking clutter.",
+    "truthful": "Verify product, UI, people, place and data against provenance. A conceptual illustration must not masquerade as a real event, service screenshot or first-hand photo.",
+    "safe_crop": "Inspect the selected aspect ratio in the article and thumbnail context; do not force a photo into a slide or crop away evidence."
+  },
+  "layout_rules": {
+    "social-card": "Create an Instagram-style editorial card-news image: one message, a short approved headline, an optional brief supporting line, and a substantial relevant photo or illustration. Integrate type and image into a deliberate composition with strong mobile hierarchy. Keep shared typography and palette across a series while varying composition. Large type and intentional panels are welcome; avoid dense bullets, generic report grids, tiny footnotes, fake facts and engagement promises. Do not replace the visual with a blank text-only slide.",
+    "editorial": "Create a subject-led editorial illustration or tangible scene with purposeful texture, depth and one focal subject. Title and subtitle are metadata, not embedded text. Do not turn the scene into a presentation slide, title card, icon grid or numbered panels.",
+    "cover": "Create an editorial blog cover, not a presentation slide. Use the approved short title only and optional short subtitle. Tactile paper, restrained hand lettering or collage may follow an inspected reference, but are not mandatory. No invented date, badge or source stamp; no bullet list or summary grid.",
+    "photo": "Create a photographic composition around the subject and coherent light. Title and subtitle are metadata, not embedded text. No text-card substitute. Use a real authorized source instead when the purpose requires documentary evidence or exact product/UI details.",
+    "card": "An explicit typography card was requested. Render only the approved title and subtitle; keep it legible and do not claim it is a photograph or editorial illustration.",
+    "steps": "An explicit process graphic was requested. Render only the approved ordered labels. Use this for a real sequence, not decorative numbered tiles or a mandatory article summary."
+  },
+  "prompt_rules": [
+    "Clean means intentional and readable, not empty or corporate. Make an image that belongs inside a blog article, not a presentation slide by default.",
+    "Choose subject, scene, material and light before decoration. Keep natural proportions, coherent depth and controlled detail; avoid generic stock 3D icons, decorative clutter and meaningless grids.",
+    "Use topic-specific color and texture. Paper, pencil, collage or photography are possible directions, not mandatory templates; do not substitute a beige background and rounded boxes for visual storytelling.",
+    "Keep important details within a 6% safe margin; inspect the complete image and a 375px-wide mobile preview.",
+    "No watermark, fabricated logo, made-up statistic, illegible pseudo-text or artificial product detail. Never invent a scene as evidence of personal experience.",
+    "Follow the selected layout's text treatment. Put explanations and sources in the article caption; never default to a text-heavy card when generation is weak.",
+    "An inspected reference can guide material, mood, subject scale and composition. A URL alone is not evidence of inspection. Do not copy artwork, logos or distinctive compositions."
+  ],
+  "references": [
+    {"url": "https://developers.google.com/search/docs/appearance/google-images", "use": "Relevance, quality, contextual alt text; no ranking guarantee."},
+    {"url": "https://developers.google.com/search/docs/appearance/google-discover", "use": "Large relevant images and cropping. Not a Naver requirement."}
+  ]
+}

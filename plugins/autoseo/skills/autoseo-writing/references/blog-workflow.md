@@ -40,6 +40,11 @@ authorization take precedence over these defaults.
 
 ## Body and visual deliverables
 
+- Apply [blog-format.md](blog-format.md) once: new drafts use
+  `layout_preset: "blog-centered"`, short centered prose, consistent H2/H3 styles,
+  and left-aligned detail/source blocks. Explicit user styles win. Use
+  `article-readable` for a requested left-aligned article; never force new defaults
+  onto old drafts. Styled Tistory documents use `format: "auto"`/`"html"`.
 - Write at least **1,500 body characters excluding whitespace** for a new Korean blog
   article. Count visible prose, headings, and lists; exclude title, markup, URLs,
   captions, alt text, and source ledger. Report the count after one final polish.
@@ -47,12 +52,16 @@ authorization take precedence over these defaults.
 - Use a specific title, an answer-first introduction, readable sections, practical
   examples/steps or evidence, and a useful ending. Attribute material claims with
   source links. Adapt the structure to the topic.
-- Include a representative header/hero image and at least one explanatory visual:
-  a process diagram, comparison, timeline, decision tree, or compact concept summary.
-  Choose a narrative summary illustration for topics without process/data. Add other
-  supporting images only where they clarify the text.
+- Plan a representative header/hero and a supporting visual near the relevant
+  prose. The latter may be an actual product/source photo or a topic-specific
+  illustration; it need not be an infographic. Use a process diagram, comparison,
+  timeline or decision tree only when the relationship is clearer visually. Do not
+  force a summary grid or pad the image count when no useful second image exists;
+  disclose an omitted required asset instead of inventing evidence.
 - Load `autoseo-image-gen` only for assets being generated. Use the host's available
-  image tool for the hero (16:9, target 1600 × 900). Use it for illustrative diagrams,
+  image tool for a social-card hero (one short message plus a relevant visual,
+  1:1 or 4:5 by default). Keep 16:9/4:3 editorial/photo options when they fit the
+  purpose or user preference. Use the tool for illustrative diagrams,
   or a deterministic diagram/chart renderer when exact labels/numbers matter. Export
   diagrams as blog-supported image files; Mermaid/code alone is not an inserted
   visual. A 2:3 infographic master can be used when a vertical layout helps; adapt
@@ -61,12 +70,22 @@ authorization take precedence over these defaults.
   must match the sources; conceptual diagrams must match the article. Simplify or
   fix an incorrect image, and never fabricate data or treat a prompt as an image.
   If generation is unavailable, save the brief and report the missing asset.
+- For default hero/explainer/OG assets, follow `autoseo-image-gen`'s
+  `references/blog-quality.md`: one concise JSON brief with subject, visual direction
+  and article context; visual-led social-card defaults, full-size/mobile
+  inspection and six hash-bound visual checks. Clean does not mean a presentation
+  slide. Preserve purposeful reference traits such as tactile covers or actual
+  source photos without imposing them on every post. After one failed regeneration
+  or an unavailable host tool, do not automatically replace imagery with a card.
+  Local templates require an explicit card/steps choice. Declare all
+  generated assets in `generated_images` with brief/review before editor handoff.
 - Save images under the approved blog directory with descriptive filenames,
   dimensions, concise alt text, captions, and source/AI provenance where required.
   Preserve originals. Use local privacy derivatives for user photos as supported;
   do not send private pixels to an unapproved service.
 - For Naver, use the hero as the first `photo` block with background `none`, followed
-  by explanatory image blocks near their related prose. For Tistory, use local
+  by supporting image blocks near their related prose, not a stack of cards before
+  the introduction. For Tistory, use local
   `media` entries with `image` blocks. Avoid guided title backgrounds, decorative
   choosers, and image-edit dialogs in the normal login-only flow. Use an explicit
   thumbnail selector only when supported; an in-body hero is not proof of a separately
@@ -80,6 +99,12 @@ Load only the matching `autoseo-naver-editor` or `autoseo-tistory-editor` skill.
 For a ready document, use its compose helper. If a session is already open, continue
 with that session's guarded driver/automation; do not call a second CLI that opens
 another profile. Do not run `learn` as a separate prerequisite.
+
+Serialize the finished article once. The driver consumes JSON and shipped decision
+rules without per-click model calls. Use `plan <document>` only for a needed preview
+and `capabilities` only for unfamiliar features. Do not reread the full document,
+catalog, checkpoint, DOM or screenshots for each operation. Normal results are
+compact JSON; unknown UI/guided choices return to the user.
 
 The user handles login, 2FA, and CAPTCHA. Continue automatically when the editor is
 ready. Detect control language from page/browser metadata; English UI never changes

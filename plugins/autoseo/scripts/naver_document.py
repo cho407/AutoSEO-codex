@@ -12,6 +12,8 @@ import stat
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from blog_format import effective_style, validate_preset, validate_role
+from blog_image import normalize_generated_images
 from file_safety import resolve_input_file
 from url_safety import validate_url
 
@@ -229,6 +231,7 @@ def _validate_block(
     if (set(block) & {"path", "paths", "replace_path"}) - allowed_paths:
         raise ValueError(f"unsupported attachment fields for {block_type} block")
     normalized = copy.deepcopy(block)
+    validate_role(block)
     text_chars = 0
     attachment_count = 0
     if block_type in TEXT_BLOCK_TYPES:
@@ -341,6 +344,7 @@ def validate_document(
     if not isinstance(document_id, str) or not DOCUMENT_ID_RE.fullmatch(document_id):
         raise ValueError("document_id must be a safe stable identifier")
     title = document.get("title")
+    preset = validate_preset(document["layout_preset"]) if "layout_preset" in document else None
     if not isinstance(title, str) or not title.strip() or len(title) > 200:
         raise ValueError("title must contain between 1 and 200 characters")
     background = document.get("background", {"type": "none"})
@@ -424,6 +428,8 @@ def validate_document(
         "tags": [tag.strip() for tag in tags],
         "publish_settings": settings,
         "editor_options": {"spellcheck": editor_options.get("spellcheck", False)},
+        **({"layout_preset": preset} if preset is not None else {}),
+        **({"generated_images": normalize_generated_images(document)} if "generated_images" in document else {}),
     }
 
 
@@ -500,7 +506,10 @@ def build_operations(document: object) -> list[dict[str, Any]]:
         add("title-background", value["background"], guided=True)
     for block in value["blocks"]:
         feature = BLOCK_FEATURES[block["type"]]
-        add(feature, block, guided=block["type"] in GUIDED_BLOCK_TYPES)
+        payload = block
+        if block["type"] in TEXT_BLOCK_TYPES:
+            payload = {**block, "style": effective_style(block, value.get("layout_preset"))}
+        add(feature, payload, guided=block["type"] in GUIDED_BLOCK_TYPES)
         if block["type"] in TEXT_BLOCK_TYPES:
             for link in block.get("links", []):
                 add(

@@ -436,18 +436,24 @@ def test_schema_and_bundled_example_are_valid() -> None:
     assert tistory_document.validate_document(example)["schema_version"] == 1
 
 
-def test_export_cli_writes_markdown_and_refuses_silent_overwrite(
-    tmp_path: Path,
+@pytest.mark.parametrize("output_format", ["markdown", "html"])
+def test_export_cli_preserves_requested_format_and_refuses_silent_overwrite(
+    tmp_path: Path, output_format: str,
 ) -> None:
     example = PLUGIN / "examples" / "tistory-document-v1.json"
-    output = tmp_path / "article.md"
+    source = json.loads(example.read_text(encoding="utf-8"))
+    if output_format == "markdown":
+        source.update(layout_preset="none", format="markdown")
+    document = tmp_path / "document.json"
+    document.write_text(json.dumps(source, ensure_ascii=False), encoding="utf-8")
+    output = tmp_path / ("article.md" if output_format == "markdown" else "article.html")
     command = [
         sys.executable,
         str(SCRIPTS / "tistory_document.py"),
         "render",
-        str(example),
+        str(document),
         "--format",
-        "markdown",
+        output_format,
         "--output",
         str(output),
     ]
@@ -456,7 +462,13 @@ def test_export_cli_writes_markdown_and_refuses_silent_overwrite(
     second = subprocess.run(command, capture_output=True, text=True, check=False)
 
     assert first.returncode == 0, first.stderr
-    assert "## 확인 근거" in output.read_text(encoding="utf-8")
+    content = output.read_text(encoding="utf-8")
+    if output_format == "markdown":
+        assert "## 확인 근거" in content
+    else:
+        assert '<h2 style="' in content
+        assert "text-align:center" in content
+        assert "확인 근거</h2>" in content
     assert second.returncode == 2
 
 

@@ -17,6 +17,8 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import editor_compatibility
+from blog_image import require_image_reviews
+from editor_protocol import capabilities, compact_result, document_plan, operation_decision
 from editor_safety import (
     CHECKPOINT_DEFAULTS,
     FreshSaveReceipt,
@@ -287,6 +289,7 @@ class EditorAutomation:
     @locked_document
     def apply(self, document: object, driver: Any) -> dict[str, Any]:
         value = validate_document(document)
+        require_image_reviews(value)
         checkpoint = self.store.load_or_create(value)
         source_stamps = attachment_stamps(value)
         operations = build_operations(value)
@@ -298,18 +301,12 @@ class EditorAutomation:
             if attachment_stamps(value) != source_stamps:
                 raise ValueError("source attachment changed since approval; request a new document preview")
             operation_id = operation["operation_id"]
-            if operation_id in completed:
-                if operation["feature_id"] != "draft-save" and not driver.verify(operation):
-                    raise EditorUIChanged("completed content changed; reconcile before resuming")
-                continue
             try:
-                pending = checkpoint.get("pending_operation_id") == operation_id
-                already_applied = pending and driver.verify(operation)
-                unchanged = hasattr(driver, "snapshot_hash") and driver.snapshot_hash() == checkpoint.get("surface_hash")
-                if pending and not already_applied and not unchanged:
-                    raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
-                if pending and operation["feature_id"] == "draft-save":
-                    raise EditorUIChanged("interrupted save requires manual reconciliation; do not save again")
+                decision = operation_decision(checkpoint, operation, driver)
+                if decision == "skip":
+                    continue
+                if decision not in {"execute", "guide", "record"}:
+                    raise EditorUIChanged("content changed or operation uncertain; manual reconciliation required; reconcile before retrying")
                 mark_operation_pending(checkpoint, operation, driver)
                 if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
                     raise ValueError("source attachment hash changed before saving")
@@ -317,9 +314,9 @@ class EditorAutomation:
                     if not driver.verify_document(value):
                         raise EditorUIChanged("final document differs from the approved content; reconcile before saving")
                 self.store.save(checkpoint)
-                if already_applied:
+                if decision == "record":
                     pass
-                elif operation.get("guided"):
+                elif decision == "guide":
                     if not driver.guide(operation):
                         raise GuidedChoiceRequired(
                             f"guided choice is incomplete for {operation['feature_id']}"
@@ -626,12 +623,18 @@ class PlaywrightNaverDriver:
             "superscript": "superscript",
             "subscript": "subscript",
         }
+        # One fresh read, not a cached selection state. Menu/selection changes
+        # invalidate formatting immediately, so never reuse values across blocks.
+        states = editor_compatibility.format_toggle_states(self.page, self.catalog, boolean_features.values())
         for field, feature_id in boolean_features.items():
             if field not in style and not reset_booleans:
                 continue
             try:
-                _, control = self.resolver.locate(feature_id)
-                current = control.get_attribute("aria-pressed")
+                if states is not None:
+                    current = states[feature_id]
+                else:
+                    _, control = self.resolver.locate(feature_id)
+                    current = control.get_attribute("aria-pressed")
             except EditorUIChanged:
                 if not style.get(field):
                     continue
@@ -641,7 +644,10 @@ class PlaywrightNaverDriver:
             enabled = current == "true"
             restore[field] = enabled
             if bool(style.get(field, False)) != enabled:
-                self.resolver.click(feature_id)
+                _, control = self.resolver.locate(feature_id)
+                if control.get_attribute("aria-pressed") != current:
+                    raise EditorUIChanged(f"format selection changed: {field}")
+                control.click()
                 if control.get_attribute("aria-pressed") != str(bool(style.get(field, False))).lower():
                     raise EditorUIChanged(f"format toggle did not change: {field}")
         menu_features = {
@@ -660,6 +666,8 @@ class PlaywrightNaverDriver:
             if previous is None:
                 raise EditorUIChanged(f"current {field} is unknown; use guided formatting")
             restore[field] = previous
+            if str(value) == previous:
+                continue
             self.resolver.click(feature_id)
             aliases = ({
                 "left": ["왼쪽", "Left", "Align left"],
@@ -677,7 +685,16 @@ class PlaywrightNaverDriver:
             self.resolver.click(feature_id)
         body = self._body_locator()
         body.click()
-        body.press("ControlOrMeta+End")
+        # Cmd+End scrolls without reliably moving the caret on macOS. Position
+        # the selection at the last paragraph, without changing editor HTML.
+        body.evaluate("""node => {
+            node.focus();
+            const lines = [...node.querySelectorAll('p,h1,h2,h3,h4,blockquote')]
+                .filter(n => !n.querySelector('p,h1,h2,h3,h4,blockquote'));
+            const end = lines.at(-1) || node;
+            const range = document.createRange(); range.selectNodeContents(end); range.collapse(false);
+            const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        }""")
         self.page.keyboard.insert_text(payload["text"])
         block = body.get_by_text(payload["text"], exact=True)
         if block.count() != 1:
@@ -1442,6 +1459,7 @@ def _compose(
 ) -> dict[str, Any]:
     if document["publish_settings"]["mode"] != "draft":
         raise ValueError("compose and resume require publish_settings.mode=draft")
+    require_image_reviews(document)
     store = CheckpointStore(data_dir)
     catalog = FeatureCatalog.load()
     with NaverBrowserSession(
@@ -1457,19 +1475,21 @@ def _compose(
             page, catalog=catalog, data_dir=data_dir
         )
         try:
+            started = time.perf_counter()
             checkpoint = EditorAutomation(store).apply(document, driver)
+            elapsed_ms = (time.perf_counter() - started) * 1000
         except Exception:
             if not close_after:
                 browser.keep_open_until_closed()
             raise
         checkpoint["draft_url"] = _verified_draft_url(str(page.url))
         store.save(checkpoint)
-        print(json.dumps({"event": "draft-saved", "document_id": document["document_id"],
-                          "save_state": checkpoint["save_state"], "draft_url": checkpoint["draft_url"]}),
+        result = compact_result(checkpoint, platform="naver", elapsed_ms=elapsed_ms)
+        print(json.dumps({"event": "draft-saved", **result}, ensure_ascii=False, separators=(",", ":")),
               file=sys.stderr, flush=True)
         if not close_after:
             browser.keep_open_until_closed()
-        return checkpoint
+        return result
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1477,6 +1497,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-dir", help="override AUTOSEO_DATA_DIR for this command")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor")
+    sub.add_parser("capabilities")
+    plan = sub.add_parser("plan")
+    plan.add_argument("document", type=Path)
     def add_browser_options(command: argparse.ArgumentParser) -> None:
         command.add_argument(
             "--cdp-endpoint",
@@ -1530,6 +1553,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        if args.command == "capabilities":
+            print(json.dumps(capabilities(FeatureCatalog.load()), ensure_ascii=False, separators=(",", ":")))
+            return 0
+        if args.command == "plan":
+            print(json.dumps(document_plan(_load_document(args.document), platform="naver"), ensure_ascii=False, separators=(",", ":")))
+            return 0
         if args.command == "doctor":
             data_dir = _data_path(args.data_dir, create=False)
             catalog = FeatureCatalog.load()

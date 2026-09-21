@@ -19,6 +19,13 @@
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"
     },
     "title": {"type": "string", "minLength": 1, "maxLength": 200},
+    "layout_preset": {"enum": ["blog-centered", "article-readable", "none"], "description": "New blog drafts select blog-centered; omission preserves legacy formatting."},
+    "generated_images": {
+      "type": "array", "maxItems": 50,
+      "description": "Generated assets must pass blog_image.py checks before upload. Real user photos do not require this metadata.",
+      "items": {"type": "object", "required": ["path", "brief", "review"], "additionalProperties": false,
+        "properties": {"path": {"type": "string"}, "brief": {"$ref": "blog-image-brief.schema.json"}, "review": {"$ref": "blog-image-review.schema.json"}}}
+    },
     "background": {
       "type": "object",
       "required": ["type"],
@@ -77,6 +84,8 @@
     },
     "block": {
       "type": "object",
+      "if": {"required": ["format_role"]},
+      "then": {"properties": {"type": {"const": "paragraph"}}},
       "required": ["id", "type"],
       "properties": {
         "id": {
@@ -109,6 +118,7 @@
         "text": {"type": "string", "maxLength": 100000},
         "level": {"enum": [2, 3]},
         "style": {"$ref": "#/$defs/style"},
+        "format_role": {"enum": ["body", "intro", "summary", "caption", "source", "detail"], "description": "Paragraph role; does not rewrite or reorder content."},
         "links": {
           "type": "array",
           "maxItems": 50,

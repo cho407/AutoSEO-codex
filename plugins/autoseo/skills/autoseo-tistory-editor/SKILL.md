@@ -14,6 +14,8 @@ local Markdown and HTML export remains available without a browser or login.
 | Prompt | Outcome |
 |---|---|
 | `@autoseo tistory-editor doctor` | Read-only browser, image-runtime, catalog, and profile-permission check |
+| `@autoseo tistory-editor plan <document>` | Compact JSON operation summary; no account access |
+| `@autoseo tistory-editor capabilities` | Feature classifications and local decision rules |
 | `@autoseo tistory-editor learn` | Local compatibility map for the current Tistory editor UI |
 | `@autoseo tistory-editor export-markdown <document>` | Render `TistoryDocument v1` as GitHub-style Markdown without account access |
 | `@autoseo tistory-editor export-html <document>` | Render the same structured document as escaped HTML |
@@ -45,10 +47,24 @@ Create or validate `TistoryDocument v1` before opening the account. An explicit
 compose/resume request authorizes one document- and media-bound draft save after the
 user completes login; no second save confirmation is required. It supports
 paragraphs, headings, quotes, ordered and unordered lists, code, tables, dividers,
-images, captions, tags, category, visibility, comments, and scheduled time. Use
-Markdown by default; choose HTML when exact generated markup is useful. Do not
+images, captions, tags, category, visibility, comments, and scheduled time. For new
+blog drafts, use `layout_preset: "blog-centered"` and `format: "auto"`; styling
+selects HTML to preserve alignment, heading hierarchy, and spacing. Follow
+`autoseo-writing/references/blog-format.md` from the skills directory. Explicit
+block styles take precedence; `article-readable` uses left-aligned prose and
+`none` disables preset styling. Unstyled legacy documents keep Markdown. Never
+silently remove styles for Markdown export; ask which format the user wants. Do not
 switch modes after body insertion because the editor can transform content between
 modes.
+
+Send one JSON file; retain one source-buffer write, not model decisions per click.
+Shipped decision rules handle known states; normal compose/resume results are
+compact. Mode changes wait for matching visible editable content. Unknown states
+stop and publication still requires separate per-post approval.
+For generated hero/explainer/OG assets declare `generated_images` with brief and
+hash-bound review; follow `autoseo-image-gen/references/blog-quality.md` from the
+skills directory. The driver checks declared assets before upload; the user-photo
+privacy rules below remain separate.
 
 For a new post, require the user's own HTTPS `*.tistory.com/manage/newpost` URL.
 Prepare privacy derivatives, upload each once, fill the full source buffer once, set

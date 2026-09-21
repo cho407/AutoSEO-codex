@@ -33,6 +33,8 @@ Sources and limitations are included in the result.
 @autoseo neo visibility <target>
 @autoseo neo brief <target>
 @autoseo naver-editor doctor
+@autoseo naver-editor plan <document>
+@autoseo naver-editor capabilities
 @autoseo naver-editor learn
 @autoseo naver-editor compose <topic-or-document>
 @autoseo naver-editor resume <draft>
@@ -40,6 +42,8 @@ Sources and limitations are included in the result.
 @autoseo naver-editor publish <draft>
 @autoseo naver-editor schedule <draft-and-time>
 @autoseo tistory-editor doctor
+@autoseo tistory-editor plan <document>
+@autoseo tistory-editor capabilities
 @autoseo tistory-editor learn
 @autoseo tistory-editor export-markdown <document>
 @autoseo tistory-editor export-html <document>
@@ -323,6 +327,22 @@ before the external write.
 
 The library contains 41 guided playbooks. Refresh shows its official source and
 destination and requests confirmation before a network read and local write.
+
+## Blog formatting
+
+New blog writing also applies a consistent layout; see
+[format presets](../plugins/autoseo/skills/autoseo-writing/references/blog-format.md).
+`blog-centered` is the new-draft default; `article-readable` uses left-aligned prose
+and `none` disables automatic styling. Existing documents are not migrated.
+
+```text
+<plugin-root>/scripts/autoseo run blog_format.py presets
+<plugin-root>/scripts/autoseo run blog_format.py apply naver <document.json> --output <new-document.json>
+<plugin-root>/scripts/autoseo run blog_format.py apply tistory <document.json> --preset article-readable --output <new-document.json>
+```
+
+Styled Tistory documents require `format: auto` or `html`; explicit Markdown is not
+silently restyled or stripped. This local helper does not publish.
 
 ## Image generation
 

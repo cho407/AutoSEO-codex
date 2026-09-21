@@ -18,6 +18,16 @@ not require, install, or configure a separate image provider.
 Load `references/image-specs.md` when the user has not supplied platform dimensions,
 provenance requirements, or asset-handling rules.
 
+For generated blog hero/explainer/OG images, load
+[references/blog-quality.md](references/blog-quality.md). Compile the JSON brief
+with `blog_image.py plan` for the clean-editorial minimum, then check the actual
+image and record visual review. Default to a visual-led social-card: one short
+message with a relevant photo/illustration, not a text-only template.
+Use inspected blog references to distinguish a cover, supporting photo and a
+necessary diagram. Permit one regeneration; typography templates require an
+explicit card/steps choice and cannot silently replace weak imagery. Size alone
+is not quality.
+
 ## Commands
 
 | Prompt | Result |
@@ -38,7 +48,8 @@ changing a seed. Never generate an unbounded batch.
 | Use case | Composition | Master size | Direction |
 |---|---|---:|---|
 | OG/social preview | 1.91:1 crop-safe | 1200 x 630 | Clear focal point and room for HTML or approved overlay text |
-| Article hero | 16:9 | 1600 x 900 | Editorial, atmospheric, topic-specific |
+| Blog hero/card-news | 1:1 or 4:5 | 1600 x 1600 or 1280 x 1600 | Short message and a substantial relevant visual |
+| Widescreen editorial hero | 16:9 | 1600 x 900 | Atmospheric, topic-specific |
 | Product/schema | 4:3 or 1:1 | at least 1200 px on the short edge | Accurate product form, neutral or contextual background |
 | Infographic | 2:3 | at least 2000 x 3000 | Strong hierarchy, few labels, source-backed data only |
 | Favicon/icon | 1:1 | 512 x 512 master | Minimal, recognizable at small sizes |
@@ -51,10 +62,19 @@ system when the repository or user supplies one.
 
 1. Identify the command and asset purpose. Confirm the target page, audience, brand
    constraints, factual subject, required text, and output location when missing.
-2. Select the use-case defaults, then define a crop-safe composition. Keep important
+2. If the user asks to match earlier posts, inspect a small relevant sample of their
+   actual covers, in-body images and placement. State what was observed separately
+   from inferred taste; older generated assets are not automatically preferred.
+   Keep personal post URLs, images and identity out of shared plugin files. Reuse
+   the resulting concise style direction during this task, not repeated browsing.
+   Select the use-case defaults, then define a crop-safe composition. Keep important
    faces, products, logos, and text out of likely crop zones.
 3. Write a concrete creative brief covering subject, environment, composition,
-   lighting, visual style, color, exclusions, and intended page context.
+   lighting, visual style, color, exclusions, and intended page context. Clean does
+   not mean blank: avoid generic slide grids and stock icons. A prominent headline
+   or intentional panel in an Instagram-style card is not itself a defect.
+   Tactile covers and exact-label diagrams remain options when the purpose calls
+   for them, not a required look for every image.
 4. Do not invent product features, endorsements, logos, certifications, statistics,
    people, or data. If an infographic lacks verified data, create a visual template
    with explicit placeholders instead of fabricated numbers.

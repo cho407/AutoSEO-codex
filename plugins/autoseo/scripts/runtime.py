@@ -35,12 +35,12 @@ RUNTIME_EXTRAS = {
 ALLOWED_CORE_SCRIPTS = frozenset(
     {
         "agent_ux_check.py", "analyze_visual.py", "backlink_history.py", "benchmark_evidence.py",
-        "bing_webmaster.py", "capture_screenshot.py", "commoncrawl_graph.py",
+        "bing_webmaster.py", "blog_image.py", "capture_screenshot.py", "commoncrawl_graph.py",
         "content_humanize.py", "content_quality.py", "content_verify.py",
         "crux_history.py", "domain_history.py", "drift_baseline.py",
         "drift_compare.py", "drift_history.py", "drift_report.py", "fetch_page.py",
         "evidence_engine.py", "file_safety.py", "free_source_policy.py",
-        "editor_compatibility.py", "editor_safety.py", "readiness_evidence.py",
+        "editor_compatibility.py", "editor_protocol.py", "editor_safety.py", "readiness_evidence.py",
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
         "indexnow_submit.py", "iptc_ai_label.py", "korean_text.py", "lane_engine.py", "lcp_subparts.py", "naver_document.py", "naver_editor.py", "naver_evidence.py", "pagespeed_check.py",
@@ -49,7 +49,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "autoseo_updates.py", "search_evidence.py",
         "sitemap_discovery.py", "tistory_document.py", "tistory_editor.py", "trend_collect.py", "trend_evidence.py", "ucp_check.py", "unlighthouse_run.py",
         "url_safety.py", "verify_backlinks.py",
-        "workflow_catalog.py", "writing_identity.py", "youtube_search.py",
+        "blog_format.py", "workflow_catalog.py", "writing_identity.py", "youtube_search.py",
     }
 )
 REDACTIONS = (

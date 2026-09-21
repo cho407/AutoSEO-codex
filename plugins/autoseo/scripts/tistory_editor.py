@@ -18,6 +18,8 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import editor_compatibility
+from blog_image import require_image_reviews
+from editor_protocol import capabilities, compact_result, document_plan, operation_decision
 from editor_safety import (
     CHECKPOINT_DEFAULTS,
     FreshSaveReceipt,
@@ -302,6 +304,7 @@ class TistoryEditorAutomation:
         prepared_hashes: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         value = validate_document(document)
+        require_image_reviews(value)
         if value["publish_settings"]["mode"] != "draft":
             raise ValueError("compose and resume require publish_settings.mode=draft")
         expected_ids = {item["id"] for item in value["media"]}
@@ -357,24 +360,18 @@ class TistoryEditorAutomation:
             if attachment_stamps(value) != source_stamps:
                 raise ValueError("source attachment changed since approval; request a new document preview")
             operation_id = operation["operation_id"]
-            if operation_id in completed:
-                if operation["feature_id"] != "draft-save" and not driver.verify(operation):
-                    raise EditorUIChanged("completed content changed; reconcile before resuming")
-                continue
             try:
-                pending = checkpoint.get("pending_operation_id") == operation_id
-                already_applied = pending and driver.verify(operation)
-                unchanged = hasattr(driver, "snapshot_hash") and driver.snapshot_hash() == checkpoint.get("surface_hash")
-                if pending and not already_applied and not unchanged:
-                    raise EditorUIChanged("interrupted operation is uncertain; reconcile before retrying")
-                if pending and operation["feature_id"] == "draft-save":
-                    raise EditorUIChanged("interrupted save requires manual reconciliation; do not save again")
+                decision = operation_decision(checkpoint, operation, driver)
+                if decision == "skip":
+                    continue
+                if decision not in {"execute", "record"}:
+                    raise EditorUIChanged("content changed or operation uncertain; manual reconciliation required; reconcile before retrying")
                 mark_operation_pending(checkpoint, operation, driver)
                 if operation["feature_id"] == "draft-save" and document_hash(value) != checkpoint["source_hash"]:
                     raise ValueError("source attachment hash changed before saving")
                 self.store.save(checkpoint)
                 try:
-                    if not already_applied:
+                    if decision != "record":
                         driver.execute(operation)
                 except StaleElementReference:
                     if not driver.verify(operation):
@@ -775,15 +772,25 @@ class PlaywrightTistoryDriver:
     def _select_all(self) -> str:
         return "Meta+A" if sys.platform == "darwin" else "Control+A"
 
-    def _switch_mode(self, target: str) -> None:
+    def _switch_mode(self, target: str, *, timeout_ms: int = 10000) -> None:
         if target not in {"basic", "markdown", "html"}:
             raise ValueError("unsupported Tistory editor mode")
         if self._current_format == target:
             return
         self.resolver.click("editor-mode")
         self.resolver.click(f"mode-{target}")
-        self._current_format = target
-        self.page.wait_for_timeout(150)
+        names = self.catalog.feature(f"mode-{target}")["locator"].get("names", [])
+        deadline = time.monotonic() + timeout_ms / 1000
+        while time.monotonic() < deadline:
+            _, control = self.resolver.locate("editor-mode")
+            label = control.inner_text().strip()
+            body = editor_compatibility.editor_body(
+                self.page, "tistory", kind="basic" if target == "basic" else "source")
+            if label in names and body is not None:
+                self._current_format = target
+                return
+            self.page.wait_for_timeout(25)
+        raise EditorUIChanged("editor mode did not become ready; no content was inserted")
 
     def _source_editor(self) -> tuple[str, Any]:
         try:
@@ -1248,6 +1255,7 @@ def _compose(
     editor_url: str,
     close_after: bool,
 ) -> dict[str, Any]:
+    require_image_reviews(document)
     prepared = prepare_media(document, preflight, data_dir=data_dir)
     prepared_hashes = {identifier: _sha256_file(path) for identifier, path in prepared.items()}
     store = CheckpointStore(data_dir)
@@ -1260,21 +1268,23 @@ def _compose(
             raise ApprovalRequired("prepared media changed since approval; request a new document preview")
         driver = PlaywrightTistoryDriver(page, catalog=catalog, data_dir=data_dir)
         try:
+            started = time.perf_counter()
             checkpoint = TistoryEditorAutomation(store).apply(
                 document, driver, prepared_media=prepared, prepared_hashes=prepared_hashes
             )
+            elapsed_ms = (time.perf_counter() - started) * 1000
         except Exception:
             if not close_after:
                 browser.keep_open_until_closed()
             raise
         checkpoint["draft_url"] = _verified_draft_url(str(page.url))
         store.save(checkpoint)
-        print(json.dumps({"event": "draft-saved", "document_id": document["document_id"],
-                          "save_state": checkpoint["save_state"], "draft_url": checkpoint["draft_url"]}),
+        result = compact_result(checkpoint, platform="tistory", elapsed_ms=elapsed_ms)
+        print(json.dumps({"event": "draft-saved", **result}, ensure_ascii=False, separators=(",", ":")),
               file=sys.stderr, flush=True)
         if not close_after:
             browser.keep_open_until_closed()
-        return checkpoint
+        return result
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1282,6 +1292,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-dir", help="override AUTOSEO_DATA_DIR for this command")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor")
+    sub.add_parser("capabilities")
+    plan = sub.add_parser("plan")
+    plan.add_argument("document", type=Path)
     learn = sub.add_parser("learn")
     learn.add_argument("--editor-url", required=True)
     learn.add_argument("--close-after", action="store_true")
@@ -1310,6 +1323,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        if args.command == "capabilities":
+            print(json.dumps(capabilities(FeatureCatalog.load()), ensure_ascii=False, separators=(",", ":")))
+            return 0
+        if args.command == "plan":
+            print(json.dumps(document_plan(_load_document(args.document), platform="tistory"), ensure_ascii=False, separators=(",", ":")))
+            return 0
         if args.command == "doctor":
             data_dir = _data_path(args.data_dir, create=False)
             catalog = FeatureCatalog.load()

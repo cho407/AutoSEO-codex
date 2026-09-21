@@ -21,6 +21,13 @@
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
     },
     "title": {"type": "string", "minLength": 1, "maxLength": 200},
+    "layout_preset": {"enum": ["blog-centered", "article-readable", "none"], "description": "New blog drafts select blog-centered and format=auto/html; omission preserves legacy formatting."},
+    "generated_images": {
+      "type": "array", "maxItems": 50,
+      "description": "Generated assets must pass blog_image.py checks before upload. Real user photos do not require this metadata.",
+      "items": {"type": "object", "required": ["path", "brief", "review"], "additionalProperties": false,
+        "properties": {"path": {"type": "string"}, "brief": {"$ref": "blog-image-brief.schema.json"}, "review": {"$ref": "blog-image-review.schema.json"}}}
+    },
     "format": {"enum": ["auto", "markdown", "html"]},
     "blocks": {
       "type": "array",
@@ -42,6 +49,19 @@
     "publish_settings": {"$ref": "#/$defs/publishSettings"}
   },
   "$defs": {
+    "style": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "alignment": {"enum": ["left", "center", "right", "justify"]},
+        "font": {"type": "string", "pattern": "^[A-Za-z0-9가-힣 _,\\-]{1,80}$"},
+        "size": {"oneOf": [{"type": "number", "minimum": 10, "maximum": 72}, {"type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$"}]},
+        "line_spacing": {"oneOf": [{"type": "number", "minimum": 1, "maximum": 3}, {"type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$"}]},
+        "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+        "bold": {"type": "boolean"}, "italic": {"type": "boolean"},
+        "underline": {"type": "boolean"}, "strikethrough": {"type": "boolean"},
+        "superscript": {"type": "boolean"}, "subscript": {"type": "boolean"}
+      }
+    },
     "identifier": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
@@ -107,9 +127,13 @@
           "type": "object",
           "additionalProperties": false,
           "required": ["id", "type", "text"],
+          "if": {"required": ["format_role"]},
+          "then": {"properties": {"type": {"const": "paragraph"}}},
           "properties": {
             "id": {"$ref": "#/$defs/identifier"},
             "type": {"enum": ["paragraph", "quote"]},
+            "style": {"$ref": "#/$defs/style"},
+            "format_role": {"enum": ["body", "intro", "summary", "caption", "source", "detail"]},
             "text": {"type": "string", "minLength": 1, "maxLength": 100000}
           }
         },
@@ -120,6 +144,7 @@
           "properties": {
             "id": {"$ref": "#/$defs/identifier"},
             "type": {"const": "heading"},
+            "style": {"$ref": "#/$defs/style"},
             "level": {"enum": [2, 3, 4]},
             "text": {"type": "string", "minLength": 1, "maxLength": 500}
           }

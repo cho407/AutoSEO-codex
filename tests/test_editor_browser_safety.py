@@ -61,6 +61,83 @@ def test_new_naver_save_and_plain_format_after_bold(page, tmp_path):
     assert page.get_by_text(document["blocks"][1]["text"], exact=True).evaluate("node => getComputedStyle(node).fontWeight") == "400"
 
 
+def test_many_paragraphs_keep_boundaries_and_use_batched_style_reads(page, tmp_path):
+    document = _document()
+    document["blocks"] = [{"id": f"p-{i}", "type": "paragraph", "text": f"{i}번째 독립 문단입니다."}
+                          for i in range(8)]
+    driver = naver_editor.PlaywrightNaverDriver(page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path)
+    original = driver.resolver.locate
+    style_resolutions = []
+    def locate(feature, **kwargs):
+        if feature in {"bold", "italic", "underline", "strikethrough", "superscript", "subscript"}:
+            style_resolutions.append(feature)
+        return original(feature, **kwargs)
+    driver.resolver.locate = locate
+    result = naver_editor.EditorAutomation(naver_editor.CheckpointStore(tmp_path)).apply(document, driver)
+    assert result["save_state"] == "acknowledged"
+    assert driver.verify_document(document)
+    assert style_resolutions == []
+    assert page.evaluate("window.publishClicks") == 0
+
+
+def test_ambiguous_toolbar_does_not_use_fast_style_path(page, tmp_path):
+    page.evaluate("document.querySelector('[aria-label=굵게]').after(document.querySelector('[aria-label=굵게]').cloneNode(true))")
+    catalog = naver_editor.FeatureCatalog.load()
+    assert editor_compatibility.format_toggle_states(page, catalog, ["bold"]) is None
+    driver = naver_editor.PlaywrightNaverDriver(page, catalog=catalog, data_dir=tmp_path)
+    with pytest.raises(naver_editor.AmbiguousElement):
+        driver._apply_style({"bold": True})
+
+
+def test_naver_blog_preset_applies_alignment_and_source_style_before_save(page, tmp_path):
+    from test_blog_format import document
+
+    value = document()
+    value["blocks"] = [block for block in value["blocks"] if block["type"] == "paragraph"]
+    value["blocks"][1]["text"] = "일반 본문 문단입니다."
+    driver = naver_editor.PlaywrightNaverDriver(page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path)
+    result = naver_editor.EditorAutomation(naver_editor.CheckpointStore(tmp_path)).apply(value, driver)
+    assert result["save_state"] == "acknowledged"
+    assert page.get_by_text(value["blocks"][0]["text"], exact=True).evaluate("node => getComputedStyle(node).textAlign") == "center"
+    source = page.get_by_text(value["blocks"][-1]["text"], exact=True)
+    assert source.evaluate("node => [getComputedStyle(node).textAlign, getComputedStyle(node).fontSize]") == ["left", "14px"]
+    assert page.evaluate("window.publishClicks") == 0
+
+
+def test_tistory_blog_preset_renders_mobile_styles_and_preserves_html_source(page, tmp_path):
+    import tistory_document
+    from test_blog_format import document
+
+    value = document()
+    html = tistory_document.render_document(value)
+    page.set_content('<main style="width:375px">' + html + '</main>')
+    heading = page.get_by_role("heading", name="확인할 내용")
+    assert heading.evaluate("node => [getComputedStyle(node).textAlign, getComputedStyle(node).fontSize]") == ["center", "24px"]
+    assert page.get_by_text("확인한 자료와 기준일", exact=True).evaluate("node => getComputedStyle(node).textAlign") == "left"
+    page.goto((ROOT / "tests/fixtures/tistory_editor.html").as_uri())
+    driver = tistory_editor.PlaywrightTistoryDriver(page, catalog=tistory_editor.FeatureCatalog.load(), data_dir=tmp_path)
+    result = tistory_editor.TistoryEditorAutomation(tistory_editor.CheckpointStore(tmp_path)).apply(value, driver, prepared_media={})
+    assert result["save_state"] == "acknowledged"
+    assert page.locator('#source-body').input_value() == html
+
+
+def test_tistory_mode_waits_for_the_actual_editable_surface(page, tmp_path):
+    page.goto((ROOT / "tests/fixtures/tistory_editor.html").as_uri())
+    driver = tistory_editor.PlaywrightTistoryDriver(page, catalog=tistory_editor.FeatureCatalog.load(), data_dir=tmp_path)
+    page.evaluate("""() => document.querySelector('[data-mode=markdown]').addEventListener('click', () => {
+        document.querySelector('#source-body').hidden = true;
+        setTimeout(() => document.querySelector('#source-body').hidden = false, 200);
+    })""")
+    driver._switch_mode("markdown")
+    assert page.locator('#source-body').is_visible()
+    assert driver._current_format == "markdown"
+    driver._current_format = None
+    page.evaluate("document.querySelector('[data-mode=html]').addEventListener('click', () => document.querySelector('#source-body').hidden = true)")
+    with pytest.raises(tistory_editor.EditorUIChanged, match="ready"):
+        driver._switch_mode("html", timeout_ms=60)
+    assert driver._current_format is None
+
+
 def test_old_save_toast_is_not_a_new_save_receipt(page):
     receipt = FreshSaveReceipt(page)
     receipt.begin()

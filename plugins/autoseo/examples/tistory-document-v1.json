@@ -2,11 +2,13 @@
   "schema_version": 1,
   "document_id": "tistory-draft-example",
   "title": "검색 사용자를 위한 정확한 안내",
-  "format": "markdown",
+  "format": "auto",
+  "layout_preset": "blog-centered",
   "blocks": [
     {
       "id": "intro",
       "type": "paragraph",
+      "format_role": "intro",
       "text": "핵심 답변과 적용 조건을 먼저 설명합니다."
     },
     {

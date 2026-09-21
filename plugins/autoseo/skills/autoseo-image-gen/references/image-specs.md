@@ -6,6 +6,7 @@ Use these defaults only when the user has not supplied brand or platform rules.
 |---|---:|---:|---|
 | Open Graph | 1.91:1 | 1200 x 630 | Keep essential text away from edges. |
 | Article hero | 16:9 | 1600 x 900 | Prefer a clean focal point and meaningful alt text. |
+| Blog card-news | 1:1 or 4:5 | 1600 x 1600 or 1280 x 1600 | Short checked headline plus relevant imagery; default for blog generation. |
 | Square social | 1:1 | 1200 x 1200 | Verify the destination platform before export. |
 | Product detail | 1:1 | 1600 x 1600 | Preserve product appearance; do not invent claims. |
 

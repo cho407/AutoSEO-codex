@@ -34,6 +34,8 @@ catalog offers blog search but no rich blog-post writing endpoint.
 | Prompt | Outcome |
 |---|---|
 | `@autoseo naver-editor doctor` | Read-only runtime, catalog, and profile-permission check |
+| `@autoseo naver-editor plan <document>` | Compact JSON operation summary; no browser/account write |
+| `@autoseo naver-editor capabilities` | Feature classifications and local decision rules |
 | `@autoseo naver-editor learn` | Local compatibility map of roles, locale-ranked Korean/English labels, shortcuts, and DOM fallbacks |
 | `@autoseo naver-editor compose <topic-or-document>` | Build or validate `NaverDocument v1`, then save one draft after login |
 | `@autoseo naver-editor resume <draft>` | Reconcile the same draft and source hash before continuing unfinished operations |
@@ -116,6 +118,22 @@ photos, video, place, multiple attachments, external links, files, schedules,
 tables, equations, templates, library items, TalkTalk, stickers, tags, and publish
 settings. Validate with `schema/naver-document.schema.json` and
 `naver_document.py` before opening the account.
+
+For new blog drafts, select `layout_preset: "blog-centered"` and follow
+`autoseo-writing/references/blog-format.md` from the skills directory. The compiler
+resolves native text styles once from the preset; explicit block styles take
+precedence. Use `article-readable` for left-aligned prose or `none` to disable
+preset styling. Do not retrofit existing documents or published posts without a
+formatting request. A missing or ambiguous native style control still stops the
+operation; local HTML appearance is not proof of live SmartEditor compatibility.
+
+Send one document file instead of model-issued clicks. Shipped
+`data/editor-decision-tree.json` handles execute/skip/record/guided/reconcile, never
+arbitrary selectors/code or publication approval. Normal compose/resume results
+are compact JSON, not the full checkpoint. Read catalogs only for unfamiliar features.
+For generated hero/explainer/OG images, declare `generated_images` with brief and
+hash-bound review; follow `autoseo-image-gen/references/blog-quality.md` from the
+skills directory. Unreviewed or changed declared assets cannot upload.
 
 Features that require personal candidate selection—such as a place result,
 sticker, template, or library item—are guided. The feature catalog labels every

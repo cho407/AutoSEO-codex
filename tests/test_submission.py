@@ -106,6 +106,15 @@ def test_release_archive_is_deterministic_and_self_contained() -> None:
     assert "autoseo/scripts/privacy_mosaic.py" in names
     assert "autoseo/scripts/tistory_document.py" in names
     assert "autoseo/scripts/tistory_editor.py" in names
+    for required in (
+        "scripts/blog_image.py", "scripts/editor_protocol.py",
+        "scripts/blog_format.py", "data/blog-format-presets.json",
+        "skills/autoseo-writing/references/blog-format.md",
+        "data/blog-image-policy.json", "data/editor-decision-tree.json",
+        "schema/blog-image-brief.schema.json", "schema/blog-image-review.schema.json",
+        "examples/blog-image-brief-v1.json", "skills/autoseo-image-gen/references/blog-quality.md",
+    ):
+        assert f"autoseo/{required}" in names
     assert "autoseo/scripts/workflow_catalog.py" in names
     for removed in (
         "autoseo/scripts/dataforseo_costs.py",

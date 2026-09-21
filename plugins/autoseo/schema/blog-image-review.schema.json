@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BlogImageReview v1 (attestation, not an automatic visual-quality score)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "image_sha256", "brief_sha256", "reviewer", "reviewed_at", "checks"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "image_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "brief_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "reviewer": {"enum": ["user", "agent-visual"]},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "checks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["topic_match", "clean_composition", "legible_at_mobile", "no_visual_artifacts", "truthful", "safe_crop"],
+      "properties": {
+        "topic_match": {"type": "boolean"}, "clean_composition": {"type": "boolean"},
+        "legible_at_mobile": {"type": "boolean"}, "no_visual_artifacts": {"type": "boolean"},
+        "truthful": {"type": "boolean"}, "safe_crop": {"type": "boolean"}
+      }
+    }
+  }
+}

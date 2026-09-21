@@ -7,7 +7,9 @@ description: Draft or polish Korean blog content, choose a current topic, create
 
 Deliver a usable draft using the context already supplied. For a new blog article,
 load [references/blog-workflow.md](references/blog-workflow.md) for topic selection,
-1,500-character body, header image, explanatory visuals, and editor handoff. For
+1,500-character body, header image, explanatory visuals, and editor handoff. Load
+[references/blog-format.md](references/blog-format.md) for the consistent default
+alignment, heading hierarchy and platform-specific formatting. For
 polish or tone changes, preserve the supplied meaning and length unless expansion
 is requested; do not start image generation or account access automatically.
 
