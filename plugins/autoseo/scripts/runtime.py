@@ -169,6 +169,20 @@ def _load_state(data_dir: Path) -> dict[str, Any]:
         return {}
 
 
+def _state_python_version(data_dir: Path) -> str | None:
+    """Return a safe launcher version hint from managed runtime state."""
+    value = _load_state(data_dir).get("python")
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"3\.([1-9]\d{1,2})", value)
+    if not match:
+        return None
+    minor = int(match.group(1))
+    if minor < 10:
+        return None
+    return value
+
+
 def _expected(
     root: Path, profile: str, extras: tuple[str, ...]
 ) -> dict[str, Any]:
@@ -478,6 +492,26 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     _configure_utf8()
+    argv = sys.argv[1:] if argv is None else argv
+    # Private, read-only bootstrap protocol used by the shell launcher. Keeping
+    # data-directory resolution here preserves the platform boundaries in one
+    # place and turns missing or malformed state into an empty hint.
+    if argv in (
+        ["--launcher-state-python-version"],
+        ["--launcher-state-python-path"],
+    ):
+        try:
+            data_dir = _data_dir(_root())[0]
+            version = _state_python_version(data_dir)
+        except (OSError, RuntimeError, ValueError):
+            data_dir = None
+            version = None
+        if version:
+            if argv == ["--launcher-state-python-version"]:
+                print(version)
+            elif data_dir is not None:
+                print(_venv_python(data_dir / ".venv"))
+        return 0
     args = build_parser().parse_args(argv)
     try:
         return int(args.func(args))
