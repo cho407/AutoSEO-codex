@@ -140,3 +140,33 @@ def test_distributable_plugin_has_no_commercial_provider_or_billing_paths() -> N
     for path in PLUGIN.rglob("*"):
         if path.is_file() and path.suffix.lower() in TEXT_SUFFIXES:
             assert not banned.search(path.read_text(encoding="utf-8")), path
+
+
+def test_creator_advisor_topic_guidance_is_scoped_and_safe() -> None:
+    audit = (SKILLS / "autoseo-audit" / "SKILL.md").read_text(encoding="utf-8")
+    neo = (SKILLS / "autoseo-neo" / "SKILL.md").read_text(encoding="utf-8")
+    search_data = (SKILLS / "autoseo-search-data" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    writing_workflow = (
+        SKILLS / "autoseo-writing" / "references" / "blog-workflow.md"
+    ).read_text(encoding="utf-8")
+
+    def normalize(text: str) -> str:
+        return re.sub(r"\s+", " ", text.casefold())
+
+    audit = normalize(audit)
+    neo = normalize(neo)
+    search_data = normalize(search_data)
+    writing_workflow = normalize(writing_workflow)
+
+    assert "do not request or consume creator advisor for an audit" in audit
+    assert "never required, scored, or recorded" in neo
+    assert "no supplied or already established topic" in neo
+    assert "url supplied for improvement is not automatically a no-topic request" in neo
+    assert "including a requested article with no topic" in neo
+    assert "do not require a second topic-discovery request" in writing_workflow
+    assert "separate topic-to-public-research step" in neo
+    assert "never ingest creator advisor" in search_data
+    assert "must not enter `trendcollection" in writing_workflow
+    assert "readiness, or observed visibility" in writing_workflow

@@ -11,14 +11,31 @@ authorization take precedence over these defaults.
    or unrelated account data. If this context is accessible only after login, open
    the one visible editor session early, let the user log in, then keep it open
    while completing research and assets. Never launch a second session for compose.
-2. A supplied topic controls the article. With no topic, first identify the blog's
-   dominant subject from those titles/categories. Compare current keywords within
-   that subject; if no stable subject is observable, compare across all subjects in
-   the target market/language. Do not choose a general trend first and force it into
-   an unrelated blog category.
-3. Use `autoseo-search-data`'s category trend collection workflow for current trends
+2. A supplied topic controls the article, even when a dashboard or public trend
+   appears more popular. A URL supplied for improvement is not automatically a
+   no-topic request: retain the page's established subject and intent. Only when
+   there is no supplied or established topic, identify the blog's dominant subject
+   and intended audience from those titles/categories. Compare candidates within
+   that scope; if no stable subject is observable, compare across the target market
+   and language. Never force an unrelated trend into the blog or target page.
+3. For a requested Naver blog article or topic discovery with no supplied or
+   established topic, a relevant, current Creator Advisor topic may be a
+   high-priority shortlist signal when the owner has authorized that blog's account
+   view. Do not require a second topic-discovery request for an open-topic article.
+   Inspect it only from an owner-provided export/screenshot or a visible read-only
+   page after the owner supplies the exact target blog URL (or current Creator
+   Advisor URL), or authorizes discovery for the current blog, and completes login
+   themselves. The no-scraping rule prohibits automated extraction, private
+   endpoints, cookies, and login automation; it does not prohibit bounded visible
+   inspection. Never use API keys or billing for Creator Advisor, and keep account
+   identifiers and URLs outside the repository and distributable output.
+4. After shortlisting a candidate, begin a separate topic-to-public-research step
+   using `autoseo-search-data`'s public category trend collection for current trends
    in that subject. Its `trend_collect.py` helper reuses one public RSS fetch across
    categories; supplement the short global feed with actual category web research.
+   A Creator Advisor candidate may seed a public keyword query, but its account URL,
+   export, screenshot, label/rank, order, or window must not enter `TrendCollection
+   v1`, numeric demand, velocity, or aggregate ordering.
    Distinguish `observed-surge-single-provider` from current topics with `unmeasured`
    demand. An empty category is not permission to substitute unrelated headlines.
    Record market, language, source URLs,
@@ -29,10 +46,17 @@ authorization take precedence over these defaults.
    or growth among observed candidates when comparable demand data exists; otherwise
    select by topic relevance and verified freshness and disclose unmeasured demand.
    Do not present incomparable metrics or a small sample as an absolute global #1.
-4. If no candidate is confirmed, state the evidence limit and use the best-supported
+   Creator Advisor cannot satisfy this gate or appear in the evidence/metrics: use
+   fresh primary facts plus at least one independent public source. Keep any label,
+   rank, window, capture time, and verified blog scope only in an owner-approved
+   working note as provenance, never as exact demand, Naver-wide rank, traffic,
+   velocity, readiness, or observed visibility. If the account signal is inaccessible
+   or its scope is unverifiable, continue with dated public evidence and mark only
+   Creator Advisor unavailable; an unauthenticated SPA shell is not trend evidence.
+5. If no candidate is confirmed, state the evidence limit and use the best-supported
    current topic; ask only if no defensible candidate exists. Research the selected
    topic's claims and reuse the same sources for prose and diagram labels.
-5. Choose an existing matching category; if history is unavailable, use the closest
+6. Choose an existing matching category; if history is unavailable, use the closest
    existing general category. Store the choice in the document's category field.
    The current drivers apply categories in the final publication settings dialog;
    do not open that dialog merely to make a draft appear categorized or claim the

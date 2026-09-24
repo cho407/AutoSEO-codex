@@ -160,3 +160,21 @@ def test_each_lane_returns_an_independent_versioned_report() -> None:
         if item["id"] == "closed_book_model_knowledge"
     )
     assert closed_book["status"] == "unmeasured"
+
+
+def test_neo_public_readiness_contract_accepts_normal_public_evidence() -> None:
+    report = analyze_lanes(
+        _bundle(),
+        target="무엇인가요?",
+        lanes=("neo",),
+        market="KR",
+        language="ko",
+    )["neo"]
+
+    assert [check["id"] for check in report["checks"]] == [
+        "public_naver_access",
+        "korean_language",
+        "korean_intent",
+        "yeti_policy",
+        "rss_or_sitemap",
+    ]

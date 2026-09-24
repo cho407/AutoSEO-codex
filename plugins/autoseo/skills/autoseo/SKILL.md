@@ -63,6 +63,10 @@ Verify changing search policies, API behavior, metrics, and product claims again
 current primary sources. Date evidence, distinguish measured facts from inference,
 and mark missing data as unmeasured. Keep full-audit category scores, lane readiness,
 style diagnostics, and observed search outcomes separate; none predicts rankings.
+NEO audit and visibility stay within public crawlability, Korean intent, Yeti, feeds,
+Naver results, and AI Briefing observations. Account-bound Creator Advisor topic
+signals belong only to authorized open-topic Naver writing or NEO brief workflows,
+never a lane or aggregate trend input.
 
 Let the focused skill define the output. For broad requests, deduplicate findings by
 root cause, cite evidence, and give practical actions and verification. Full-audit

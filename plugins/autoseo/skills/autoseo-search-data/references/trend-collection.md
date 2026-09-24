@@ -18,6 +18,8 @@ existing session, not a separate paid search API.
 - Reuse known blog categories when relevant; never force an unrelated headline
   into the author's subject. Ask only if an ambiguous category materially changes
   scope. Use `--keyword` for custom topics not covered by the catalog.
+- A topic explicitly supplied by the user remains controlling. This public workflow
+  does not replace it with a dashboard recommendation or a more popular trend.
 - `categories` lists 14 local categories: IT/technology/appliances, economy/business,
   travel, food, beauty/fashion, parenting/education, health/exercise, lifestyle/shopping,
   entertainment, sports, culture/games, politics, society/local and world.
@@ -104,11 +106,31 @@ observations as live. No cookies, credentials, profile or article body is collec
   to a billable Naver API HUB endpoint. Public third-party UIs and free logins do not
   automatically grant an automation API. No third-party subscription is required.
 
+## Boundary with Creator Advisor
+
+Creator Advisor is separate from Search Advisor, Naver Search Trend/DataLab, and
+this public aggregate collection. Only an authorized Naver writing workflow for an
+open-topic article or a NEO brief with no supplied or established topic may inspect
+it and choose a candidate. A provided page URL keeps its existing subject and
+intent; this workflow does not replace them with a dashboard suggestion. The caller
+may then begin separate public research using only candidate text as a keyword.
+Do not pass the account URL, export, screenshot, label, rank, order, window, or
+blog/account identifier into `TrendResearch v1` or `TrendCollection v1`.
+
+The no-scraping rule above prohibits automated extraction of a logged-in page,
+private endpoints, cookies, and login automation. It does not prohibit the owner
+from manually inspecting a visible read-only page or supplying an export/screenshot
+to the separate calling workflow. If that account signal is inaccessible, the caller
+marks only Creator Advisor unavailable; this collection continues with dated public
+evidence and does not infer anything from an unauthenticated SPA shell.
+
 Before writing: select a relevant candidate, inspect and corroborate original facts,
-normalize those sources as `TrendEvidence v1`, and respect its current-time refresh
-gate. A collection request ends with research results; article creation requires
-the user's writing request. Sensitive medical/financial/legal topics require
-appropriate primary-source checks and must not become speculative advice.
+normalize only eligible public/first-party measurement sources as `TrendEvidence
+v1`, and respect its current-time refresh gate. Creator Advisor account provenance
+and labels are not trend evidence or metrics. A collection request ends with research
+results; article creation requires the user's writing request. Sensitive medical,
+financial, or legal topics require appropriate primary-source checks and must not
+become speculative advice.
 
 Official references:
 

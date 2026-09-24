@@ -107,6 +107,14 @@ unmeasured demand. It does not compute a popularity score or infer exact volume.
 `trends <keywords>` continues to mean comparable snapshots over time; it is not
 an alias for a complete real-time trend database.
 
+`trending`, `trends`, demand analysis, and `TrendCollection v1` remain public or
+authorized first-party measurement workflows; they never ingest Creator Advisor
+pages, exports, labels, ranks, or account scope. Authorized open-topic Naver writing
+or a NEO no-topic brief may pass only a shortlisted topic into this public research
+path.
+The resulting public evidence must stand on its own, and Creator Advisor must not be
+encoded as demand, velocity, an evidence source, or an aggregate collection field.
+
 Before a collected candidate becomes an article brief, inspect its original event
 and an independent source. Keep `TrendEvidence v1` as the existing per-topic
 verification handoff; do not turn RSS-linked headlines into inspected sources or

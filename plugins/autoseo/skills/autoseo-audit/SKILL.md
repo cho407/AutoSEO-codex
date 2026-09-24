@@ -111,6 +111,12 @@ safe tool calls; the workflow must also work sequentially.
 - selected AEO, GEO, LLMO, and NEO lanes: independent readiness and outcome panels.
 - `autoseo-sxo`: intent and page-type alignment.
 
+The NEO lane uses public response/crawl evidence, Korean intent, Yeti, feeds, and
+dated Naver Search or AI Briefing observations only. Do not request or consume
+Creator Advisor for an audit, and do not treat its absence as a failed, unmeasured,
+or partial NEO audit. Account-bound topic discovery is outside audit scoring and
+report aggregation.
+
 Add conditional modules for local, maps, hreflang, e-commerce, backlinks,
 Google-owned data, or drift history only when relevant and authorized.
 
