@@ -29,6 +29,19 @@ def test_catalog_keeps_generic_quality_floor_separate_from_personal_profile() ->
     assert value["profiles"]["tactile-howto"]["scope"] == "personal"
     assert value["profiles"]["tactile-howto"]["visual"]["hero_ratio"] == "1:1"
     assert value["profiles"]["tactile-howto"]["visual"]["step_ratio"] == "4:5"
+    tactile = value["profiles"]["tactile-howto"]
+    assert "sectioned-explanation" in tactile["article_sequence"]
+    assert "short-quoted-sections" not in tactile["article_sequence"]
+    assert tactile["text"]["source_alignment"] == "left"
+    assert tactile["text"]["section_heading_size"] == 24
+    assert tactile["text"]["section_heading_style"] == "native-heading"
+
+
+def test_catalog_profiles_match_selection_schema_enum() -> None:
+    schema_path = ROOT / "plugins/autoseo/schema/blog-style-selection.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    assert set(catalog()["profiles"]) == set(schema["properties"]["profile"]["enum"])
 
 
 def test_profile_selection_defaults_without_creating_personal_data(tmp_path: Path) -> None:
@@ -48,6 +61,10 @@ def test_profile_selection_requires_confirmation_and_is_owner_only(tmp_path: Pat
     assert path.name == "blog-style.json"
     assert load_selection(data_dir=data_dir)["profile"] == "tactile-howto"
     assert profile_status(data_dir)["scope"] == "personal"
+    selected = resolve_profile(data_dir=data_dir)
+    assert selected["profile"] == "tactile-howto"
+    assert selected["text"]["source_alignment"] == "left"
+    assert selected["text"]["section_heading_style"] == "native-heading"
     if os.name != "nt":
         assert path.stat().st_mode & 0o777 == 0o600
     raw = json.loads(path.read_text(encoding="utf-8"))
@@ -69,3 +86,16 @@ def test_profile_selection_rejects_symlink_destination(tmp_path: Path) -> None:
 def test_only_shipped_profiles_can_be_selected() -> None:
     with pytest.raises(ValueError, match="unsupported"):
         validate_profile_name("private-reference")
+
+
+def test_public_style_guide_requires_generic_rights_hold_without_owner_data() -> None:
+    guide_path = ROOT / "plugins/autoseo/skills/autoseo-writing/references/blog-style-standard.md"
+    guide = guide_path.read_text(encoding="utf-8")
+
+    assert "KEEP" in guide and "AVOID" in guide and "UNCERTAIN" in guide
+    assert "observed_position" in guide
+    assert "commercial use on a monetized blog" in guide
+    assert "cropping, overlays, annotations" in guide
+    assert "place the asset on rights hold" in guide
+    assert "does not adjudicate copyright" in guide
+    assert "private URLs, owner identifiers, account analytics" in guide

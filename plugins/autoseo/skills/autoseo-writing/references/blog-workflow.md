@@ -17,7 +17,10 @@ authorization take precedence over these defaults.
    there is no supplied or established topic, identify the blog's dominant subject
    and intended audience from those titles/categories. Compare candidates within
    that scope; if no stable subject is observable, compare across the target market
-   and language. Never force an unrelated trend into the blog or target page.
+   and language. Reuse an owner-supplied high-intent slot taxonomy when present
+   (for example Tip, housing, stock or IT on Naver and AI or stock on Tistory), but
+   do not ship those slots as defaults for other owners. Never force an unrelated
+   trend into the blog or target page.
 3. For a requested Naver blog article or topic discovery with no supplied or
    established topic, a relevant, current Creator Advisor topic may be a
    high-priority shortlist signal when the owner has authorized that blog's account
@@ -33,6 +36,8 @@ authorization take precedence over these defaults.
    using `autoseo-search-data`'s public category trend collection for current trends
    in that subject. Its `trend_collect.py` helper reuses one public RSS fetch across
    categories; supplement the short global feed with actual category web research.
+   A sparse RSS feed shows only what that feed exposed, not real search demand or
+   absence of demand.
    A Creator Advisor candidate may seed a public keyword query, but its account URL,
    export, screenshot, label/rank, order, or window must not enter `TrendCollection
    v1`, numeric demand, velocity, or aggregate ordering.
@@ -62,6 +67,39 @@ authorization take precedence over these defaults.
    do not open that dialog merely to make a draft appear categorized or claim the
    remote category is set. Never create categories automatically.
 
+## Bounded result and owner-style sample
+
+When asked to analyze successful, high-visibility or power-blogger style for a
+specific blog, use one small read-only sample instead of inferring a platform-wide
+ranking formula:
+
+1. Define the target query, platform, language/market, device or result surface and
+   observation time. Inspect **3–5 relevant public results** visible in that bounded
+   result set and **3–5 relevant prior posts** from the owner's public blog or an
+   owner-provided export. Prefer comparable intent and recent-enough articles; do
+   not collect unrelated account data. If either side has fewer usable items, keep
+   the smaller sample and state the limitation rather than broadening it silently.
+2. For each public result, record its position only as `observed_position` within
+   that exact query/device/surface/time, plus publication or update date and article
+   age. Never call it a global Naver rank, durable exposure or causal success. For
+   every sampled item, note answer/body rhythm, heading rhythm, image role and
+   placement, whether material sources are visible, and uncertainty such as unknown
+   personalization, promotion, history, exposure or update state.
+3. Compare patterns under **KEEP / AVOID / UNCERTAIN**. KEEP only useful patterns
+   supported by the bounded sample and editorial judgment, such as an answer-first
+   opening, a concrete reader-benefit question, misconception correction, short
+   mobile paragraphs, or images beside the section they explain. AVOID unsupported
+   blanket claims, generic slide grids, hidden sources and decorative image padding.
+   Put apparent performance effects, sample-age effects and exposure correlations
+   in UNCERTAIN; an owner's recent view sample may inform relevance but cannot prove
+   that a topic or layout caused visibility.
+4. Produce a distinct, source-backed angle, outline and visual plan for this article.
+   Abstract rhythm and functional image roles only. Do not copy competitor prose,
+   titles, headings, art direction, photographs, screenshots or distinctive layout;
+   do not retain competitor URLs or private/account metrics in distributable output.
+   Creator Advisor remains an account-scoped shortlist signal under the rules above,
+   never a public trend metric or a substitute for this public-result sample.
+
 ## Body and visual deliverables
 
 - Apply [blog-format.md](blog-format.md) once: new drafts use
@@ -80,6 +118,13 @@ authorization take precedence over these defaults.
 - Use a specific title, an answer-first introduction, readable sections, practical
   examples/steps or evidence, and a useful ending. Attribute material claims with
   source links. Adapt the structure to the topic.
+- For financial, housing, benefits or application posts, show the exact primary
+  source, source/update date, checked-at date and current status. Add a compact
+  action-decision grid covering `reader condition / decision / action / deadline or
+  next check`; keep it left aligned. Distinguish an overall notice marked open from
+  applicant-type eligibility and dates. Verify broker-, product- and applicant-type
+  rules individually, refresh time-sensitive facts immediately before publication,
+  and never turn one observed rule into a universal platform claim.
 - Plan a representative header/hero and a supporting visual near the relevant
   prose. The latter may be an actual product/source photo or a topic-specific
   illustration; it need not be an infographic. Use a process diagram, comparison,
@@ -94,6 +139,11 @@ authorization take precedence over these defaults.
   diagrams as blog-supported image files; Mermaid/code alone is not an inserted
   visual. A 2:3 infographic master can be used when a vertical layout helps; adapt
   dimensions to the actual content and available output sizes.
+- Prefer an image-led square cover when that is the owner's stated direction, plus
+  supporting images with a clear section-level purpose and verified rights or
+  provenance. Do not substitute a generic slide-grid cover, copy a public result's
+  art/photo, or fabricate a platform, broker, product or application screenshot.
+  Use a real, redacted screenshot only when the source and capture are authorized.
 - Generate the actual assets and inspect them once before upload. Labels and numbers
   must match the sources; conceptual diagrams must match the article. Simplify or
   fix an incorrect image, and never fabricate data or treat a prompt as an image.

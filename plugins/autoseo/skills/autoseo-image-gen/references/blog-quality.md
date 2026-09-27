@@ -52,7 +52,7 @@ as a production target rather than a universal template:
 - Keep one short handwritten-style headline per image. Pair a real official or
   user-authorized screenshot with a clean paper frame and one circle/arrow around
   the exact control being explained.
-- Keep the article's short centered prose and quote-like section rhythm, but never
+- Keep the article's short centered prose and native section-heading rhythm, but never
   rasterize paragraphs, sources or dense comparison tables into an image.
 - Redact personal data, record the source/freshness note and disclose any AI-made
   cover. Never redraw an app interface, invent a badge or copy the reference art.

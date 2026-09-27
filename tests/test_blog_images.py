@@ -54,6 +54,34 @@ def test_default_is_subject_led_not_a_slide_or_implicit_title_card():
         validate_brief({key: val for key, val in value.items() if key != "visual_subject"})
 
 
+def test_photo_led_cover_keeps_caller_direction_without_card_downgrade(tmp_path):
+    value = {
+        "schema_version": 1,
+        "role": "hero",
+        "topic": "새 도구 공개",
+        "title": "새 도구를 처음 살펴보는 방법",
+        "layout": "cover",
+        "visual_subject": "중립적인 작업대 위에 놓인 실제 도구의 정면 사진",
+        "art_direction": "자연광, 실제 재질을 보존한 사진, 피사체 중심의 여유 있는 크롭",
+        "article_context": "공개된 도구의 외형을 소개하는 사진 중심 표지",
+        "aspect_ratio": "1:1",
+        "style_profile": "balanced-editorial",
+    }
+
+    normalized = validate_brief(value)
+    assert normalized["layout"] == "cover"
+    assert normalized["aspect_ratio"] == "1:1"
+    assert normalized["style_profile"] == "balanced-editorial"
+    assert normalized["visual_subject"] == value["visual_subject"]
+    assert normalized["art_direction"] == value["art_direction"]
+    prompt = generation_prompt(value)
+    assert value["visual_subject"] in prompt
+    assert value["art_direction"] in prompt
+    with pytest.raises(ValueError, match="explicit card or steps"):
+        render_template(value, tmp_path / "photo-led-cover.png")
+    assert not (tmp_path / "photo-led-cover.png").exists()
+
+
 def test_personal_style_profile_is_explicit_and_changes_only_visual_guidance():
     value = brief(
         layout="social-card",
@@ -67,6 +95,9 @@ def test_personal_style_profile_is_explicit_and_changes_only_visual_guidance():
     assert "tactile-howto" in prompt
     assert "cream grid or tactile paper" in prompt
     assert "4:5" in prompt
+    assert '"source_alignment":"left"' in prompt
+    assert '"section_heading_size":24' in prompt
+    assert '"section_heading_style":"native-heading"' in prompt
 
 
 @pytest.mark.parametrize("layout", ["editorial", "cover", "photo", "social-card"])

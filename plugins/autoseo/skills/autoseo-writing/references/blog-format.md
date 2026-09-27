@@ -61,8 +61,30 @@ each section into a different template.
 - Lead with a brief answer or hook, then meaningful sections, evidence/media near
   the relevant claim, and a short takeaway. This is a flexible reading rhythm,
   not identical wording or the same outline for every article.
+- When a bounded result/owner-post review exists, apply only its KEEP decisions.
+  Treat AVOID as an explicit quality guard and leave UNCERTAIN patterns out unless
+  independently justified. This review may guide rhythm and image function, not
+  copy a sampled post's wording, artwork, photographs or distinctive composition.
+- Put decision tables and action grids in left-aligned detail blocks. For financial,
+  housing, benefit or application content, keep exact source/date/status beside the
+  relevant decision and distinguish overall availability from reader-type dates.
 - Use actual paragraph separation and spacing. Do not add repeated empty blocks,
   long runs of `<br>`, copied ornamental separators or rasterized body text.
+
+## Image-led layout
+
+- Use a real visual subject as the cover's primary element. A square cover is
+  preferred when requested by the owner; adapt the ratio when the platform or
+  article purpose calls for it. One short title treatment may support the image,
+  but a generic multi-card slide grid is not the default.
+- Place supporting images immediately before or after the section they explain.
+  Give each one a job such as context, evidence, process, comparison or atmosphere;
+  do not infer that a higher image count improves exposure.
+- Use original, licensed, public-domain or authorized source imagery with recorded
+  provenance. Never copy sampled competitors' art/photos, fabricate a platform UI,
+  or imply that an illustration is an authentic product/application screenshot.
+  Redact private data in authorized real screenshots and keep source captions
+  readable without turning them into rasterized body prose.
 
 ## Document contract
 

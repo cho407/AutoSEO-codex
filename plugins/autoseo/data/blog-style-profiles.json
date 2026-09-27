@@ -87,7 +87,7 @@
         "answer-first",
         "why-this-matters",
         "current-rule-or-date",
-        "short-quoted-sections",
+        "sectioned-explanation",
         "evidence-step",
         "final-checklist",
         "source-and-freshness-note"
@@ -95,12 +95,12 @@
       "text": {
         "body_alignment": "center",
         "heading_alignment": "center",
-        "source_alignment": "center",
+        "source_alignment": "left",
         "body_size": 16,
         "body_line_spacing": 1.9,
-        "section_heading_size": 19,
+        "section_heading_size": 24,
         "paragraph_max_sentences": 3,
-        "section_heading_style": "centered-quote"
+        "section_heading_style": "native-heading"
       },
       "visual": {
         "hero_ratio": "1:1",

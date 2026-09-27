@@ -42,8 +42,9 @@ Presets are `friendly`, `professional`, `expert-friendly`, `conversational`, `wa
 Presentation profiles are separate from writer identity. The generic
 `balanced-editorial` profile is the fallback for every environment. An explicitly
 confirmed local `tactile-howto` profile is a personal option for warm Korean
-how-to posts: centered short prose, quote-like section headings, a square tactile
-cover, 4:5 step images, cream/grid paper, navy and coral accents, and real source
+how-to posts: centered short prose, native section headings with a concise
+rhythm, a square tactile cover, 4:5 step images, cream/grid paper, navy and coral
+accents, and real source
 screenshots with one precise callout. It is not a ranking rule, a universal beige
 template, or permission to invent UI. Keep the quality floor (facts, source date,
 privacy redaction, mobile legibility and provenance) even when the personal
