@@ -6,6 +6,14 @@ feature. Check each catalog row's separate `validation` field. `guided` means Au
 for the user to choose or review a visible candidate. `unavailable` means the
 feature is deliberately not claimed.
 
+The observed **detached-input-buffer** layout is narrower than this catalog:
+only `title`, unstyled single-line `paragraph`, and `draft-save` have an
+account-tested code-first path. Unsupported block types, formatting, media,
+tags and publication controls are rejected before account input. A saved-list
+readback must match the exact document and fingerprint before the draft is
+reported verified; a save toast alone is not proof. The document schema and
+legacy layout's automatic rows do not override this live layout gate.
+
 All live-editor rows remain release-candidate status until the manual checklist
 at the end of this document is completed on a user-owned test draft. Run
 `@autoseo naver-editor learn` first when the editor UI has changed.
@@ -110,9 +118,12 @@ Naver draft URL.
 Keep a release-candidate designation until these checks pass. Record the date and
 actual editor version per feature before changing `live_verified` to true.
 
-Local validation (2026-09-07): the synthetic PC fixture covers title, paragraph,
+Local validation (2026-09-07): the synthetic legacy PC fixture covers title, paragraph,
 bold-to-plain restoration, alignment, tags and fresh draft acknowledgement. Separate
 tests cover map expiry, dialog/frame scoping and ambiguity. Advanced component
 controls, guided recovery, and post-publication visibility/schedule mapping are
-still live-unverified. The save acknowledgement is checked in the active editor
-session; the workflow does not close and reopen a session as a durability test.
+still live-unverified. The detached-input-buffer fixture additionally checks
+native title/paragraph input, focus guards, recovery rejection and saved-list
+readback. A user-owned test draft exercised the title/plain-body/save/readback
+path without public publication. Do not extend this evidence to image, heading,
+tag, resume, or final publish automation.

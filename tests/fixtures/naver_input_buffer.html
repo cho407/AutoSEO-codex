@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><title>Generic SmartEditor input-buffer fixture</title>
+<style>
+  .se-content {width: 680px}
+  p.se-text-paragraph {min-height: 28px; padding: 5px; margin: 3px}
+  .se-placeholder {color: #888}
+  #global-input-buffer {position: fixed; top: -10000px}
+</style>
+<div class="se-body"><div class="se-container"><div class="se-content"><article class="se-components-wrap">
+  <div class="se-component se-documentTitle"><div class="se-section se-section-documentTitle"><p class="se-text-paragraph"><span class="se-placeholder">제목</span></p></div></div>
+  <div class="se-component se-text"><div class="se-section se-section-text"><p class="se-text-paragraph"><span class="se-placeholder">본문을 입력하세요</span></p></div></div>
+</article></div></div></div>
+<div id="global-input-buffer" contenteditable="true"></div>
+<iframe id="input_buffer_fixture" title="Input buffer" style="position:fixed; top:0; left:0; width:1px; height:1px"></iframe>
+<button data-click-area="tpb.save" aria-label="임시저장" type="button">임시저장</button>
+<button data-click-area="tpb*s.count" aria-label="임시저장된 글 보기" type="button">0</button>
+<ul id="saved-draft-list" hidden></ul>
+<button data-click-area="tpb.publish" aria-label="발행" type="button">발행</button>
+<div id="status" role="status">준비</div>
+<script>
+window.publishClicks = 0;
+window.draftSaveClicks = 0;
+window.inputEvents = 0;
+const storageKey = 'autoseo-generic-input-buffer-fixture';
+let savedDraft = JSON.parse(localStorage.getItem(storageKey) || 'null');
+const frame = document.querySelector('iframe');
+const buffer = frame.contentDocument.body;
+buffer.setAttribute('contenteditable', 'true');
+let currentParagraph = null;
+const section = document.querySelector('.se-section-text');
+function focusParagraph(node) {
+  currentParagraph = node;
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(node); range.collapse(false);
+  selection.removeAllRanges(); selection.addRange(range);
+  buffer.textContent = '';
+  frame.focus(); buffer.focus();
+}
+document.querySelector('.se-section-documentTitle').addEventListener('click', event => {
+  const paragraph = event.target.closest('p.se-text-paragraph');
+  if (paragraph) focusParagraph(paragraph);
+});
+section.addEventListener('click', event => {
+  const paragraph = event.target.closest('p.se-text-paragraph');
+  if (paragraph) focusParagraph(paragraph);
+});
+buffer.addEventListener('input', () => {
+  window.inputEvents++;
+  if (!currentParagraph) return;
+  currentParagraph.textContent = buffer.innerText;
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(currentParagraph); range.collapse(false);
+  selection.removeAllRanges(); selection.addRange(range);
+});
+buffer.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' || !currentParagraph?.closest('.se-section-text')) return;
+  event.preventDefault();
+  const paragraph = document.createElement('p');
+  paragraph.className = 'se-text-paragraph';
+  paragraph.innerHTML = '<span class="se-placeholder">본문을 입력하세요</span>';
+  section.appendChild(paragraph);
+  focusParagraph(paragraph);
+});
+document.querySelector('[data-click-area="tpb.save"]').onclick = () => {
+  window.draftSaveClicks++;
+  savedDraft = {
+    title: document.querySelector('.se-section-documentTitle p.se-text-paragraph').innerText,
+    paragraphs: [...document.querySelectorAll('.se-section-text p.se-text-paragraph')]
+      .filter(p => !p.querySelector('.se-placeholder')).map(p => p.innerText),
+  };
+  localStorage.setItem(storageKey, JSON.stringify(savedDraft));
+  const status = document.querySelector('#status');
+  status.textContent = '저장 중';
+  setTimeout(() => {status.textContent = '임시저장이 완료되었습니다.'}, 40);
+};
+document.querySelector('[data-click-area="tpb*s.count"]').onclick = () => {
+  const list = document.querySelector('#saved-draft-list');
+  list.hidden = false;
+  savedDraft = JSON.parse(localStorage.getItem(storageKey) || 'null');
+  if (!savedDraft) return;
+  document.querySelector('[data-click-area="tpb*s.count"]').textContent = '1';
+  const item = document.createElement('li');
+  const button = document.createElement('button');
+  button.setAttribute('data-click-area', 'tpb*s.tlist');
+  const title = document.createElement('strong');
+  title.textContent = savedDraft.title;
+  button.append(title); item.append(button); list.replaceChildren(item);
+  button.onclick = () => {
+    document.querySelector('.se-section-documentTitle p.se-text-paragraph').textContent = savedDraft.title;
+    section.replaceChildren(...savedDraft.paragraphs.map(text => {
+      const paragraph = document.createElement('p');
+      paragraph.className = 'se-text-paragraph'; paragraph.textContent = text;
+      return paragraph;
+    }));
+    list.hidden = true;
+  };
+};
+document.querySelector('[data-click-area="tpb.publish"]').onclick = () => window.publishClicks++;
+</script></html>

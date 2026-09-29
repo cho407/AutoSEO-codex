@@ -1165,6 +1165,7 @@ class TistoryBrowserSession:
         self.context = self.playwright.chromium.launch_persistent_context(
             str(profile_directory(self.data_dir)),
             headless=False,
+            chromium_sandbox=True,
             accept_downloads=False,
         )
         self.context.route("**/*", make_safe_playwright_route_handler())

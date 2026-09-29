@@ -108,6 +108,36 @@ class PublishResultUnknown(EditorError):
     pass
 
 
+CURRENT_BUFFER_FEATURES = frozenset({"title", "paragraph", "draft-save"})
+
+
+def _require_naver_write_surface(page: Any, *, feature_id: str | None = None) -> Any:
+    """Require a uniquely identified editor; gate current-layout write features.
+
+    A None feature is a structural preflight only. Every actual write entry
+    point supplies its feature, and the current input-buffer layout refuses
+    unsupported formatting, uploads, settings and publication before clicking.
+    """
+    try:
+        body = editor_compatibility.editor_body(page, "naver")
+    except ValueError as exc:
+        raise AmbiguousElement(str(exc)) from exc
+    if body is None:
+        raise EditorUIChanged("a unique visible Naver editor body is required")
+    if body[0] == "naver-input-buffer" and page.evaluate("""() =>
+        [...document.querySelectorAll('.se-popup-dim')].some(node =>
+            !!node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden')
+    """):
+        raise EditorUIChanged("visible Naver editor overlay requires user review before account writes")
+    if body[0] == "naver-input-buffer" and feature_id not in {None, *CURRENT_BUFFER_FEATURES}:
+        raise EditorUIChanged(
+            "SmartEditor ONE input-buffer feature is not verified for account writes"
+        )
+    if body[0] not in {"naver", "naver-input-buffer"}:
+        raise EditorUIChanged("unknown Naver editor surface; account writes are disabled")
+    return body[1]
+
+
 class FeatureCatalog:
     def __init__(self, payload: dict[str, Any]) -> None:
         if payload.get("schema_version") != 1:
@@ -290,11 +320,13 @@ class EditorAutomation:
     def apply(self, document: object, driver: Any) -> dict[str, Any]:
         value = validate_document(document)
         require_image_reviews(value)
-        checkpoint = self.store.load_or_create(value)
-        source_stamps = attachment_stamps(value)
+        if isinstance(driver, PlaywrightNaverDriver):
+            _require_naver_write_surface(driver.page)
         operations = build_operations(value)
         if hasattr(driver, "prepare_operations"):
             driver.prepare_operations(operations)
+        checkpoint = self.store.load_or_create(value)
+        source_stamps = attachment_stamps(value)
         bind_surface(checkpoint, driver)
         completed = set(checkpoint.get("completed_operation_ids", []))
         for operation in operations:
@@ -455,6 +487,8 @@ def publish_or_schedule(
 
     if store is None:
         raise ValueError("durable checkpoint storage is required for publication")
+    if isinstance(driver, PlaywrightNaverDriver):
+        _require_naver_write_surface(driver.page, feature_id="publish")
     prepare_publication(driver, value, checkpoint, settings)
     # Settings are verified before the irreversible attempt starts.
     driver.apply_publish_settings(settings)
@@ -570,6 +604,8 @@ class PlaywrightNaverDriver:
         self.catalog = catalog
         self.resolver = LocatorResolver(page, catalog)
         self.data_dir = data_dir
+        surface = editor_compatibility.editor_body(page, "naver")
+        self.surface_version = 3 if surface and surface[0] == "naver-input-buffer" else 2
         self.resolver.compatibility = editor_compatibility.load_map(
             data_dir / "naver-editor-compatibility.json", page, catalog
         )
@@ -585,11 +621,88 @@ class PlaywrightNaverDriver:
             raise EditorUIChanged("paragraph control is outside the identified document")
         return locator
 
+    def _uses_input_buffer(self) -> bool:
+        surface = editor_compatibility.editor_body(self.page, "naver")
+        if surface is None:
+            raise EditorUIChanged("Naver editor body disappeared")
+        if (surface[0] == "naver-input-buffer") != (self.surface_version == 3):
+            raise EditorUIChanged("Naver editor surface changed during the session")
+        return self.surface_version == 3
+
+    @staticmethod
+    def _current_texts(region: Any) -> list[str]:
+        """Visible document paragraphs only, excluding native empty placeholders."""
+        return region.locator("p.se-text-paragraph").evaluate_all("""nodes => nodes.map(node => {
+            const copy = node.cloneNode(true);
+            copy.querySelectorAll('.se-placeholder').forEach(placeholder => placeholder.remove());
+            return (copy.textContent || '').trim();
+        }).filter(Boolean)""")
+
+    def _current_title(self) -> tuple[Any, str]:
+        title = self.page.locator(".se-section-documentTitle p.se-text-paragraph:visible")
+        if title.count() != 1:
+            raise AmbiguousElement("Naver title paragraph is missing or ambiguous")
+        return title, "" if title.locator(".se-placeholder").count() else title.inner_text()
+
+    def _current_fill_title(self, text: str) -> None:
+        _require_naver_write_surface(self.page, feature_id="title")
+        title, previous = self._current_title()
+        if previous == text:
+            return
+        if previous:
+            raise EditorUIChanged("Naver title already contains different text; reconcile before replacing")
+        body = _require_naver_write_surface(self.page, feature_id="paragraph")
+        before = self._current_texts(body)
+        title.click()
+        editor_compatibility.naver_input_focus(self.page, "title", 0)
+        self.page.keyboard.insert_text(text)
+        self.page.wait_for_function("expected => document.querySelector('.se-section-documentTitle p.se-text-paragraph')?.innerText === expected", arg=text, timeout=6000)
+        if self._current_title()[1] != text or self._current_texts(body) != before:
+            raise EditorUIChanged("Naver title input changed the body or was not exact")
+
+    def _current_insert_paragraph(self, text: str) -> None:
+        region = _require_naver_write_surface(self.page, feature_id="paragraph")
+        paragraphs = region.locator("p.se-text-paragraph")
+        count = paragraphs.count()
+        if count < 1:
+            raise EditorUIChanged("Naver body has no writable paragraph")
+        target = paragraphs.nth(count - 1)
+        if target.inner_text().strip() and not target.locator(".se-placeholder").count():
+            raise EditorUIChanged("last Naver paragraph is not empty; reconcile before appending")
+        before = self._current_texts(region)
+        title_before = self._current_title()[1]
+        target.click()
+        editor_compatibility.naver_input_focus(self.page, "body", count - 1)
+        self.page.keyboard.insert_text(text)
+        self.page.wait_for_function("input => {const nodes=document.querySelectorAll('.se-section-text p.se-text-paragraph'); return nodes.length===input.count && nodes[input.index]?.innerText===input.text}", arg={"index": count - 1, "count": count, "text": text}, timeout=6000)
+        if self._current_texts(region) != [*before, text] or self._current_title()[1] != title_before:
+            raise EditorUIChanged("Naver paragraph or title changed unexpectedly after input")
+        editor_compatibility.naver_input_focus(self.page, "body", count - 1)
+        self.page.keyboard.press("Enter")
+        self.page.wait_for_function("expected => {const nodes=[...document.querySelectorAll('.se-section-text p.se-text-paragraph')]; const last=nodes.at(-1); return nodes.length===expected && !!last && (!!last.querySelector('.se-placeholder') || !last.innerText.trim())}", arg=count + 1, timeout=6000)
+        if self._current_texts(region) != [*before, text] or self._current_title()[1] != title_before:
+            raise EditorUIChanged("Naver paragraph boundary or title changed after Enter")
+
     def prepare_operations(self, operations: list[dict]) -> None:
         counts = {}
         self._expected_components = {}
+        self._expected_text_counts = {}
+        text_counts: dict[str, int] = {}
+        current = self._uses_input_buffer()
         for operation in operations:
             feature = operation["feature_id"]
+            if current:
+                text = operation["payload"].get("text", "")
+                if feature not in CURRENT_BUFFER_FEATURES or (
+                    feature in {"title", "paragraph"} and
+                    (not isinstance(text, str) or text != text.strip() or "\n" in text or "\r" in text)
+                ) or (feature == "paragraph" and (
+                    operation["payload"].get("style") or operation["payload"].get("links")
+                )):
+                    raise EditorUIChanged("input-buffer editor does not safely support every requested block or style; use a guided editor fallback before writing")
+                if feature == "paragraph":
+                    text_counts[text] = text_counts.get(text, 0) + 1
+                    self._expected_text_counts[operation["operation_id"]] = text_counts[text]
             selector = COMPONENT_SELECTORS.get(feature)
             if selector:
                 counts[selector] = counts.get(selector, 0) + len(operation["payload"].get("paths") or [None])
@@ -869,6 +982,20 @@ class PlaywrightNaverDriver:
 
     def execute(self, operation: dict[str, Any]) -> None:
         feature_id = operation["feature_id"]
+        _require_naver_write_surface(self.page, feature_id=feature_id)
+        if self._uses_input_buffer():
+            if feature_id == "title":
+                self._current_fill_title(operation["payload"]["text"])
+            elif feature_id == "paragraph":
+                self._current_insert_paragraph(operation["payload"]["text"])
+            elif feature_id == "draft-save":
+                self._save_receipt.begin()
+                self.resolver.click("draft-save")
+                if not self._save_receipt.confirm():
+                    raise EditorUIChanged("new Naver draft save acknowledgement was not observed")
+            else:
+                raise EditorUIChanged("unverified input-buffer operation refused")
+            return
         feature = self.catalog.feature(feature_id)
         handler = feature["handler"]
         before = self._component_count(feature_id)
@@ -920,6 +1047,19 @@ class PlaywrightNaverDriver:
     def verify(self, operation: dict[str, Any]) -> bool:
         feature_id = operation["feature_id"]
         payload = operation["payload"]
+        if self._uses_input_buffer():
+            try:
+                if feature_id == "title":
+                    return self._current_title()[1] == payload["text"]
+                if feature_id == "paragraph":
+                    paragraphs = self._current_texts(_require_naver_write_surface(self.page, feature_id="paragraph"))
+                    expected = getattr(self, "_expected_text_counts", {}).get(operation["operation_id"])
+                    return expected is not None and paragraphs.count(payload["text"]) == expected
+                if feature_id == "draft-save":
+                    return self._save_receipt.acknowledged
+            except (EditorError, ValueError):
+                return False
+            return False
         if feature_id == "title":
             try:
                 _, locator = self.resolver.locate("title")
@@ -982,6 +1122,7 @@ class PlaywrightNaverDriver:
         return self._postconditions.get(operation["operation_id"], False)
 
     def guide(self, operation: dict[str, Any]) -> bool:
+        _require_naver_write_surface(self.page, feature_id=operation["feature_id"])
         feature_id = operation["feature_id"]
         before = self._component_count(feature_id)
         if operation["operation_id"] not in self._guided_open:
@@ -1024,6 +1165,10 @@ class PlaywrightNaverDriver:
             return ""
 
     def snapshot_hash(self) -> str:
+        if self._uses_input_buffer():
+            title = self._current_title()[1]
+            paragraphs = self._current_texts(_require_naver_write_surface(self.page, feature_id="paragraph"))
+            return digest({"version": self.surface_version, "title": title, "paragraphs": paragraphs})
         _, title = self.resolver.locate("title")
         try:
             title_value = title.input_value()
@@ -1038,6 +1183,12 @@ class PlaywrightNaverDriver:
                        "tags": tags.all_text_contents()})
 
     def has_existing_content(self) -> bool:
+        if self._uses_input_buffer():
+            return bool(
+                self._current_title()[1]
+                or self._current_texts(_require_naver_write_surface(self.page, feature_id="paragraph"))
+                or self.page.locator(".se-content .se-component:not(.se-text):not(.se-documentTitle)").count()
+            )
         _, title = self.resolver.locate("title")
         try:
             title_value = title.input_value()
@@ -1053,6 +1204,9 @@ class PlaywrightNaverDriver:
 
     def verify_document(self, document: dict) -> bool:
         expected = [block["text"].strip() for block in document["blocks"] if block.get("text")]
+        if self._uses_input_buffer():
+            body = _require_naver_write_surface(self.page, feature_id="paragraph")
+            return self._current_title()[1] == document["title"] and expected == self._current_texts(body)
         observed = []
         for frame in self.page.frames:
             observed.extend(frame.locator(".se-main-container").evaluate_all("""roots => roots.flatMap(root =>
@@ -1061,7 +1215,121 @@ class PlaywrightNaverDriver:
         # Advanced components need their own postconditions; do not accept extra prose.
         return expected == observed
 
+    @staticmethod
+    def _recovery_info(page: Any) -> dict[str, Any]:
+        """Only the visible recovery flag and timestamp, never draft contents."""
+        return page.evaluate("""() => {
+            const visible = [...document.querySelectorAll('.se-popup-dim')].some(node =>
+                !!node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden');
+            const text = document.body.innerText || '';
+            const start = text.indexOf('작성 중인 글이 있습니다.');
+            const timestamp = start < 0 ? null :
+                (text.slice(start, start + 220).match(/\\d+일\\s*(?:오전|오후)\\s*\\d+시\\s*\\d+분/) || [])[0] || null;
+            return {visible: visible && start >= 0, timestamp};
+        }""")
+
+    def _wait_for_recovery(self, timeout_ms: int = 6000) -> dict[str, Any]:
+        try:
+            self.page.wait_for_function("""() =>
+                document.body.innerText.includes('작성 중인 글이 있습니다.') &&
+                [...document.querySelectorAll('.se-popup-dim')].some(n => n.getClientRects().length)
+            """, timeout=timeout_ms)
+        except Exception:
+            pass
+        return self._recovery_info(self.page)
+
+    def _resolve_exact_recovery(self, document: dict, expected_hash: str, *, first: dict | None = None) -> None:
+        """Discard only a re-shown recovery of the exact already-saved draft."""
+        first = first if first is not None else self._wait_for_recovery()
+        if not first["visible"]:
+            return
+        confirm = self.page.get_by_role("button", name="확인", exact=True)
+        if confirm.count() != 1:
+            raise EditorUIChanged("recovery confirmation is ambiguous; preserve the existing draft")
+        confirm.click()
+        self.page.wait_for_function("() => ![...document.querySelectorAll('.se-popup-dim')].some(n => n.getClientRects().length)", timeout=8000)
+        if not self.verify_document(document) or self.snapshot_hash() != expected_hash:
+            raise EditorUIChanged("recovered content is not this saved document; preserve it for the owner")
+        if not first["timestamp"]:
+            raise EditorUIChanged("recovery timestamp is unavailable; do not discard the restored draft")
+        self.page.reload(wait_until="domcontentloaded")
+        self.page.locator(".se-section-text p.se-text-paragraph:visible").first.wait_for(state="visible", timeout=30000)
+        second = self._wait_for_recovery()
+        if second["visible"]:
+            if second["timestamp"] != first["timestamp"]:
+                raise EditorUIChanged("recovery identity changed; do not discard it")
+            cancel = self.page.get_by_role("button", name="취소", exact=True)
+            if cancel.count() != 1:
+                raise EditorUIChanged("recovery cancellation is ambiguous; preserve the draft")
+            cancel.click()
+            self.page.wait_for_function("() => ![...document.querySelectorAll('.se-popup-dim')].some(n => n.getClientRects().length)", timeout=8000)
+
+    def verify_saved_draft(self, document: dict) -> str:
+        """Reload the editor, then reopen one exact saved draft and compare it.
+
+        A save toast and the composing tab are not independent server readback.
+        Naver may not expose a draft ID in its URL; match a unique
+        visible list entry, never invent an ID or retry an ambiguous save.
+        """
+        if not self._uses_input_buffer() or not self._save_receipt.acknowledged:
+            raise EditorUIChanged("new Naver draft acknowledgement is unavailable")
+        if not self.verify_document(document):
+            raise EditorUIChanged("draft text differed before saved-list readback")
+        return self.readback_exact_saved_draft(document, self.snapshot_hash())
+
+    def readback_exact_saved_draft(self, document: dict, expected_hash: str) -> str:
+        """Reload a saved/blank writer and read one draft by document-bound hash.
+
+        Naver can put a dimming overlay over a saved-draft list in a second
+        simultaneous writer tab. Reload the *same* tab only after an observed
+        save acknowledgement or an explicitly blank/identical editor; the
+        approved source document remains on disk for safe reconciliation.
+        """
+        if (not self._uses_input_buffer() or not isinstance(expected_hash, str)
+            or len(expected_hash) != 64 or any(ch not in "0123456789abcdef" for ch in expected_hash)):
+            raise ValueError("a verified input-buffer surface and saved content hash are required")
+        initial_recovery = self._wait_for_recovery()
+        if initial_recovery["visible"]:
+            self._resolve_exact_recovery(document, expected_hash, first=initial_recovery)
+        if self.has_existing_content() and self.snapshot_hash() != expected_hash:
+            raise EditorUIChanged("another editor document is open; do not reload user content")
+        verification_page = self.page
+        verification_page.reload(wait_until="domcontentloaded")
+        verification_page.locator(".se-section-text p.se-text-paragraph:visible").first.wait_for(state="visible", timeout=30000)
+        self._resolve_exact_recovery(document, expected_hash)
+        surface = editor_compatibility.editor_body(verification_page, "naver")
+        if surface is None or surface[0] != "naver-input-buffer":
+            raise EditorUIChanged("independent saved-draft verification editor is unavailable")
+        title = verification_page.locator(".se-section-documentTitle p.se-text-paragraph:visible")
+        if (title.count() != 1 or title.locator(".se-placeholder").count() != 1
+            or self._current_texts(surface[1])
+            or verification_page.locator(".se-content .se-component:not(.se-text):not(.se-documentTitle)").count()):
+            raise EditorUIChanged("reloaded editor is not a fresh blank editor")
+        list_control = verification_page.locator('button[data-click-area="tpb*s.count"]:visible')
+        if list_control.count() != 1:
+            raise EditorUIChanged("saved-draft list control is missing or ambiguous")
+        list_control.click()
+        entries = verification_page.locator('button[data-click-area="tpb*s.tlist"]:visible')
+        exact = entries.filter(has=verification_page.locator("strong").get_by_text(document["title"], exact=True))
+        try:
+            exact.first.wait_for(state="visible", timeout=10000)
+        except Exception as exc:
+            raise EditorUIChanged("saved Naver draft title did not appear in the visible list") from exc
+        if exact.count() != 1:
+            raise AmbiguousElement("multiple Naver drafts share the exact expected title")
+        exact.click()
+        expected = {"title": document["title"], "paragraphs": [block["text"].strip() for block in document["blocks"] if block.get("text")]}
+        try:
+            verification_page.wait_for_function("expected => {const title=document.querySelector('.se-section-documentTitle p.se-text-paragraph'); const paragraphs=[...document.querySelectorAll('.se-section-text p.se-text-paragraph')].filter(p=>!p.querySelector('.se-placeholder')).map(p=>p.innerText.trim()).filter(Boolean); return title?.innerText===expected.title && JSON.stringify(paragraphs)===JSON.stringify(expected.paragraphs)}", arg=expected, timeout=10000)
+        except Exception as exc:
+            raise EditorUIChanged("saved Naver draft content did not match the requested document") from exc
+        reread = PlaywrightNaverDriver(verification_page, catalog=self.catalog, data_dir=self.data_dir)
+        if not reread.verify_document(document) or reread.snapshot_hash() != expected_hash:
+            raise EditorUIChanged("saved Naver draft fingerprint did not match the editor")
+        return expected_hash
+
     def apply_publish_settings(self, settings: dict[str, Any]) -> None:
+        _require_naver_write_surface(self.page, feature_id="publish-dialog")
         dialogs = self.page.get_by_role("dialog")
         if dialogs.count() == 0:
             # This opens configuration only. The final submit has a different contract.
@@ -1099,6 +1367,7 @@ class PlaywrightNaverDriver:
     def click_publish(self, action: str) -> None:
         if os.environ.get("AUTOSEO_TESTING") == "1" or "PYTEST_CURRENT_TEST" in os.environ:
             raise RuntimeError("publish controls are disabled in automated tests")
+        _require_naver_write_surface(self.page, feature_id="publish")
         self.resolver.click("schedule-publish" if action == "schedule" else "publish")
 
     def verify_publish(self, action: str) -> dict[str, Any] | None:
@@ -1236,6 +1505,7 @@ class NaverBrowserSession:
                 launch_options: dict[str, Any] = {
                     "headless": False,
                     "accept_downloads": False,
+                    "chromium_sandbox": True,
                 }
                 if self.browser_channel:
                     launch_options["channel"] = self.browser_channel
@@ -1367,6 +1637,7 @@ def revise_title(
             "title_locator": title_strategy,
         }
 
+    _require_naver_write_surface(page, feature_id="revise-title")
     editor_compatibility.fill_unicode_exact(page, title, replacement)
     if editor_compatibility._read_locator_text(title) != replacement:
         raise EditorUIChanged("new title was not preserved exactly")
@@ -1482,6 +1753,20 @@ def _compose(
             if not close_after:
                 browser.keep_open_until_closed()
             raise
+        if getattr(driver, "surface_version", None) == 3:
+            try:
+                verified_hash = driver.verify_saved_draft(document)
+            except Exception as exc:
+                checkpoint["verification_state"] = "unavailable"
+                checkpoint["verification_reason"] = type(exc).__name__
+                store.save(checkpoint)
+                raise
+            checkpoint["verification_state"] = "verified"
+            checkpoint["verification_reason"] = None
+            checkpoint["verified_surface_hash"] = verified_hash
+            checkpoint["verified_session_id"] = driver.session_id
+            checkpoint["verified_at"] = datetime.now(timezone.utc).isoformat()
+            checkpoint["save_state"] = "readback-confirmed"
         checkpoint["draft_url"] = _verified_draft_url(str(page.url))
         store.save(checkpoint)
         result = compact_result(checkpoint, platform="naver", elapsed_ms=elapsed_ms)

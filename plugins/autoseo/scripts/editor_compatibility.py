@@ -49,24 +49,213 @@ def format_toggle_states(page, catalog, feature_ids):
     return found[0] if len(found) == 1 else None
 
 
+_NAVER_CURRENT_PROBE = """() => {
+    const visible = node => {
+        const style = getComputedStyle(node);
+        return !!node.getClientRects().length && style.display !== 'none' &&
+            style.visibility !== 'hidden' && !node.closest('[aria-hidden=true]');
+    };
+    const visibleAll = selector => [...document.querySelectorAll(selector)].filter(visible);
+    const titleSections = visibleAll('.se-section-documentTitle');
+    const titleParagraphs = visibleAll('.se-section-documentTitle .se-text-paragraph');
+    const titleWidgets = visibleAll('.se-documentTitle');
+    const bodySections = visibleAll('.se-section-text');
+    const bodyParagraphs = visibleAll('.se-section-text .se-text-paragraph');
+    const inputBuffers = [...document.querySelectorAll('[contenteditable=true]')];
+    const publishButtons = visibleAll("button[data-click-area='tpb.publish']");
+    const result = {
+        titleSections: titleSections.length,
+        titleParagraphs: titleParagraphs.length,
+        titleWidgets: titleWidgets.length,
+        bodySections: bodySections.length,
+        bodyParagraphs: bodyParagraphs.length,
+        inputBuffers: inputBuffers.length,
+        publishButtons: publishButtons.length,
+        rootedTogether: false,
+        separateComponents: false,
+        titleWidgetOwnsParagraph: false,
+        inputBufferIsDetachedDiv: false
+    };
+    if (titleSections.length !== 1 || titleParagraphs.length !== 1 ||
+        titleWidgets.length !== 1 || bodySections.length !== 1 ||
+        inputBuffers.length !== 1) return result;
+    const titleSection = titleSections[0], titleParagraph = titleParagraphs[0];
+    const titleWidget = titleWidgets[0], bodySection = bodySections[0];
+    const inputBuffer = inputBuffers[0];
+    const titleContent = titleSection.closest('.se-content');
+    const bodyContent = bodySection.closest('.se-content');
+    const titleContainer = titleContent?.closest('.se-container');
+    const bodyContainer = bodyContent?.closest('.se-container');
+    const titleBody = titleContainer?.closest('.se-body');
+    const bodyBody = bodyContainer?.closest('.se-body');
+    const titleComponent = titleSection.closest('.se-component');
+    const bodyComponent = bodySection.closest('.se-component');
+    result.rootedTogether = !!titleContent && titleContent === bodyContent &&
+        !!titleContainer && titleContainer === bodyContainer &&
+        !!titleBody && titleBody === bodyBody;
+    result.separateComponents = !!titleComponent && !!bodyComponent &&
+        titleComponent !== bodyComponent;
+    result.titleWidgetOwnsParagraph = titleWidget.contains(titleParagraph);
+    result.inputBufferIsDetachedDiv = inputBuffer.tagName === 'DIV' &&
+        !titleSection.contains(inputBuffer) && !bodySection.contains(inputBuffer);
+    return result;
+}"""
+
+
+def _is_current_naver_surface(probe) -> bool:
+    """Classify only the observed SmartEditor ONE input-buffer structure."""
+    if not isinstance(probe, dict):
+        return False
+    exact = {
+        "titleSections": 1,
+        "titleParagraphs": 1,
+        "titleWidgets": 1,
+        "bodySections": 1,
+        "inputBuffers": 1,
+        "publishButtons": 1,
+    }
+    return (
+        all(probe.get(key) == value for key, value in exact.items())
+        and isinstance(probe.get("bodyParagraphs"), int)
+        and probe["bodyParagraphs"] >= 1
+        and probe.get("rootedTogether") is True
+        and probe.get("separateComponents") is True
+        and probe.get("titleWidgetOwnsParagraph") is True
+        and probe.get("inputBufferIsDetachedDiv") is True
+    )
+
+
+def _has_ambiguous_current_naver_surface(probe) -> bool:
+    if not isinstance(probe, dict):
+        return False
+    required_markers = (
+        probe.get("titleSections", 0),
+        probe.get("titleWidgets", 0),
+        probe.get("bodySections", 0),
+        probe.get("inputBuffers", 0),
+        probe.get("publishButtons", 0),
+    )
+    if not all(isinstance(value, int) and value > 0 for value in required_markers):
+        return False
+    return not _is_current_naver_surface(probe)
+
+
+def _visible_editor_frame(frame, page) -> bool:
+    if frame == page.main_frame:
+        return True
+    try:
+        return frame.frame_element().is_visible()
+    except Exception as exc:
+        # SmartEditor replaces its input-buffer iframe while loading. A stale
+        # frame from page.frames is not another editor or an authentication error.
+        if "frame has been detached" in str(exc).casefold():
+            return False
+        raise
+
+
+_NAVER_INPUT_FOCUS = """({role, index}) => {
+    const active = document.activeElement;
+    const selection = window.getSelection();
+    const anchor = selection?.anchorNode;
+    const owner = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+    const paragraph = owner?.closest('p.se-text-paragraph');
+    const selector = role === 'title'
+        ? '.se-section-documentTitle p.se-text-paragraph'
+        : '.se-section-text p.se-text-paragraph';
+    const paragraphs = [...document.querySelectorAll(selector)];
+    const wanted = paragraphs[index];
+    if (!wanted || paragraphs.length <= index || paragraph !== wanted ||
+        !selection?.isCollapsed || selection.toString().length ||
+        active?.tagName !== 'IFRAME' || !/^input_buffer/.test(active.id || '')) return false;
+    try {
+        return active.contentDocument?.body?.getAttribute('contenteditable') === 'true';
+    } catch (_) { return false; }
+}"""
+
+
+def naver_input_focus(page, role: str, index: int, *, timeout_ms: int = 5000) -> None:
+    """Wait for the exact visible paragraph to own the detached input buffer.
+
+    This never types, changes selection or accepts a global editable as proof.
+    Call it again immediately before each keyboard operation to fail closed if
+    a user or modal moved the caret in the meantime.
+    """
+    if role not in {"title", "body"} or not isinstance(index, int) or index < 0:
+        raise ValueError("invalid Naver input focus target")
+    arguments = {"role": role, "index": index}
+    try:
+        page.wait_for_function(_NAVER_INPUT_FOCUS, arg=arguments, timeout=timeout_ms)
+        if not page.evaluate(_NAVER_INPUT_FOCUS, arguments):
+            raise ValueError("focus moved")
+    except Exception as exc:
+        raise ValueError("Naver input buffer focus unavailable before typing") from exc
+
+
+def naver_editor_surface(page):
+    """Return one bounded Naver surface as ``(kind, title, body)``.
+
+    ``naver`` is the legacy nested-contenteditable layout. The current
+    ``naver-input-buffer`` layout uses a detached input buffer instead of
+    directly editable visible paragraphs. Detection reads only structural
+    counts/relationships; callers must separately enforce the supported
+    operation allowlist, focus binding and postconditions before writing.
+    """
+    matches = []
+    malformed_current = False
+    for frame in page.frames:
+        if not _visible_editor_frame(frame, page):
+            continue
+
+        legacy = frame.locator(".se-main-container")
+        for index in range(legacy.count()):
+            root = legacy.nth(index)
+            if not root.is_visible():
+                continue
+            if not root.locator("[contenteditable=true]:visible").count():
+                continue
+            matches.append(("naver", None, root))
+
+        try:
+            probe = frame.evaluate(_NAVER_CURRENT_PROBE)
+        except Exception as exc:
+            if "frame has been detached" in str(exc).casefold():
+                continue
+            raise
+        if _is_current_naver_surface(probe):
+            title = frame.locator(
+                ".se-section-documentTitle .se-text-paragraph:visible"
+            )
+            body = frame.locator(".se-section-text:visible")
+            if title.count() != 1 or body.count() != 1:
+                malformed_current = True
+            else:
+                matches.append(("naver-input-buffer", title, body))
+        elif _has_ambiguous_current_naver_surface(probe):
+            malformed_current = True
+
+    if malformed_current or len(matches) > 1:
+        raise ValueError("Naver editor surface is ambiguous across visible roots or frames")
+    return matches[0] if matches else None
+
+
 def editor_body(page, platform: str, *, kind: str | None = None):
     """One visible body across frames, shared by readiness and driver access."""
-    selectors = {
-        "naver": [("naver", ".se-main-container")],
-        "tistory": [
-            ("basic", ".ProseMirror[contenteditable=true], .tt_article_useless_p_margin[contenteditable=true], #editor [contenteditable=true], body#tinymce[contenteditable=true]"),
-            ("codemirror5", ".CodeMirror"),
-            ("codemirror6", ".cm-content[contenteditable=true]"),
-            ("textarea", "textarea[aria-label*='본문'], textarea[name=content], textarea#editor-textarea"),
-        ],
-    }
-    if platform not in selectors:
+    if platform == "naver":
+        surface = naver_editor_surface(page)
+        return (surface[0], surface[2]) if surface else None
+    if platform != "tistory":
         raise ValueError("unsupported editor platform")
+    selectors = [
+        ("basic", ".ProseMirror[contenteditable=true], .tt_article_useless_p_margin[contenteditable=true], #editor [contenteditable=true], body#tinymce[contenteditable=true]"),
+        ("codemirror5", ".CodeMirror"),
+        ("codemirror6", ".cm-content[contenteditable=true]"),
+        ("textarea", "textarea[aria-label*='본문'], textarea[name=content], textarea#editor-textarea"),
+    ]
     matches = []
     for frame in page.frames:
         if frame != page.main_frame and not frame.frame_element().is_visible():
             continue
-        for name, selector in selectors[platform]:
+        for name, selector in selectors:
             if kind == "source" and name == "basic" or kind == "basic" and name != "basic":
                 continue
             candidates = frame.locator(selector)
@@ -78,8 +267,6 @@ def editor_body(page, platform: str, *, kind: str | None = None):
                     continue
                 if name == "basic" and node.evaluate("node => !!node.closest('.CodeMirror, .cm-editor, .cm-content')"):
                     continue
-                if name == "naver" and not node.locator("[contenteditable=true]:visible").count():
-                    continue
                 matches.append((name, node))
     if len(matches) > 1:
         raise ValueError("editor body is ambiguous across visible controls or frames")
@@ -88,7 +275,15 @@ def editor_body(page, platform: str, *, kind: str | None = None):
 
 def editor_ready(page, platform: str, resolver) -> bool:
     try:
-        body = editor_body(page, platform)
+        if platform == "naver":
+            surface = naver_editor_surface(page)
+            if surface is None:
+                return False
+            if surface[0] == "naver-input-buffer":
+                return surface[1].is_visible() and surface[2].is_visible()
+            body = (surface[0], surface[2])
+        else:
+            body = editor_body(page, platform)
     except ValueError as exc:
         raise resolver.ambiguous_error(str(exc)) from exc
     if body is None:
@@ -203,6 +398,8 @@ def fill_unicode_exact(page, locator, text: str) -> None:
     session; no browser restart or second login is introduced.
     """
     expected = str(text)
+    if not locator.is_visible() or not locator.is_editable():
+        raise ValueError("the intended text control is not visibly editable")
     locator.fill(expected)
     try:
         if _read_locator_text(locator) == expected:
@@ -250,6 +447,9 @@ def ui_signature(page) -> str:
             return {
                 naverRoot: count('.se-main-container'),
                 naverTitle: count('.se-documentTitle .se-text-paragraph'),
+                naverTitleSection: count('.se-section-documentTitle'),
+                naverBodySection: count('.se-section-text'),
+                naverInputBuffer: count('[contenteditable=true]'),
                 naverSave: count("button[data-click-area='tpb.save']"),
                 naverPublish: count("button[data-click-area='tpb.publish']"),
                 naverTags: count("input[placeholder*='태그']"),
@@ -311,7 +511,8 @@ def scopes(page, feature: dict):
     active = []
     for index, frame in enumerate(frames):
         if frame == page.main_frame or frame.locator(
-            ".se-main-container, .ProseMirror, .CodeMirror, .cm-content, "
+            ".se-main-container, .se-section-documentTitle, .se-section-text, "
+            ".ProseMirror, .CodeMirror, .cm-content, "
             "body#tinymce[contenteditable=true], textarea[name=content]"
         ).count():
             active.append((index, frame))

@@ -63,7 +63,8 @@ def compact_result(checkpoint: dict, *, platform: str, elapsed_ms: float | None 
         "completed_operations": len(checkpoint.get("completed_operation_ids", [])),
         "publish_state": checkpoint.get("publish_state", "not-requested"),
         "requires_attention": bool(checkpoint.get("pending_operation_id") or checkpoint.get("last_error_type")
-                                   or checkpoint.get("save_state") != "acknowledged"),
+                                   or checkpoint.get("save_state") not in {"acknowledged", "readback-confirmed"}),
+        "draft_verified": checkpoint.get("verification_state") == "verified",
     }
     # URLs and diagnostic paths stay in the private checkpoint, not model context.
     if elapsed_ms is not None:

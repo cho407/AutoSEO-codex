@@ -43,6 +43,17 @@ catalog offers blog search but no rich blog-post writing endpoint.
 | `@autoseo naver-editor publish <draft>` | Preview settings, request approval, click publish once, verify once |
 | `@autoseo naver-editor schedule <draft-and-time>` | Preview time/settings, request approval, schedule once, verify once |
 
+**Current detached-input-buffer layout:** the live-tested code-first path handles
+one exact title, plain single-line paragraph blocks, and one draft save. It then
+checks one uniquely titled saved-list entry and the entire title/body fingerprint
+after a same-tab reload. Unsupported styles, headings, quotes, images, tags,
+links, attachments, guided components and final publication options fail during
+operation preflight **before any account text is entered**. The broad feature
+catalog describes the document schema and legacy adapter, not a promise that
+each feature works on this newer editor layout. For a rich article, stop at the
+preflight blocker and use a separately authorized visible editor workflow;
+never retry an uncertain partial save through another controller.
+
 When `compose` receives a topic instead of a ready `NaverDocument v1`, first route
 through `autoseo-writing`: resolve the confirmed writing identity, research any
 current claims, draft in the selected tone, remove Korean translationese, and show
@@ -118,14 +129,19 @@ photos, video, place, multiple attachments, external links, files, schedules,
 tables, equations, templates, library items, TalkTalk, stickers, tags, and publish
 settings. Validate with `schema/naver-document.schema.json` and
 `naver_document.py` before opening the account.
+Schema support does not override the current-layout preflight restrictions above.
 
-For new blog drafts, select `layout_preset: "blog-centered"` and follow
+For layouts whose native formatting controls have passed the live compatibility
+check, select `layout_preset: "blog-centered"` for new drafts and follow
 `autoseo-writing/references/blog-format.md` from the skills directory. The compiler
 resolves native text styles once from the preset; explicit block styles take
 precedence. Use `article-readable` for left-aligned prose or `none` to disable
-preset styling. Do not retrofit existing documents or published posts without a
-formatting request. A missing or ambiguous native style control still stops the
-operation; local HTML appearance is not proof of live SmartEditor compatibility.
+preset styling. On the current detached-input-buffer layout, these styled
+presets are rejected before typing; use plain blocks or a separately authorized
+visible editor workflow for rich articles. Do not retrofit existing documents or
+published posts without a formatting request. A missing or ambiguous native
+style control stops the operation; local HTML appearance is not proof of live
+SmartEditor compatibility.
 
 Send one document file instead of model-issued clicks. Shipped
 `data/editor-decision-tree.json` handles execute/skip/record/guided/reconcile, never
@@ -168,16 +184,19 @@ history, or user edits stop for reconciliation; they never silently reset histor
 Use a new document ID for a revision. Legacy checkpoints are not automatically
 migrated across changed hash rules. Document and profile locks prevent overlap.
 
-After compose or resume reports `save_state=acknowledged`, keep the editor session
-open for review. `acknowledged` is a new save notification captured by the current
-session, and the checkpoint also records source and surface fingerprints. The
-workflow does not close and reopen the editor to test persistence, so it does not
-create a second login or navigation sequence that can trigger platform protection.
-Do not close a window with unsaved user changes automatically. Publication still
-requires the exact blog/draft identity, the current surface fingerprint, and the
-existing per-post final approval. Advanced components and live UI mappings remain
-subject to the compatibility checklist; a local fixture pass is not live
-certification.
+`save_state=acknowledged` means only a fresh UI save notification; it is **not**
+independent proof of persistence. On the current input-buffer layout, compose
+reports `save_state=readback-confirmed` and `draft_verified=true` only after the
+same tab is reloaded, a unique exact-title saved-list entry is opened, and the
+full rendered body/hash matches the approved document. Naver may leave the
+writer URL generic with no draft ID; never invent one. Until an exact draft
+identity and current-layout controls are verified, `resume`, `revise-title`,
+`publish`, and `schedule` stop rather than assuming a saved draft can be posted.
+An unrelated recovery prompt is preserved for the owner. Only a recovery whose
+restored content/hash and repeated visible timestamp match this saved document
+may be cancelled before independent readback; never force-click through its
+overlay. Do not close a window with unsaved user changes automatically. Other
+advanced components remain subject to the live compatibility checklist.
 
 If the process stops at the save boundary, do not retry the save. Resume reports the
 pending operation for manual reconciliation and never guesses whether the remote

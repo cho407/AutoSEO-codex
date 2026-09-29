@@ -6,7 +6,7 @@ import stat
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -15,6 +15,7 @@ PLUGIN = ROOT / "plugins" / "autoseo"
 SCRIPTS = PLUGIN / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+import editor_compatibility  # noqa: E402
 import naver_document  # noqa: E402
 import naver_editor  # noqa: E402
 
@@ -143,6 +144,128 @@ class FakePage:
         return FakeLocator(self.fallback_count)
 
 
+class SurfaceElement:
+    def __init__(
+        self,
+        *,
+        visible: bool = True,
+        editable: bool = False,
+        editable_descendants: int = 0,
+    ) -> None:
+        self.visible = visible
+        self.editable = editable
+        self.editable_descendants = editable_descendants
+
+    def is_visible(self) -> bool:
+        return self.visible
+
+    def is_editable(self) -> bool:
+        return self.editable
+
+    def locator(self, selector: str):
+        assert selector == "[contenteditable=true]:visible"
+        return SurfaceLocator([SurfaceElement()] * self.editable_descendants)
+
+
+class SurfaceLocator:
+    def __init__(self, elements: list[SurfaceElement]) -> None:
+        self.elements = elements
+
+    def count(self) -> int:
+        return len(self.elements)
+
+    def nth(self, index: int) -> SurfaceElement:
+        return self.elements[index]
+
+    def is_visible(self) -> bool:
+        return len(self.elements) == 1 and self.elements[0].is_visible()
+
+    def is_editable(self) -> bool:
+        return len(self.elements) == 1 and self.elements[0].is_editable()
+
+
+class SurfaceFrame:
+    def __init__(
+        self,
+        probe: dict,
+        *,
+        legacy_roots: list[SurfaceElement] | None = None,
+        title_count: int = 1,
+        body_count: int = 1,
+        frame_visible: bool = True,
+    ) -> None:
+        self.probe = probe
+        self.legacy_roots = legacy_roots or []
+        self.title = SurfaceElement(visible=True, editable=False)
+        self.body = SurfaceElement(visible=True, editable=False)
+        self.title_count = title_count
+        self.body_count = body_count
+        self.frame_visible = frame_visible
+
+    def evaluate(self, script: str) -> dict:
+        assert script == editor_compatibility._NAVER_CURRENT_PROBE
+        return dict(self.probe)
+
+    def locator(self, selector: str) -> SurfaceLocator:
+        if selector == ".se-main-container":
+            return SurfaceLocator(self.legacy_roots)
+        if selector == ".se-section-documentTitle .se-text-paragraph:visible":
+            return SurfaceLocator([self.title] * self.title_count)
+        if selector == ".se-section-text:visible":
+            return SurfaceLocator([self.body] * self.body_count)
+        return SurfaceLocator([])
+
+    def frame_element(self) -> SurfaceElement:
+        return SurfaceElement(visible=self.frame_visible)
+
+
+class SurfacePage:
+    def __init__(self, *frames: SurfaceFrame) -> None:
+        self.frames = list(frames)
+        self.main_frame = self.frames[0]
+        self.keyboard_calls: list[str] = []
+        self.keyboard = SimpleNamespace(
+            insert_text=lambda value: self.keyboard_calls.append(value)
+        )
+
+    @staticmethod
+    def evaluate(script: str) -> bool:
+        assert ".se-popup-dim" in script
+        return False
+
+
+def _current_surface_probe(**changes) -> dict:
+    probe = {
+        "titleSections": 1,
+        "titleParagraphs": 1,
+        "titleWidgets": 1,
+        "bodySections": 1,
+        "bodyParagraphs": 1,
+        "inputBuffers": 1,
+        "publishButtons": 1,
+        "rootedTogether": True,
+        "separateComponents": True,
+        "titleWidgetOwnsParagraph": True,
+        "inputBufferIsDetachedDiv": True,
+    }
+    probe.update(changes)
+    return probe
+
+
+class SurfaceResolver:
+    ambiguous_error = naver_editor.AmbiguousElement
+    ui_error = naver_editor.EditorUIChanged
+
+    def __init__(self, title: SurfaceElement | None = None) -> None:
+        self.title = title
+
+    def locate(self, feature_id: str):
+        assert feature_id == "title"
+        if self.title is None:
+            raise self.ui_error("title absent")
+        return "dom-fallback", self.title
+
+
 def test_feature_catalog_is_complete_and_has_no_silent_omissions() -> None:
     catalog = naver_editor.FeatureCatalog.load()
     expected = {
@@ -206,6 +329,207 @@ def test_feature_catalog_is_complete_and_has_no_silent_omissions() -> None:
         for item in catalog.features.values()
         if item["status"] == "automatic"
     )
+
+
+def test_current_input_buffer_surface_is_read_only_and_ready() -> None:
+    frame = SurfaceFrame(_current_surface_probe())
+    page = SurfacePage(frame)
+    resolver = SurfaceResolver()
+
+    surface = editor_compatibility.naver_editor_surface(page)
+
+    assert surface is not None
+    assert surface[0] == "naver-input-buffer"
+    assert surface[1].elements == [frame.title]
+    assert surface[2].elements == [frame.body]
+    assert editor_compatibility.editor_ready(page, "naver", resolver) is True
+    assert naver_editor._require_naver_write_surface(page, feature_id="paragraph").elements == [frame.body]
+    with pytest.raises(naver_editor.EditorUIChanged, match="not verified"):
+        naver_editor._require_naver_write_surface(page, feature_id="photo")
+
+    driver = object.__new__(naver_editor.PlaywrightNaverDriver)
+    driver.page = page
+    with pytest.raises(naver_editor.EditorUIChanged, match="not verified"):
+        driver.execute({"feature_id": "photo", "payload": {"path": "unused"}})
+    assert page.keyboard_calls == []
+
+
+@pytest.mark.parametrize(
+    ("method", "argument"),
+    [
+        ("guide", {"feature_id": "photo", "operation_id": "blocked"}),
+        ("apply_publish_settings", {"mode": "publish"}),
+        ("click_publish", "publish"),
+    ],
+)
+def test_current_input_buffer_surface_blocks_direct_mutations(method, argument, monkeypatch) -> None:
+    if method == "click_publish":
+        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+        monkeypatch.delenv("AUTOSEO_TESTING", raising=False)
+    page = SurfacePage(SurfaceFrame(_current_surface_probe()))
+    driver = object.__new__(naver_editor.PlaywrightNaverDriver)
+    driver.page = page
+
+    with pytest.raises(naver_editor.EditorUIChanged, match="not verified"):
+        getattr(driver, method)(argument)
+
+    assert page.keyboard_calls == []
+
+
+def test_legacy_nested_editable_surface_remains_supported() -> None:
+    absent_probe = _current_surface_probe(
+        titleSections=0,
+        titleParagraphs=0,
+        titleWidgets=0,
+        bodySections=0,
+        bodyParagraphs=0,
+        inputBuffers=0,
+        publishButtons=0,
+    )
+    root = SurfaceElement(editable_descendants=1)
+    frame = SurfaceFrame(absent_probe, legacy_roots=[root])
+    page = SurfacePage(frame)
+    title = SurfaceElement(editable=True)
+
+    assert editor_compatibility.editor_body(page, "naver") == ("naver", root)
+    assert editor_compatibility.editor_ready(
+        page, "naver", SurfaceResolver(title)
+    ) is True
+    assert naver_editor._require_naver_write_surface(page) is root
+
+
+def test_generic_naver_content_is_not_an_editor_surface() -> None:
+    generic_probe = _current_surface_probe(
+        titleSections=0,
+        titleParagraphs=0,
+        titleWidgets=0,
+        inputBuffers=0,
+        publishButtons=0,
+        rootedTogether=False,
+        separateComponents=False,
+        titleWidgetOwnsParagraph=False,
+        inputBufferIsDetachedDiv=False,
+    )
+    page = SurfacePage(SurfaceFrame(generic_probe, title_count=0))
+
+    assert editor_compatibility.editor_body(page, "naver") is None
+    assert editor_compatibility.editor_ready(
+        page, "naver", SurfaceResolver()
+    ) is False
+
+
+def test_current_surface_rejects_duplicate_roots_and_frames() -> None:
+    duplicate_root = SurfacePage(
+        SurfaceFrame(
+            _current_surface_probe(titleSections=2, titleParagraphs=2),
+            title_count=2,
+        )
+    )
+    with pytest.raises(ValueError, match="ambiguous"):
+        editor_compatibility.naver_editor_surface(duplicate_root)
+
+    duplicate_frames = SurfacePage(
+        SurfaceFrame(_current_surface_probe()),
+        SurfaceFrame(_current_surface_probe()),
+    )
+    with pytest.raises(naver_editor.AmbiguousElement, match="ambiguous"):
+        editor_compatibility.editor_ready(
+            duplicate_frames, "naver", SurfaceResolver()
+        )
+
+
+@pytest.mark.parametrize(
+    ("document_matches", "same_recovery_timestamp", "cancel_count"),
+    [(False, True, 0), (True, False, 0), (True, True, 1)],
+)
+def test_naver_recovery_never_discards_an_unmatched_draft(
+    document_matches, same_recovery_timestamp, cancel_count
+) -> None:
+    clicks = {"확인": 0, "취소": 0, "reload": 0}
+    first = {"visible": True, "timestamp": "1일 오후 1시 01분"}
+    second = {"visible": True, "timestamp": first["timestamp"] if same_recovery_timestamp else "1일 오후 1시 02분"}
+    expected_hash = "a" * 64
+
+    class Control:
+        def __init__(self, name):
+            self.name = name
+
+        def count(self):
+            return 1
+
+        def click(self):
+            clicks[self.name] += 1
+
+    class Page:
+        def get_by_role(self, role, *, name, exact):
+            assert role == "button" and exact and name in {"확인", "취소"}
+            return Control(name)
+
+        def wait_for_function(self, *_args, **_kwargs):
+            pass
+
+        def reload(self, *, wait_until):
+            assert wait_until == "domcontentloaded"
+            clicks["reload"] += 1
+
+        def locator(self, _selector):
+            return SimpleNamespace(first=SimpleNamespace(wait_for=lambda **_kwargs: None))
+
+    driver = object.__new__(naver_editor.PlaywrightNaverDriver)
+    driver.page = Page()
+    driver.verify_document = lambda _document: document_matches
+    driver.snapshot_hash = lambda: expected_hash if document_matches else "b" * 64
+    driver._wait_for_recovery = lambda: second
+
+    if cancel_count:
+        driver._resolve_exact_recovery({}, expected_hash, first=first)
+    else:
+        with pytest.raises(naver_editor.EditorUIChanged):
+            driver._resolve_exact_recovery({}, expected_hash, first=first)
+
+    assert clicks["확인"] == 1
+    assert clicks["취소"] == cancel_count
+    assert clicks["reload"] == int(document_matches)
+
+
+def test_unicode_fallback_never_types_after_focus_moves() -> None:
+    class MovedFocusLocator:
+        fill_calls = 0
+
+        @staticmethod
+        def is_visible() -> bool:
+            return True
+
+        @staticmethod
+        def is_editable() -> bool:
+            return True
+
+        def fill(self, _: str) -> None:
+            self.fill_calls += 1
+
+        @staticmethod
+        def input_value() -> str:
+            return "editor-transformed-value"
+
+        @staticmethod
+        def click() -> None:
+            pass
+
+        @staticmethod
+        def evaluate(_: str) -> bool:
+            return False
+
+    inserted: list[str] = []
+    page = SimpleNamespace(
+        keyboard=SimpleNamespace(insert_text=lambda text: inserted.append(text))
+    )
+    locator = MovedFocusLocator()
+
+    with pytest.raises(ValueError, match="did not preserve exact Unicode"):
+        editor_compatibility.fill_unicode_exact(page, locator, "정확한 입력")
+
+    assert locator.fill_calls == 1
+    assert inserted == []
 
 
 def test_document_validation_and_attachment_limits(tmp_path: Path) -> None:
@@ -454,6 +778,77 @@ def test_cdp_attachment_keeps_explicit_draft_target(target_url, open_url, matche
     browser = SimpleNamespace(contexts=[SimpleNamespace(pages=[page])])
     found = naver_editor.NaverBrowserSession._editor_page_candidates(browser, target_url)
     assert found == ([page] if matches else [])
+
+
+def test_persistent_browser_launch_explicitly_enables_sandbox(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    launch_calls: list[tuple[tuple, dict]] = []
+
+    class BrowserPage:
+        url = naver_editor.DEFAULT_EDITOR_URL
+
+        def goto(self, url: str, *, wait_until: str) -> None:
+            assert wait_until == "domcontentloaded"
+            self.url = url
+
+    class BrowserContext:
+        def __init__(self) -> None:
+            self.pages: list[BrowserPage] = []
+            self.closed = False
+
+        @staticmethod
+        def route(_: str, __) -> None:
+            pass
+
+        def new_page(self) -> BrowserPage:
+            page = BrowserPage()
+            self.pages.append(page)
+            return page
+
+        def close(self) -> None:
+            self.closed = True
+
+    context = BrowserContext()
+
+    class Chromium:
+        @staticmethod
+        def launch_persistent_context(*args, **kwargs):
+            launch_calls.append((args, kwargs))
+            return context
+
+    class Playwright:
+        chromium = Chromium()
+        stopped = False
+
+        def stop(self) -> None:
+            self.stopped = True
+
+    playwright = Playwright()
+
+    class Manager:
+        @staticmethod
+        def start() -> Playwright:
+            return playwright
+
+    package = ModuleType("playwright")
+    package.__path__ = []
+    sync_api = ModuleType("playwright.sync_api")
+    sync_api.sync_playwright = lambda: Manager()
+    monkeypatch.setitem(sys.modules, "playwright", package)
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
+
+    session = naver_editor.NaverBrowserSession(
+        data_dir=tmp_path,
+        editor_url=naver_editor.DEFAULT_EDITOR_URL,
+    )
+    entered = naver_editor.NaverBrowserSession.__enter__.__wrapped__(session)
+    try:
+        assert entered is session
+        assert len(launch_calls) == 1
+        assert launch_calls[0][1]["chromium_sandbox"] is True
+    finally:
+        naver_editor.NaverBrowserSession.__exit__.__wrapped__(session)
 
 
 def test_attached_cdp_session_disconnects_without_closing_browser_context() -> None:

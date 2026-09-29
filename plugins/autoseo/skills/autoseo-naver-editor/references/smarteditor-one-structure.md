@@ -22,8 +22,9 @@ identifier, cookie, or session value.
 | Publication settings | `태그 입력 (최대 30개)`, existing tag chips, `발행 설정 닫기` | Append document tags before draft save; final publication remains guarded |
 | Component toolbar | `사진 추가`, `MYBOX 추가`, `동영상 추가`, `스티커 추가`, `인용구 추가`, `구분선 추가`, `링크 추가`, `파일 추가`, `일정 추가`, `소스코드 추가`, `표 추가`, `수식 추가`, `장소 추가`, `내돈내산 상품 첨부`, `글감 검색 열기`, `내 클립 열기`, `라이브러리 열기`, `템플릿 열기` | Component insertion |
 | Format toolbar | `서체 변경`, `글자 크기 변경`, `정렬 열기`, `특수문자 열기`, `번역`, `맞춤법` | Bounded formatting operations |
-| Document | title block followed by `.se-main-container` | Title and body scoping |
-| Save acknowledgement | `임시저장이 완료되었습니다.` | One fresh save receipt; never reopen the draft list |
+| Legacy document | title block followed by `.se-main-container` | Legacy title/body scoping only |
+| Detached input buffer | `.se-section-documentTitle` and `.se-section-text` under one `.se-content`, with a focused `input_buffer` iframe | Current title/plain paragraph scoping after exact focus and selection checks |
+| Save acknowledgement | `임시저장이 완료되었습니다.` | Fresh save notification only; current layout also requires exact saved-list readback |
 
 ## Catalog-owned DOM fallbacks
 
@@ -33,7 +34,7 @@ A learned compatibility file may choose among them but cannot add a selector.
 | Feature | Selector | Expected region |
 |---|---|---|
 | Title | `.se-documentTitle .se-text-paragraph` | Main document frame |
-| Editor root | `.se-main-container` | Visible frame containing editable descendants |
+| Legacy editor root | `.se-main-container` | Visible frame containing editable descendants |
 | Tags | `input[placeholder*='태그']` | Visible publication-settings panel; one tag followed by Enter |
 | Photo | `button[data-name='image']` | Main document frame |
 | Video | `button[data-name='video']` | Main document frame |
@@ -76,8 +77,10 @@ a model. Screenshots remain diagnostic artifacts only after an actual failure.
 8. requires one new save acknowledgement; and
 9. disconnects from an externally owned CDP browser without closing it.
 
-The command never reads the saved-draft list and does not persist the title or
-body in compatibility data.
+The legacy title-revision command never reads the saved-draft list and does not
+persist the title or body in compatibility data. Title revision on the current
+detached-input-buffer layout remains disabled until safe replacement and exact
+draft identity can be verified.
 
 ## Persistent Chrome boundary
 

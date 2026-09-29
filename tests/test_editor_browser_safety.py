@@ -6,6 +6,7 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
 from urllib.parse import urlsplit
 
 import pytest
@@ -46,6 +47,204 @@ def page(browser):
     page.goto((ROOT / "tests/fixtures/naver_editor.html").as_uri())
     yield page
     page.close()
+
+
+@pytest.fixture
+def input_buffer_page(browser):
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto((ROOT / "tests/fixtures/naver_input_buffer.html").as_uri())
+    yield page
+    context.close()
+
+
+def test_naver_input_buffer_compose_multiple_paragraphs_and_save(input_buffer_page, tmp_path):
+    document = _document()
+    document["blocks"] = [
+        {"id": "one", "type": "paragraph", "text": "한글 첫 문단입니다."},
+        {"id": "two", "type": "paragraph", "text": "Second paragraph with 한국어."},
+    ]
+    document["tags"] = []
+    page = input_buffer_page
+    driver = naver_editor.PlaywrightNaverDriver(page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path)
+    assert driver.surface_version == 3
+    assert editor_compatibility.editor_ready(page, "naver", driver.resolver)
+
+    result = naver_editor.EditorAutomation(naver_editor.CheckpointStore(tmp_path)).apply(document, driver)
+
+    assert result["save_state"] == "acknowledged"
+    assert driver.verify_document(document)
+    assert result["saved_surface_hash"] == driver.snapshot_hash()
+    assert page.evaluate("window.draftSaveClicks") == 1
+    assert page.evaluate("window.publishClicks") == 0
+    assert page.evaluate("window.inputEvents") >= 3
+    assert driver.verify_saved_draft(document) == result["saved_surface_hash"]
+    assert page.evaluate("window.draftSaveClicks") == 0
+    assert page.evaluate("window.publishClicks") == 0
+
+
+def test_naver_input_buffer_compose_reports_independent_draft_readback(input_buffer_page, tmp_path, monkeypatch):
+    page = input_buffer_page
+    document = _document()
+    document["blocks"] = [
+        {"id": "one", "type": "paragraph", "text": "First verified paragraph."},
+        {"id": "two", "type": "paragraph", "text": "검증된 두 번째 문단입니다."},
+    ]
+    document["tags"] = []
+
+    class FixtureSession:
+        def __init__(self, **_options):
+            self.page = page
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+        def wait_for_editor(self):
+            return self.page
+
+    monkeypatch.setattr(naver_editor, "NaverBrowserSession", FixtureSession)
+    token = naver_editor._draft_preview(document, target_url=naver_editor.DEFAULT_EDITOR_URL)["approval_token"]
+
+    result = naver_editor._compose(
+        document,
+        approval_token=token,
+        data_dir=tmp_path,
+        editor_url=naver_editor.DEFAULT_EDITOR_URL,
+        close_after=True,
+    )
+
+    checkpoint = naver_editor.CheckpointStore(tmp_path).load_existing(document)
+    assert result["save_state"] == "readback-confirmed"
+    assert result["draft_verified"] is True
+    assert result["requires_attention"] is False
+    assert checkpoint["verification_state"] == "verified"
+    assert checkpoint["verified_surface_hash"] == checkpoint["saved_surface_hash"]
+    assert page.evaluate("window.publishClicks") == 0
+
+
+@pytest.mark.parametrize("unsupported", ["style", "heading", "tags"])
+def test_naver_input_buffer_rejects_unsupported_document_before_account_input(input_buffer_page, tmp_path, unsupported):
+    document: dict = _document()
+    document["tags"] = []
+    document["blocks"] = [{"id": "one", "type": "paragraph", "text": "A safe plain paragraph."}]
+    if unsupported == "style":
+        document["blocks"][0]["style"] = {"bold": True}
+    elif unsupported == "heading":
+        document["blocks"].append({"id": "two", "type": "heading", "text": "Heading"})
+    else:
+        document["tags"] = ["topic"]
+    page = input_buffer_page
+    driver = naver_editor.PlaywrightNaverDriver(page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path)
+
+    with pytest.raises(naver_editor.EditorUIChanged, match="does not safely support"):
+        naver_editor.EditorAutomation(naver_editor.CheckpointStore(tmp_path)).apply(document, driver)
+
+    assert page.evaluate("window.inputEvents") == 0
+    assert page.evaluate("window.draftSaveClicks") == 0
+    assert page.evaluate("window.publishClicks") == 0
+
+
+def test_naver_input_buffer_refuses_typing_after_focus_is_stolen(input_buffer_page, tmp_path):
+    page = input_buffer_page
+    page.evaluate("""() => document.querySelector('.se-section-documentTitle').addEventListener('click', event => {
+        event.stopImmediatePropagation();
+        document.querySelector('[data-click-area="tpb.publish"]').focus();
+    }, true)""")
+    document = _document()
+    document["blocks"] = [{"id": "one", "type": "paragraph", "text": "Text"}]
+    document["tags"] = []
+    driver = naver_editor.PlaywrightNaverDriver(page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path)
+
+    with pytest.raises(ValueError, match="focus unavailable"):
+        naver_editor.EditorAutomation(naver_editor.CheckpointStore(tmp_path)).apply(document, driver)
+
+    assert page.evaluate("window.inputEvents") == 0
+    assert page.evaluate("window.draftSaveClicks") == 0
+    assert page.evaluate("window.publishClicks") == 0
+
+
+def test_naver_input_buffer_recovery_overlay_blocks_all_account_input(input_buffer_page, tmp_path):
+    page = input_buffer_page
+    page.evaluate("""() => {
+        const dim = document.createElement('div');
+        dim.className = 'se-popup-dim';
+        dim.style.cssText = 'position:fixed;inset:0;background:white;z-index:100';
+        dim.textContent = '작성 중인 글이 있습니다.';
+        document.body.append(dim);
+    }""")
+    document = _document()
+    document["blocks"] = [{"id": "one", "type": "paragraph", "text": "Do not overwrite drafts."}]
+    document["tags"] = []
+    driver = naver_editor.PlaywrightNaverDriver(page, catalog=naver_editor.FeatureCatalog.load(), data_dir=tmp_path)
+
+    with pytest.raises(naver_editor.EditorUIChanged, match="overlay requires user review"):
+        naver_editor.EditorAutomation(naver_editor.CheckpointStore(tmp_path)).apply(document, driver)
+
+    assert page.evaluate("window.inputEvents") == 0
+    assert page.evaluate("window.draftSaveClicks") == 0
+    assert page.evaluate("window.publishClicks") == 0
+
+
+@pytest.mark.parametrize(
+    ("platform", "browser_channel", "editor_url"),
+    [
+        ("naver", None, "https://blog.naver.com/PostWriteForm.naver?blogId=example"),
+        ("naver", "chrome", "https://blog.naver.com/PostWriteForm.naver?blogId=example"),
+        ("tistory", None, "https://example.tistory.com/manage/newpost"),
+    ],
+)
+def test_headed_editor_profiles_keep_chromium_sandbox(monkeypatch, tmp_path, platform, browser_channel, editor_url):
+    launches = []
+
+    class FakePage:
+        def __init__(self):
+            self.url = editor_url
+
+        def goto(self, url, *, wait_until):
+            self.url = url
+
+    class FakeContext:
+        def __init__(self):
+            self.pages = [FakePage()]
+
+        def route(self, *_args):
+            pass
+
+        def close(self):
+            pass
+
+    def launch_persistent_context(profile, **options):
+        launches.append((profile, options))
+        return FakeContext()
+
+    runtime = SimpleNamespace(
+        chromium=SimpleNamespace(launch_persistent_context=launch_persistent_context),
+        stop=lambda: None,
+    )
+    playwright = ModuleType("playwright")
+    playwright.__path__ = []
+    playwright_sync = ModuleType("playwright.sync_api")
+    setattr(playwright_sync, "sync_playwright", lambda: SimpleNamespace(start=lambda: runtime))
+    monkeypatch.setitem(sys.modules, "playwright", playwright)
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", playwright_sync)
+
+    if platform == "naver":
+        with naver_editor.NaverBrowserSession(
+            data_dir=tmp_path / "naver", editor_url=editor_url, browser_channel=browser_channel
+        ):
+            pass
+    else:
+        with tistory_editor.TistoryBrowserSession(data_dir=tmp_path / "tistory", editor_url=editor_url):
+            pass
+
+    assert len(launches) == 1
+    _profile, options = launches[0]
+    assert options["headless"] is False
+    assert options["chromium_sandbox"] is True
+    assert options.get("channel") == browser_channel
 
 
 def test_new_naver_save_and_plain_format_after_bold(page, tmp_path):
