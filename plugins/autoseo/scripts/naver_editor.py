@@ -322,7 +322,7 @@ class EditorAutomation:
         require_image_reviews(value)
         if isinstance(driver, PlaywrightNaverDriver):
             _require_naver_write_surface(driver.page)
-        operations = build_operations(value)
+        operations = build_operations(value, experimental_native_text=getattr(driver, "experimental_native_text", False))
         if hasattr(driver, "prepare_operations"):
             driver.prepare_operations(operations)
         checkpoint = self.store.load_or_create(value)
@@ -598,14 +598,18 @@ class PlaywrightNaverDriver:
         *,
         catalog: FeatureCatalog,
         data_dir: Path,
+        experimental_native_text: bool = False,
     ) -> None:
         self.page = page
+        self.experimental_native_text = experimental_native_text
         self.session_id = browser_session_id(page)
         self.catalog = catalog
         self.resolver = LocatorResolver(page, catalog)
         self.data_dir = data_dir
         surface = editor_compatibility.editor_body(page, "naver")
         self.surface_version = 3 if surface and surface[0] == "naver-input-buffer" else 2
+        if experimental_native_text and self.surface_version == 3:
+            self.surface_version = 4
         self.resolver.compatibility = editor_compatibility.load_map(
             data_dir / "naver-editor-compatibility.json", page, catalog
         )
@@ -625,9 +629,9 @@ class PlaywrightNaverDriver:
         surface = editor_compatibility.editor_body(self.page, "naver")
         if surface is None:
             raise EditorUIChanged("Naver editor body disappeared")
-        if (surface[0] == "naver-input-buffer") != (self.surface_version == 3):
+        if (surface[0] == "naver-input-buffer") != (self.surface_version in {3, 4}):
             raise EditorUIChanged("Naver editor surface changed during the session")
-        return self.surface_version == 3
+        return self.surface_version in {3, 4}
 
     @staticmethod
     def _current_texts(region: Any) -> list[str]:
@@ -653,12 +657,24 @@ class PlaywrightNaverDriver:
             raise EditorUIChanged("Naver title already contains different text; reconcile before replacing")
         body = _require_naver_write_surface(self.page, feature_id="paragraph")
         before = self._current_texts(body)
+        if self.experimental_native_text:
+            self._native_no_popup()
+            native_before = self._native_snapshot()
+            if len(native_before) != 1 or native_before[0]["text"] or native_before[0]["runs"]:
+                raise EditorUIChanged("native title requires one genuinely empty body paragraph")
         title.click()
         editor_compatibility.naver_input_focus(self.page, "title", 0)
+        if self.experimental_native_text:
+            self._native_no_popup()
+            self._native_empty_buffer()
+            if self._native_snapshot() != native_before or self._current_title()[1]:
+                raise EditorUIChanged("native title target changed before typing")
         self.page.keyboard.insert_text(text)
         self.page.wait_for_function("expected => document.querySelector('.se-section-documentTitle p.se-text-paragraph')?.innerText === expected", arg=text, timeout=6000)
         if self._current_title()[1] != text or self._current_texts(body) != before:
             raise EditorUIChanged("Naver title input changed the body or was not exact")
+        if self.experimental_native_text and self._native_snapshot() != native_before:
+            raise EditorUIChanged("native title input changed paragraph layout or styles")
 
     def _current_insert_paragraph(self, text: str) -> None:
         region = _require_naver_write_surface(self.page, feature_id="paragraph")
@@ -683,12 +699,243 @@ class PlaywrightNaverDriver:
         if self._current_texts(region) != [*before, text] or self._current_title()[1] != title_before:
             raise EditorUIChanged("Naver paragraph boundary or title changed after Enter")
 
+
+    def _native_snapshot(self) -> list[dict]:
+        region = _require_naver_write_surface(self.page, feature_id="paragraph")
+        return region.locator("p.se-text-paragraph").evaluate_all("""nodes => nodes.map(p => {
+            const style = node => {
+                const s = getComputedStyle(node);
+                return {size: parseFloat(s.fontSize),
+                    bold: s.fontWeight === 'bold' || parseInt(s.fontWeight) >= 600,
+                    alignment: s.textAlign === 'start' && s.direction === 'ltr' ? 'left' : s.textAlign,
+                    line_spacing: Math.round(parseFloat(s.lineHeight) / parseFloat(s.fontSize) * 1000) / 1000};
+            };
+            const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT), runs = [];
+            let text = '';
+            while (walker.nextNode()) {
+                const n = walker.currentNode;
+                if (n.parentElement.closest('.se-placeholder')) continue;
+                text += n.nodeValue;
+                if (n.nodeValue.length) runs.push({text: n.nodeValue, style: style(n.parentElement)});
+            }
+            return {text, style: style(p), runs};
+        })""")
+
+    @staticmethod
+    def _native_matches(actual: list[dict], expected: list[dict]) -> bool:
+        if len(actual) != len(expected):
+            return False
+        for row, wanted in zip(actual, expected):
+            if row["text"] != wanted["text"]:
+                return False
+            if not wanted["text"]:
+                if row["runs"]:
+                    return False
+                continue
+            if not row["runs"]:
+                return False
+            style = wanted["style"]
+            for observed in [row["style"], *(run["style"] for run in row["runs"])]:
+                if any(
+                    abs(observed[key] - value) > .01 if key == "line_spacing"
+                    else observed[key] != value
+                    for key, value in style.items()
+                ):
+                    return False
+        return True
+
+    def _native_unique(self, selector: str) -> Any:
+        control = self.page.locator(selector + ":visible")
+        if control.count() != 1:
+            raise AmbiguousElement("native formatting control is missing or ambiguous")
+        if not control.is_enabled():
+            raise EditorUIChanged("native formatting control is disabled")
+        return control
+
+    @staticmethod
+    def _native_button(name: str) -> str:
+        return f'button[data-name="{name}"][data-group="propertyToolbar"]:not([data-role="option"])'
+
+    def _native_bold(self) -> bool:
+        control = self._native_unique(self._native_button("bold"))
+        state = control.evaluate("""node => {
+            const aria = node.getAttribute('aria-pressed');
+            const active = node.classList.contains('se-is-activated');
+            if (aria !== null) {
+                if (!['true', 'false'].includes(aria) || (active && aria !== 'true')) return null;
+                return aria === 'true';
+            }
+            // Only the observed native toggle class establishes an unchecked state.
+            if (!node.classList.contains('se-bold-toolbar-button') ||
+                !node.classList.contains('se-property-toolbar-toggle-button')) return null;
+            return active;
+        }""")
+        if type(state) is not bool:
+            raise EditorUIChanged("native bold toggle state is unknown")
+        return state
+
+    def _native_no_popup(self, *, menu: str | None = None) -> None:
+        if self.page.locator('[role="dialog"]:visible, [aria-modal="true"]:visible, .se-popup-dim:visible, .se-popup:visible').count():
+            raise EditorUIChanged("native input is blocked by a popup or overlay")
+        options = self.page.locator('button[data-role="option"]:visible')
+        if options.count() and (menu is None or not options.evaluate_all(
+            "(nodes, name) => nodes.every(n => n.dataset.name === name)", menu
+        )):
+            raise EditorUIChanged("unexpected native formatting menu")
+
+    def _native_empty_buffer(self) -> None:
+        if not self.page.evaluate("""() => {
+            try {
+                const active = document.activeElement;
+                const body = active.contentDocument.body, s = active.contentWindow.getSelection();
+                return body.textContent === '' && s?.rangeCount === 1 &&
+                    s.isCollapsed && s.toString() === '' && body.contains(s.anchorNode);
+            } catch (_) { return false; }
+        }"""):
+            raise EditorUIChanged("native input buffer is not collapsed and empty")
+
+    def _native_guard(self, snapshot: list[dict], title: str, *, empty: bool = True, menu: str | None = None) -> Any:
+        self._native_no_popup(menu=menu)
+        if self._native_snapshot() != snapshot or self._current_title()[1] != title:
+            raise EditorUIChanged("native paragraph layout changed before input")
+        if not snapshot or (empty and (snapshot[-1]["text"] or snapshot[-1]["runs"])):
+            raise EditorUIChanged("last native paragraph is not genuinely empty")
+        index = len(snapshot) - 1
+        editor_compatibility.naver_input_focus(self.page, "body", index, timeout_ms=500)
+        valid = self.page.evaluate("""index => {
+            const p = [...document.querySelectorAll('.se-section-text p.se-text-paragraph')][index];
+            const s = window.getSelection(), active = document.activeElement;
+            const range = s?.rangeCount === 1 ? s.getRangeAt(0) : null;
+            if (!range || !s.isCollapsed || !p?.contains(range.startContainer)) return false;
+            const tail = range.cloneRange(); tail.selectNodeContents(p);
+            tail.setStart(range.endContainer, range.endOffset);
+            if (tail.toString().length) return false;
+            try {
+                const body = active.contentDocument.body, input = active.contentWindow.getSelection();
+                return body.textContent === '' && input?.rangeCount === 1 &&
+                    input.isCollapsed && input.toString() === '' && body.contains(input.anchorNode);
+            } catch (_) { return false; }
+        }""", index)
+        if not valid:
+            raise EditorUIChanged("native input buffer or caret is not collapsed and empty")
+        return self.page.locator(".se-section-text p.se-text-paragraph").nth(index)
+
+    def _native_rebind(self, snapshot: list[dict], title: str, control: Any, *, menu: str | None = None) -> None:
+        # Only a toolbar-owned loss of focus may rebind; never steal user focus.
+        toolbar_focus = control.evaluate("node => document.activeElement === node")
+        if toolbar_focus:
+            self._native_no_popup(menu=menu)
+            if self._native_snapshot() != snapshot or self._current_title()[1] != title or snapshot[-1]["text"]:
+                raise EditorUIChanged("native target changed while formatting")
+            self.page.locator(".se-section-text p.se-text-paragraph").nth(len(snapshot) - 1).click()
+        self._native_guard(snapshot, title, menu=menu)
+
+    def _native_style(self, style: dict, title: str) -> None:
+        for field, name, value in (
+            ("size", "font-size", f'fs{style["size"]}'),
+            ("alignment", "align-drop-down-with-justify", style["alignment"]),
+            ("line_spacing", "line-height", str(round(style["line_spacing"] * 100))),
+        ):
+            snapshot = self._native_snapshot()
+            self._native_guard(snapshot, title)
+            button = self._native_unique(self._native_button(name))
+            self._native_guard(snapshot, title)
+            button.click()
+            self._native_rebind(snapshot, title, button, menu=name)
+            option = self._native_unique(f'button[data-name="{name}"][data-role="option"][data-value="{value}"]')
+            self._native_guard(snapshot, title, menu=name)
+            option_handle = option.element_handle(timeout=500)
+            if option_handle is None:
+                raise EditorUIChanged("native option disappeared before selection")
+            option.click()
+            # Native paragraph-level formatting may change only the empty target.
+            after = self._native_snapshot()
+            if after[:-1] != snapshot[:-1] or after[-1]["text"] or after[-1]["runs"]:
+                raise EditorUIChanged(f"native {field} changed prior content")
+            self._native_rebind(after, title, option_handle)
+            actual = after[-1]["style"][field]
+            wanted = style[field]
+            if (abs(actual - wanted) > .01 if field == "line_spacing" else actual != wanted):
+                raise EditorUIChanged(f"native {field} postcondition failed")
+        snapshot = self._native_snapshot()
+        self._native_guard(snapshot, title)
+        enabled = self._native_bold()
+        if enabled != style["bold"]:
+            button = self._native_unique(self._native_button("bold"))
+            self._native_guard(snapshot, title)
+            button.click()
+            after = self._native_snapshot()
+            if after[:-1] != snapshot[:-1] or after[-1]["text"] or after[-1]["runs"]:
+                raise EditorUIChanged("native bold changed prior content")
+            self._native_rebind(after, title, button)
+        if self._native_bold() != style["bold"]:
+            raise EditorUIChanged("native bold postcondition failed")
+
+    def _native_enter(self, snapshot: list[dict], title: str, *, empty: bool) -> None:
+        self._native_guard(snapshot, title, empty=empty)
+        self.page.keyboard.press("Enter")
+        self.page.wait_for_function("count => document.querySelectorAll('.se-section-text p.se-text-paragraph').length === count", arg=len(snapshot) + 1, timeout=6000)
+        after = self._native_snapshot()
+        if after[:-1] != snapshot or after[-1]["text"] or after[-1]["runs"] or self._current_title()[1] != title:
+            raise EditorUIChanged("native Enter split or changed the document")
+        self._native_guard(after, title)
+
+    def _native_insert(self, operation: dict) -> None:
+        payload = operation["payload"]
+        snapshot = self._native_snapshot()
+        title = self._current_title()[1]
+        self._native_no_popup()
+        if not self.page.evaluate("""() => {
+            const s = window.getSelection(), active = document.activeElement;
+            return (!s?.rangeCount || s.isCollapsed) &&
+                (active === document.body || (active?.tagName === 'IFRAME' && /^input_buffer/.test(active.id)));
+        }"""):
+            raise EditorUIChanged("user focus or selection changed before native input")
+        if not snapshot or snapshot[-1]["text"] or snapshot[-1]["runs"]:
+            raise EditorUIChanged("last native paragraph is occupied")
+        prior = self._native_expected[operation["operation_id"]][:-2]
+        if payload["spacing_before"] == "section":
+            prior = prior[:-1]
+        if title != self._native_title or not self._native_matches(snapshot, [*prior, {"text": "", "style": {}}]):
+            raise EditorUIChanged("prior native content differs from the compiled plan")
+        target = self.page.locator(".se-section-text p.se-text-paragraph").nth(len(snapshot) - 1)
+        target.click()
+        self._native_guard(snapshot, title)
+        if payload["spacing_before"] == "section":
+            if len(snapshot) < 2 or not snapshot[-2]["text"]:
+                raise EditorUIChanged("section spacing has no semantic boundary")
+            self._native_enter(snapshot, title, empty=True)
+        self._native_style(payload["style"], title)
+        before = self._native_snapshot()
+        self._native_guard(before, title)
+        self.page.keyboard.insert_text(payload["text"])
+        self.page.wait_for_function("wanted => [...document.querySelectorAll('.se-section-text p.se-text-paragraph')].at(-1)?.innerText === wanted", arg=payload["text"], timeout=6000)
+        after = self._native_snapshot()
+        expected = [*({"text": row["text"], "style": row["style"]} for row in before[:-1]),
+                    {"text": payload["text"], "style": payload["style"]}]
+        if after[:-1] != before[:-1] or not self._native_matches(after, expected) or self._current_title()[1] != title:
+            raise EditorUIChanged("native insertion text, count, order or computed runs differed")
+        self._native_enter(after, title, empty=False)
+        if not self._native_matches(self._native_snapshot(), self._native_expected[operation["operation_id"]]):
+            raise EditorUIChanged("native operation layout did not match the compiled plan")
+
     def prepare_operations(self, operations: list[dict]) -> None:
         counts = {}
         self._expected_components = {}
         self._expected_text_counts = {}
         text_counts: dict[str, int] = {}
+        self._native_expected = {}
+        native_rows = []
         current = self._uses_input_buffer()
+        native_mode = self.experimental_native_text and current
+        if self.experimental_native_text and not current:
+            raise EditorUIChanged("experimental native text requires the input-buffer layout")
+        if native_mode:
+            self._native_no_popup()
+            for name in ("font-size", "bold", "align-drop-down-with-justify", "line-height"):
+                self._native_unique(self._native_button(name))
+            self._native_bold()
+        self._native_title = next(op["payload"]["text"] for op in operations if op["feature_id"] == "title")
         for operation in operations:
             feature = operation["feature_id"]
             if current:
@@ -697,10 +944,21 @@ class PlaywrightNaverDriver:
                     feature in {"title", "paragraph"} and
                     (not isinstance(text, str) or text != text.strip() or "\n" in text or "\r" in text)
                 ) or (feature == "paragraph" and (
-                    operation["payload"].get("style") or operation["payload"].get("links")
+                    operation["payload"].get("links") or
+                    (bool(operation["payload"].get("style")) and not (
+                        native_mode and operation["payload"].get("native_text") is True
+                    ))
                 )):
                     raise EditorUIChanged("input-buffer editor does not safely support every requested block or style; use a guided editor fallback before writing")
                 if feature == "paragraph":
+                    if native_mode:
+                        payload = operation["payload"]
+                        if payload.get("native_text") is not True:
+                            raise EditorUIChanged("native paragraph was not compiled with explicit opt-in")
+                        if payload["spacing_before"] == "section":
+                            native_rows.append({"text": "", "style": {}})
+                        native_rows.append({"text": payload["text"], "style": payload["style"]})
+                        self._native_expected[operation["operation_id"]] = [*native_rows, {"text": "", "style": {}}]
                     text_counts[text] = text_counts.get(text, 0) + 1
                     self._expected_text_counts[operation["operation_id"]] = text_counts[text]
             selector = COMPONENT_SELECTORS.get(feature)
@@ -987,7 +1245,10 @@ class PlaywrightNaverDriver:
             if feature_id == "title":
                 self._current_fill_title(operation["payload"]["text"])
             elif feature_id == "paragraph":
-                self._current_insert_paragraph(operation["payload"]["text"])
+                if self.experimental_native_text:
+                    self._native_insert(operation)
+                else:
+                    self._current_insert_paragraph(operation["payload"]["text"])
             elif feature_id == "draft-save":
                 self._save_receipt.begin()
                 self.resolver.click("draft-save")
@@ -1052,6 +1313,11 @@ class PlaywrightNaverDriver:
                 if feature_id == "title":
                     return self._current_title()[1] == payload["text"]
                 if feature_id == "paragraph":
+                    if self.experimental_native_text:
+                        expected_rows = self._native_expected.get(operation["operation_id"])
+                        actual = self._native_snapshot()
+                        return bool(expected_rows and self._current_title()[1] == self._native_title and
+                                    self._native_matches(actual[:len(expected_rows) - 1], expected_rows[:-1]))
                     paragraphs = self._current_texts(_require_naver_write_surface(self.page, feature_id="paragraph"))
                     expected = getattr(self, "_expected_text_counts", {}).get(operation["operation_id"])
                     return expected is not None and paragraphs.count(payload["text"]) == expected
@@ -1166,6 +1432,9 @@ class PlaywrightNaverDriver:
 
     def snapshot_hash(self) -> str:
         if self._uses_input_buffer():
+            if self.experimental_native_text:
+                return digest({"version": self.surface_version, "title": self._current_title()[1],
+                               "paragraphs": self._native_snapshot()})
             title = self._current_title()[1]
             paragraphs = self._current_texts(_require_naver_write_surface(self.page, feature_id="paragraph"))
             return digest({"version": self.surface_version, "title": title, "paragraphs": paragraphs})
@@ -1184,6 +1453,8 @@ class PlaywrightNaverDriver:
 
     def has_existing_content(self) -> bool:
         if self._uses_input_buffer():
+            if self.experimental_native_text and len(self._native_snapshot()) != 1:
+                return True
             return bool(
                 self._current_title()[1]
                 or self._current_texts(_require_naver_write_surface(self.page, feature_id="paragraph"))
@@ -1205,6 +1476,13 @@ class PlaywrightNaverDriver:
     def verify_document(self, document: dict) -> bool:
         expected = [block["text"].strip() for block in document["blocks"] if block.get("text")]
         if self._uses_input_buffer():
+            if self.experimental_native_text:
+                operations = build_operations(document, experimental_native_text=True)
+                self.prepare_operations(operations)
+                last = next(op for op in reversed(operations) if op["feature_id"] == "paragraph")
+                return self._current_title()[1] == document["title"] and self._native_matches(
+                    self._native_snapshot(), self._native_expected[last["operation_id"]]
+                )
             body = _require_naver_write_surface(self.page, feature_id="paragraph")
             return self._current_title()[1] == document["title"] and expected == self._current_texts(body)
         observed = []
@@ -1318,12 +1596,32 @@ class PlaywrightNaverDriver:
         if exact.count() != 1:
             raise AmbiguousElement("multiple Naver drafts share the exact expected title")
         exact.click()
-        expected = {"title": document["title"], "paragraphs": [block["text"].strip() for block in document["blocks"] if block.get("text")]}
+        expected = {"title": document["title"], "paragraphs": [
+            op["payload"]["text"] for op in build_operations(document, experimental_native_text=self.experimental_native_text)
+            if op["feature_id"] == "paragraph"
+        ]}
+        if self.experimental_native_text:
+            operations = build_operations(document, experimental_native_text=True)
+            self.prepare_operations(operations)
+            last = next(op for op in reversed(operations) if op["feature_id"] == "paragraph")
+            expected["paragraphs"] = [row["text"] for row in self._native_expected[last["operation_id"]]]
+        expected["exact_layout"] = self.experimental_native_text
         try:
-            verification_page.wait_for_function("expected => {const title=document.querySelector('.se-section-documentTitle p.se-text-paragraph'); const paragraphs=[...document.querySelectorAll('.se-section-text p.se-text-paragraph')].filter(p=>!p.querySelector('.se-placeholder')).map(p=>p.innerText.trim()).filter(Boolean); return title?.innerText===expected.title && JSON.stringify(paragraphs)===JSON.stringify(expected.paragraphs)}", arg=expected, timeout=10000)
+            verification_page.wait_for_function("""expected => {
+                const title = document.querySelector('.se-section-documentTitle p.se-text-paragraph');
+                const rows = [...document.querySelectorAll('.se-section-text p.se-text-paragraph')];
+                const texts = rows.map(p => {
+                    const copy = p.cloneNode(true);
+                    copy.querySelectorAll('.se-placeholder').forEach(n => n.remove());
+                    return copy.textContent || '';
+                });
+                const paragraphs = expected.exact_layout ? texts : texts.map(t => t.trim()).filter(Boolean);
+                return title?.innerText === expected.title && JSON.stringify(paragraphs) === JSON.stringify(expected.paragraphs);
+            }""", arg=expected, timeout=10000)
         except Exception as exc:
             raise EditorUIChanged("saved Naver draft content did not match the requested document") from exc
-        reread = PlaywrightNaverDriver(verification_page, catalog=self.catalog, data_dir=self.data_dir)
+        reread = PlaywrightNaverDriver(verification_page, catalog=self.catalog, data_dir=self.data_dir,
+                                      experimental_native_text=self.experimental_native_text)
         if not reread.verify_document(document) or reread.snapshot_hash() != expected_hash:
             raise EditorUIChanged("saved Naver draft fingerprint did not match the editor")
         return expected_hash
@@ -1727,6 +2025,7 @@ def _compose(
     close_after: bool,
     cdp_endpoint: str | None = None,
     browser_channel: str | None = None,
+    experimental_native_text: bool = False,
 ) -> dict[str, Any]:
     if document["publish_settings"]["mode"] != "draft":
         raise ValueError("compose and resume require publish_settings.mode=draft")
@@ -1743,7 +2042,7 @@ def _compose(
         if _draft_preview(document, target_url=editor_url)["approval_token"] != approval_token:
             raise ApprovalRequired("source changed since approval; request a new document preview")
         driver = PlaywrightNaverDriver(
-            page, catalog=catalog, data_dir=data_dir
+            page, catalog=catalog, data_dir=data_dir, experimental_native_text=experimental_native_text
         )
         try:
             started = time.perf_counter()
@@ -1753,7 +2052,7 @@ def _compose(
             if not close_after:
                 browser.keep_open_until_closed()
             raise
-        if getattr(driver, "surface_version", None) == 3:
+        if getattr(driver, "surface_version", None) in {3, 4}:
             try:
                 verified_hash = driver.verify_saved_draft(document)
             except Exception as exc:
@@ -1785,6 +2084,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("capabilities")
     plan = sub.add_parser("plan")
     plan.add_argument("document", type=Path)
+    plan.add_argument("--experimental-native-text", action="store_true")
     def add_browser_options(command: argparse.ArgumentParser) -> None:
         command.add_argument(
             "--cdp-endpoint",
@@ -1807,12 +2107,15 @@ def build_parser() -> argparse.ArgumentParser:
     compose.add_argument("--editor-url", default=DEFAULT_EDITOR_URL)
     compose.add_argument("--approval-token")
     compose.add_argument("--close-after", action="store_true")
+    compose.add_argument("--experimental-native-text", action="store_true",
+                         help="experimental compact-native paragraphs; pending live draft gate")
     add_browser_options(compose)
     resume = sub.add_parser("resume")
     resume.add_argument("document", type=Path)
     resume.add_argument("--draft-url")
     resume.add_argument("--approval-token")
     resume.add_argument("--close-after", action="store_true")
+    resume.add_argument("--experimental-native-text", action="store_true")
     add_browser_options(resume)
     revise = sub.add_parser("revise-title")
     revise.add_argument("--expected-current-title", required=True)
@@ -1842,7 +2145,15 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(capabilities(FeatureCatalog.load()), ensure_ascii=False, separators=(",", ":")))
             return 0
         if args.command == "plan":
-            print(json.dumps(document_plan(_load_document(args.document), platform="naver"), ensure_ascii=False, separators=(",", ":")))
+            document = _load_document(args.document)
+            if args.experimental_native_text:
+                result = {"schema_version": 1, "platform": "naver", "document_id": document["document_id"],
+                          "compiled_operations": build_operations(document, experimental_native_text=True),
+                          "writes_performed": False, "live_publish_ready": False,
+                          "gate": "experimental-fixture-only-pending-live-draft"}
+            else:
+                result = document_plan(document, platform="naver")
+            print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
             return 0
         if args.command == "doctor":
             data_dir = _data_path(args.data_dir, create=False)
@@ -1944,6 +2255,7 @@ def main(argv: list[str] | None = None) -> int:
                 close_after=args.close_after,
                 cdp_endpoint=args.cdp_endpoint,
                 browser_channel=args.browser_channel,
+                experimental_native_text=args.experimental_native_text,
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0

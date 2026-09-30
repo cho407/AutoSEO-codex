@@ -43,7 +43,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "editor_compatibility.py", "editor_protocol.py", "editor_safety.py", "readiness_evidence.py",
         "ga4_report.py", "gbp_deprecation_lint.py", "google_auth.py",
         "google_report.py", "gsc_inspect.py", "gsc_query.py", "indexing_notify.py",
-        "indexnow_submit.py", "iptc_ai_label.py", "korean_text.py", "lane_engine.py", "lcp_subparts.py", "naver_document.py", "naver_editor.py", "naver_evidence.py", "pagespeed_check.py",
+        "indexnow_submit.py", "iptc_ai_label.py", "korean_text.py", "lane_engine.py", "lcp_subparts.py", "naver_design.py", "naver_document.py", "naver_editor.py", "naver_evidence.py", "pagespeed_check.py",
         "optimization_report.py", "parasite_risk.py", "parse_html.py", "preload_check.py", "privacy_mosaic.py", "render_page.py",
         "rdap_lookup.py", "schema_ecommerce_validate.py", "schema_generate.py",
         "autoseo_updates.py", "search_evidence.py",

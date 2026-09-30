@@ -10,7 +10,12 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import json
+import math
+import os
+import re
+import stat
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -22,6 +27,134 @@ from writing_identity import data_directory
 SCHEMA_VERSION = 1
 CONFIG_FILENAME = "blog-style.json"
 CATALOG_FILENAME = "blog-style-profiles.json"
+MAX_PROFILE_BYTES = 64 * 1024
+NAME_PATTERN = r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*"
+
+
+def _identifier(value: object, label: str) -> str:
+    if not isinstance(value, str) or len(value) > 80 or not re.fullmatch(NAME_PATTERN, value):
+        raise ValueError(f"{label} must be a safe short identifier (lowercase letters, digits and hyphens)")
+    return value
+
+
+def _validate_definition(value: object, label: str, *, scope: str) -> None:
+    required = {"label", "scope", "description", "format_preset", "image_profile",
+                "article_sequence", "text", "visual", "keep", "avoid", "uncertain"}
+    if not isinstance(value, dict) or not required <= set(value):
+        raise ValueError(f"{label} is missing required profile fields")
+    _reject_unknown(value, required, label)
+    if value["scope"] != scope:
+        raise ValueError(f"{label}.scope must be {scope}")
+    _text(value["label"], f"{label}.label", maximum=100)
+    _text(value["description"], f"{label}.description", maximum=500)
+    for key in ("format_preset", "image_profile"):
+        _identifier(value[key], f"{label}.{key}")
+    for key in ("article_sequence", "keep", "avoid", "uncertain"):
+        _text_list(value[key], f"{label}.{key}")
+    text = value["text"]
+    text_required = {"body_alignment", "heading_alignment", "source_alignment", "body_size",
+                     "body_line_spacing", "section_heading_size", "paragraph_max_sentences"}
+    if not isinstance(text, dict) or not text_required <= set(text):
+        raise ValueError(f"{label}.text is missing required fields")
+    _reject_unknown(text, text_required | {"section_heading_style"}, f"{label}.text")
+    for key in ("body_alignment", "heading_alignment", "source_alignment"):
+        if not isinstance(text[key], str) or text[key] not in {"left", "center", "right", "justify"}:
+            raise ValueError(f"{label}.text.{key} must be a supported alignment")
+    for key, lower, upper in (("body_size", 10, 72), ("section_heading_size", 10, 72),
+                              ("body_line_spacing", 1, 3), ("paragraph_max_sentences", 1, 10)):
+        item = text[key]
+        if (type(item) not in (int, float) or (type(item) is float and not math.isfinite(item))
+                or not lower <= item <= upper or (key != "body_line_spacing" and item % 1 != 0)):
+            raise ValueError(f"{label}.text.{key} must be a number in {lower}..{upper}")
+    if "section_heading_style" in text and text["section_heading_style"] != "native-heading":
+        raise ValueError(f"{label}.text.section_heading_style must be native-heading")
+    visual = value["visual"]
+    ratios = {"hero_ratio", "supporting_ratio", "step_ratio"}
+    colors = {"primary", "accent", "muted", "table_header"}
+    directions = {"composition", "palette", "base", "headline", "annotation", "annotations",
+                  "series_rule", "provenance"}
+    if not isinstance(visual, dict) or not {"hero_ratio", "composition"} <= set(visual):
+        raise ValueError(f"{label}.visual is missing required fields")
+    _reject_unknown(visual, ratios | colors | directions, f"{label}.visual")
+    for key, item in visual.items():
+        if key in ratios:
+            if not isinstance(item, str) or item not in {"1:1", "16:9", "4:3", "4:5", "1.91:1"}:
+                raise ValueError(f"{label}.visual.{key} must be a supported ratio")
+        elif key in colors:
+            if not isinstance(item, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", item):
+                raise ValueError(f"{label}.visual.{key} must use #RRGGBB")
+        else:
+            _text(item, f"{label}.visual.{key}", maximum=500)
+
+
+def validate_local_profile(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError("local profile must be an object")
+    _reject_unknown(value, {"schema_version", "kind", "name", "definition"}, "local profile")
+    if type(value.get("schema_version")) is not int or value["schema_version"] != 1 or value.get("kind") != "BlogStyleLocalProfile":
+        raise ValueError("local profile must be BlogStyleLocalProfile v1")
+    name = _identifier(value.get("name"), "name")
+    if name in catalog()["profiles"]:
+        raise ValueError("local profile name must not shadow a shipped profile")
+    _validate_definition(value.get("definition"), "definition", scope="personal")
+    return copy.deepcopy(value)
+
+
+def _private_profile_path(raw_path: str | Path) -> Path:
+    path = Path(raw_path).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    # Do not resolve away links before inspecting them.
+    for component in (path, *path.parents):
+        if component.is_symlink():
+            raise ValueError("local profile path must not contain a symbolic link")
+    path = path.resolve(strict=False)
+    plugin_root = Path(__file__).resolve().parent.parent
+    if path.is_relative_to(plugin_root) or any((parent / ".git").exists() for parent in path.parents):
+        raise ValueError("local profile must stay outside the repository and plugin")
+    if any(part.lower() in {"cache", "caches", ".cache", "__pycache__", ".pytest_cache", ".ruff_cache"}
+           for part in path.parts):
+        raise ValueError("local profile must stay outside cache directories")
+    return path
+
+
+def _check_profile_file(info: os.stat_result) -> None:
+    if not stat.S_ISREG(info.st_mode):
+        raise ValueError("local profile must be a regular file")
+    if info.st_nlink != 1:
+        raise ValueError("local profile must not have hard links")
+    if os.name == "posix":
+        if info.st_uid != os.getuid():
+            raise ValueError("local profile must belong to the current owner")
+        if stat.S_IMODE(info.st_mode) != 0o600:
+            raise ValueError("local profile must have mode 0600")
+    if info.st_size > MAX_PROFILE_BYTES:
+        raise ValueError("local profile exceeds the 65536-byte limit")
+
+
+def _read_local_profile(raw_path: str | Path) -> tuple[Path, dict[str, Any], str]:
+    path = _private_profile_path(raw_path)
+    before = path.lstat()
+    _check_profile_file(before)
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    descriptor = os.open(path, flags)
+    with os.fdopen(descriptor, "rb") as handle:
+        opened = os.fstat(handle.fileno())
+        _check_profile_file(opened)
+        if (before.st_dev, before.st_ino) != (opened.st_dev, opened.st_ino):
+            raise ValueError("local profile changed while opening")
+        raw = handle.read(MAX_PROFILE_BYTES + 1)
+        after = os.fstat(handle.fileno())
+        _check_profile_file(after)
+        if (opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+            raise ValueError("local profile changed while reading")
+    if len(raw) > MAX_PROFILE_BYTES:
+        raise ValueError("local profile exceeds the 65536-byte limit")
+    try:
+        value = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, RecursionError) as exc:
+        raise ValueError("local profile must be bounded UTF-8 JSON") from exc
+    return path, validate_local_profile(value), hashlib.sha256(raw).hexdigest()
 
 
 def _catalog_path() -> Path:
@@ -39,7 +172,7 @@ def _text(value: object, label: str, *, maximum: int = 300) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{label} must be a non-empty string")
     result = value.strip()
-    if len(result) > maximum:
+    if len(value) > maximum:
         raise ValueError(f"{label} must be at most {maximum} characters")
     return result
 
@@ -60,7 +193,7 @@ def validate_catalog(value: object) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("blog style catalog must be an object")
     _reject_unknown(value, {"schema_version", "kind", "default_profile", "quality_floor", "profiles"}, "catalog")
-    if value.get("schema_version") != SCHEMA_VERSION or value.get("kind") != "BlogStyleCatalog":
+    if type(value.get("schema_version")) is not int or value["schema_version"] != SCHEMA_VERSION or value.get("kind") != "BlogStyleCatalog":
         raise ValueError("blog style catalog must be BlogStyleCatalog v1")
     default = _text(value.get("default_profile"), "default_profile", maximum=80)
     floor = value.get("quality_floor")
@@ -80,23 +213,8 @@ def validate_catalog(value: object) -> dict[str, Any]:
     if not isinstance(profiles, dict) or not profiles:
         raise ValueError("profiles must be a non-empty object")
     for name, profile in profiles.items():
-        if not isinstance(name, str) or not name or len(name) > 80:
-            raise ValueError("profile names must be short strings")
-        if not isinstance(profile, dict):
-            raise ValueError(f"profile {name} must be an object")
-        required = {"label", "scope", "description", "format_preset", "image_profile", "article_sequence", "text", "visual", "keep", "avoid", "uncertain"}
-        if not required <= set(profile):
-            raise ValueError(f"profile {name} is missing required fields")
-        _text(profile["label"], f"profiles.{name}.label", maximum=100)
-        if profile["scope"] not in {"universal", "personal"}:
-            raise ValueError(f"profiles.{name}.scope must be universal or personal")
-        _text(profile["description"], f"profiles.{name}.description", maximum=500)
-        _text(profile["format_preset"], f"profiles.{name}.format_preset", maximum=80)
-        _text(profile["image_profile"], f"profiles.{name}.image_profile", maximum=80)
-        for key in ("article_sequence", "keep", "avoid", "uncertain"):
-            _text_list(profile[key], f"profiles.{name}.{key}", maximum_items=20)
-        if not isinstance(profile["text"], dict) or not isinstance(profile["visual"], dict):
-            raise ValueError(f"profiles.{name}.text and visual must be objects")
+        _identifier(name, "profile name")
+        _validate_definition(profile, f"profiles.{name}", scope="universal")
     if default not in profiles:
         raise ValueError("default_profile must name a shipped profile")
     return copy.deepcopy(value)
@@ -106,10 +224,16 @@ def profile_names() -> tuple[str, ...]:
     return tuple(sorted(catalog()["profiles"]))
 
 
-def validate_profile_name(value: object) -> str:
-    if not isinstance(value, str) or value not in catalog()["profiles"]:
-        raise ValueError(f"unsupported blog style profile; choose one of {list(profile_names())}")
-    return value
+def validate_profile_name(value: object, *, data_dir: str | Path | None = None) -> str:
+    name = _identifier(value, "profile name")
+    if name in catalog()["profiles"]:
+        return name
+    path = config_path(data_dir)
+    if path.exists() or path.is_symlink():
+        selection = load_selection(data_dir)
+        if selection["profile"] == name and "profile_file" in selection:
+            return name
+    raise ValueError("unsupported blog style profile; choose a shipped profile or explicitly confirm a matching local file")
 
 
 def config_path(data_dir: str | Path | None = None) -> Path:
@@ -130,15 +254,35 @@ def _timestamp(value: object) -> str:
 def validate_selection(value: object) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("blog style selection must be an object")
-    _reject_unknown(value, {"schema_version", "kind", "profile", "confirmed_at"}, "selection")
-    if value.get("schema_version") != SCHEMA_VERSION or value.get("kind") != "BlogStyleSelection":
+    _reject_unknown(value, {"schema_version", "kind", "profile", "confirmed_at", "profile_file", "profile_sha256"}, "selection")
+    if type(value.get("schema_version")) is not int or value["schema_version"] != SCHEMA_VERSION or value.get("kind") != "BlogStyleSelection":
         raise ValueError("blog style selection must be BlogStyleSelection v1")
-    return {
+    name = _identifier(value.get("profile"), "profile")
+    result = {
         "schema_version": SCHEMA_VERSION,
         "kind": "BlogStyleSelection",
-        "profile": validate_profile_name(value.get("profile")),
+        "profile": name,
         "confirmed_at": _timestamp(value.get("confirmed_at")),
     }
+    if "profile_file" not in value:
+        if "profile_sha256" in value:
+            raise ValueError("profile_sha256 requires profile_file")
+        if name not in catalog()["profiles"]:
+            raise ValueError("blog style migration required: install the equivalent private profile and explicitly use set-file FILE --confirm")
+        return result
+    raw_path = value["profile_file"]
+    if not isinstance(raw_path, str) or not raw_path or not Path(raw_path).is_absolute():
+        raise ValueError("profile_file must be an absolute path")
+    digest = value.get("profile_sha256")
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError("profile_sha256 must be a SHA-256 digest")
+    path, local, actual_digest = _read_local_profile(raw_path)
+    if local["name"] != name:
+        raise ValueError("selected local profile name does not match profile file")
+    if actual_digest != digest:
+        raise ValueError("selected local profile file changed; explicit confirmation is required again")
+    result.update(profile_file=str(path), profile_sha256=digest)
+    return result
 
 
 def load_selection(data_dir: str | Path | None = None) -> dict[str, Any]:
@@ -150,14 +294,34 @@ def load_selection(data_dir: str | Path | None = None) -> dict[str, Any]:
 
 def selected_profile_name(data_dir: str | Path | None = None) -> str:
     path = config_path(data_dir)
-    if not path.exists():
+    if not path.exists() and not path.is_symlink():
         return str(catalog()["default_profile"])
     return load_selection(data_dir)["profile"]
 
 
 def resolve_profile(profile: str | None = None, *, data_dir: str | Path | None = None) -> dict[str, Any]:
-    name = validate_profile_name(profile) if profile is not None else selected_profile_name(data_dir)
-    result = copy.deepcopy(catalog()["profiles"][name])
+    if profile is not None:
+        profile = _identifier(profile, "profile name")
+    if profile is not None and profile in catalog()["profiles"]:
+        name = profile
+        result = copy.deepcopy(catalog()["profiles"][name])
+    else:
+        path = config_path(data_dir)
+        if not path.exists() and not path.is_symlink():
+            name = validate_profile_name(profile, data_dir=data_dir) if profile is not None else str(catalog()["default_profile"])
+            result = copy.deepcopy(catalog()["profiles"][name])
+        else:
+            selection = load_selection(data_dir)
+            name = selection["profile"]
+            if profile is not None and profile != name:
+                raise ValueError("unsupported blog style profile; local name must match the confirmed selection")
+            if "profile_file" in selection:
+                _, local, digest = _read_local_profile(selection["profile_file"])
+                if digest != selection["profile_sha256"]:
+                    raise ValueError("selected local profile file changed while resolving")
+                result = local["definition"]
+            else:
+                result = copy.deepcopy(catalog()["profiles"][name])
     result["profile"] = name
     result["quality_floor"] = copy.deepcopy(catalog()["quality_floor"])
     return result
@@ -167,7 +331,7 @@ def profile_status(data_dir: str | Path | None = None) -> dict[str, Any]:
     path = config_path(data_dir)
     result: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
-        "configured": path.is_file() and not path.is_symlink(),
+        "configured": path.exists() or path.is_symlink(),
         "path": str(path),
         "default_profile": catalog()["default_profile"],
     }
@@ -176,8 +340,10 @@ def profile_status(data_dir: str | Path | None = None) -> dict[str, Any]:
         return result
     try:
         selection = load_selection(data_dir)
-        profile = catalog()["profiles"][selection["profile"]]
+        profile = resolve_profile(data_dir=data_dir)
         result.update({"profile": selection["profile"], "label": profile["label"], "scope": profile["scope"], "valid": True})
+        if "profile_file" in selection:
+            result["profile_file"] = selection["profile_file"]
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         result.update({"valid": False, "error": str(exc)})
     return result
@@ -195,10 +361,37 @@ def save_selection(
     value = {
         "schema_version": SCHEMA_VERSION,
         "kind": "BlogStyleSelection",
-        "profile": validate_profile_name(profile),
+        "profile": _identifier(profile, "profile"),
         "confirmed_at": confirmed_at or datetime.now(timezone.utc).isoformat(),
     }
+    if profile not in catalog()["profiles"]:
+        raise ValueError("unsupported shipped profile; use set-file for a local profile")
     normalized = validate_selection(value)
+    return _save_selection(normalized, data_dir=data_dir)
+
+
+def save_file_selection(
+    profile_file: str | Path,
+    *,
+    data_dir: str | Path | None = None,
+    confirmed: bool,
+    confirmed_at: str | None = None,
+) -> Path:
+    if not confirmed:
+        raise ValueError("explicit confirmation is required before saving a blog style")
+    path, local, digest = _read_local_profile(profile_file)
+    value = {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "BlogStyleSelection",
+        "profile": local["name"],
+        "confirmed_at": confirmed_at or datetime.now(timezone.utc).isoformat(),
+        "profile_file": str(path),
+        "profile_sha256": digest,
+    }
+    return _save_selection(validate_selection(value), data_dir=data_dir)
+
+
+def _save_selection(normalized: dict[str, Any], *, data_dir: str | Path | None) -> Path:
     directory = data_directory(data_dir, create=True)
     path = directory / CONFIG_FILENAME
     if path.is_symlink():
@@ -245,6 +438,9 @@ def main(argv: list[str] | None = None) -> int:
     select = sub.add_parser("set")
     select.add_argument("profile", choices=profile_names())
     select.add_argument("--confirm", action="store_true")
+    select_file = sub.add_parser("set-file")
+    select_file.add_argument("file", type=Path)
+    select_file.add_argument("--confirm", action="store_true")
     reset = sub.add_parser("reset")
     reset.add_argument("--confirm", action="store_true")
     args = parser.parse_args(argv)
@@ -257,6 +453,9 @@ def main(argv: list[str] | None = None) -> int:
             result = resolve_profile(args.profile, data_dir=args.data_dir)
         elif args.command == "set":
             result = {"saved": True, "profile": args.profile, "path": str(save_selection(args.profile, data_dir=args.data_dir, confirmed=args.confirm))}
+        elif args.command == "set-file":
+            saved = save_file_selection(args.file, data_dir=args.data_dir, confirmed=args.confirm)
+            result = {"saved": True, **load_selection(args.data_dir), "path": str(saved)}
         else:
             result = {"reset": reset_selection(data_dir=args.data_dir, confirmed=args.confirm)}
     except (OSError, ValueError, json.JSONDecodeError) as exc:

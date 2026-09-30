@@ -2,7 +2,7 @@
 <html lang="ko"><meta charset="utf-8"><title>Generic SmartEditor input-buffer fixture</title>
 <style>
   .se-content {width: 680px}
-  p.se-text-paragraph {min-height: 28px; padding: 5px; margin: 3px}
+  p.se-text-paragraph {min-height: 28px; padding: 5px; margin: 0; font-size: 15px; font-weight: 400; text-align: left; line-height: 1.5}
   .se-placeholder {color: #888}
   #global-input-buffer {position: fixed; top: -10000px}
 </style>
@@ -17,6 +17,13 @@
 <ul id="saved-draft-list" hidden></ul>
 <button data-click-area="tpb.publish" aria-label="발행" type="button">발행</button>
 <div id="status" role="status">준비</div>
+<div class="se-property-toolbar" role="toolbar">
+  <button class="se-toolbar-button" data-name="font-size" data-group="propertyToolbar" aria-haspopup="true" data-value="fs15">15</button>
+  <button class="se-bold-toolbar-button se-property-toolbar-toggle-button" data-name="bold" data-group="propertyToolbar">Bold</button>
+  <button class="se-toolbar-button" data-name="align-drop-down-with-justify" data-group="propertyToolbar" aria-haspopup="true" data-value="left">Align</button>
+  <button class="se-toolbar-button" data-name="line-height" data-group="propertyToolbar" aria-haspopup="true" data-value="150">Line height</button>
+</div>
+<div id="native-options" hidden></div>
 <script>
 window.publishClicks = 0;
 window.draftSaveClicks = 0;
@@ -28,6 +35,47 @@ const buffer = frame.contentDocument.body;
 buffer.setAttribute('contenteditable', 'true');
 let currentParagraph = null;
 const section = document.querySelector('.se-section-text');
+const nativeState = {size: 15, bold: false, alignment: 'left', line_spacing: 1.5};
+function applyNativeStyle(node) {
+  node.style.fontSize = nativeState.size + 'px';
+  node.style.fontWeight = nativeState.bold ? '700' : '400';
+  node.style.textAlign = nativeState.alignment;
+  node.style.lineHeight = nativeState.line_spacing;
+}
+function syncToolbar() {
+  document.querySelector('[data-name="font-size"]').dataset.value = 'fs' + nativeState.size;
+  document.querySelector('[data-name="bold"]').classList.toggle('se-is-activated', nativeState.bold);
+  document.querySelector('[data-name="align-drop-down-with-justify"]').dataset.value = nativeState.alignment;
+  document.querySelector('[data-name="line-height"]').dataset.value = String(Math.round(nativeState.line_spacing * 100));
+}
+const optionsPanel = document.querySelector('#native-options');
+document.querySelectorAll('.se-property-toolbar button').forEach(button => {
+  button.addEventListener('mousedown', event => event.preventDefault());
+  button.onclick = () => {
+    if (!currentParagraph?.closest('.se-section-text')) return;
+    const name = button.dataset.name;
+    if (name === 'bold') {
+      nativeState.bold = !nativeState.bold;
+      applyNativeStyle(currentParagraph); syncToolbar(); return;
+    }
+    const values = name === 'font-size' ? [11,13,15,16,19,24,28,30,34,38].map(n => 'fs' + n)
+      : name === 'line-height' ? [150,160,170,180,190,200,210] : ['left','center','right','justify'];
+    optionsPanel.replaceChildren(...values.map(value => {
+      const option = document.createElement('button');
+      option.dataset.name = name; option.dataset.role = 'option'; option.dataset.value = value;
+      option.textContent = value;
+      option.addEventListener('mousedown', event => event.preventDefault());
+      option.onclick = () => {
+        if (name === 'font-size') nativeState.size = Number(value.slice(2));
+        else if (name === 'line-height') nativeState.line_spacing = Number(value) / 100;
+        else nativeState.alignment = value;
+        applyNativeStyle(currentParagraph); syncToolbar(); optionsPanel.hidden = true;
+      };
+      return option;
+    }));
+    optionsPanel.hidden = false;
+  };
+});
 function focusParagraph(node) {
   currentParagraph = node;
   const selection = window.getSelection();
@@ -36,6 +84,10 @@ function focusParagraph(node) {
   selection.removeAllRanges(); selection.addRange(range);
   buffer.textContent = '';
   frame.focus(); buffer.focus();
+  const inputSelection = frame.contentWindow.getSelection();
+  const inputRange = frame.contentDocument.createRange();
+  inputRange.selectNodeContents(buffer); inputRange.collapse(true);
+  inputSelection.removeAllRanges(); inputSelection.addRange(inputRange);
 }
 document.querySelector('.se-section-documentTitle').addEventListener('click', event => {
   const paragraph = event.target.closest('p.se-text-paragraph');
@@ -49,10 +101,16 @@ buffer.addEventListener('input', () => {
   window.inputEvents++;
   if (!currentParagraph) return;
   currentParagraph.textContent = buffer.innerText;
+  if (currentParagraph.closest('.se-section-text')) applyNativeStyle(currentParagraph);
   const selection = window.getSelection();
   const range = document.createRange();
   range.selectNodeContents(currentParagraph); range.collapse(false);
   selection.removeAllRanges(); selection.addRange(range);
+  buffer.textContent = '';
+  const inputSelection = frame.contentWindow.getSelection();
+  const inputRange = frame.contentDocument.createRange();
+  inputRange.selectNodeContents(buffer); inputRange.collapse(true);
+  inputSelection.removeAllRanges(); inputSelection.addRange(inputRange);
 });
 buffer.addEventListener('keydown', event => {
   if (event.key !== 'Enter' || !currentParagraph?.closest('.se-section-text')) return;
@@ -60,6 +118,7 @@ buffer.addEventListener('keydown', event => {
   const paragraph = document.createElement('p');
   paragraph.className = 'se-text-paragraph';
   paragraph.innerHTML = '<span class="se-placeholder">본문을 입력하세요</span>';
+  applyNativeStyle(paragraph);
   section.appendChild(paragraph);
   focusParagraph(paragraph);
 });
@@ -67,8 +126,10 @@ document.querySelector('[data-click-area="tpb.save"]').onclick = () => {
   window.draftSaveClicks++;
   savedDraft = {
     title: document.querySelector('.se-section-documentTitle p.se-text-paragraph').innerText,
-    paragraphs: [...document.querySelectorAll('.se-section-text p.se-text-paragraph')]
-      .filter(p => !p.querySelector('.se-placeholder')).map(p => p.innerText),
+    paragraphs: [...document.querySelectorAll('.se-section-text p.se-text-paragraph')].map(p => ({
+      text: p.querySelector('.se-placeholder') ? '' : p.innerText,
+      style: p.getAttribute('style') || '',
+    })),
   };
   localStorage.setItem(storageKey, JSON.stringify(savedDraft));
   const status = document.querySelector('#status');
@@ -89,9 +150,10 @@ document.querySelector('[data-click-area="tpb*s.count"]').onclick = () => {
   button.append(title); item.append(button); list.replaceChildren(item);
   button.onclick = () => {
     document.querySelector('.se-section-documentTitle p.se-text-paragraph').textContent = savedDraft.title;
-    section.replaceChildren(...savedDraft.paragraphs.map(text => {
+    section.replaceChildren(...savedDraft.paragraphs.map(row => {
       const paragraph = document.createElement('p');
-      paragraph.className = 'se-text-paragraph'; paragraph.textContent = text;
+      paragraph.className = 'se-text-paragraph'; paragraph.textContent = row.text;
+      paragraph.setAttribute('style', row.style);
       return paragraph;
     }));
     list.hidden = true;

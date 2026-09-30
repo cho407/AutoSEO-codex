@@ -76,65 +76,6 @@
       "uncertain": [
         "whether a visual treatment improves exposure cannot be inferred without a controlled comparison"
       ]
-    },
-    "tactile-howto": {
-      "label": "촉감형 단계 안내",
-      "scope": "personal",
-      "description": "An optional personal profile for warm, practical Korean how-to posts with a handmade editorial feel.",
-      "format_preset": "blog-centered",
-      "image_profile": "tactile-howto",
-      "article_sequence": [
-        "answer-first",
-        "why-this-matters",
-        "current-rule-or-date",
-        "sectioned-explanation",
-        "evidence-step",
-        "final-checklist",
-        "source-and-freshness-note"
-      ],
-      "text": {
-        "body_alignment": "center",
-        "heading_alignment": "center",
-        "source_alignment": "left",
-        "body_size": 16,
-        "body_line_spacing": 1.9,
-        "section_heading_size": 24,
-        "paragraph_max_sentences": 3,
-        "section_heading_style": "native-heading"
-      },
-      "visual": {
-        "hero_ratio": "1:1",
-        "step_ratio": "4:5",
-        "base": "cream grid or tactile paper",
-        "primary": "#253B50",
-        "accent": "#E86D4E",
-        "muted": "#666666",
-        "table_header": "#F5EFDF",
-        "headline": "one short handwritten-style phrase, never a paragraph",
-        "composition": "a tactile cover or real screenshot in a clean paper frame",
-        "annotation": "one coral circle or arrow that points to the exact control or fact",
-        "series_rule": "Keep palette and type treatment consistent while varying crop and composition",
-        "provenance": "Use actual user-authorized or official source screenshots for procedures; never redraw UI with a model"
-      },
-      "keep": [
-        "short centered prose blocks with a strong section rhythm",
-        "a square cover that establishes the topic without repeating the whole article",
-        "one 4:5 step image for each genuinely distinct action",
-        "real source screenshots framed with generous whitespace and a clear callout",
-        "small tables or checklists when a reader must compare thresholds or verify completion",
-        "a freshness note that states the date and warns that policy or screens can change"
-      ],
-      "avoid": [
-        "a beige template applied to unrelated topics",
-        "PPT-like grids, dense bullets or tiny text",
-        "made-up app controls, logos, badges, numbers or testimonials",
-        "copying a reference image, layout or distinctive artwork",
-        "using the personal profile as proof of ranking or engagement causality"
-      ],
-      "uncertain": [
-        "the observed search inflow is a small post-level sample and does not isolate the image effect",
-        "handwritten accents may reduce legibility for a different audience or topic"
-      ]
     }
   }
 }

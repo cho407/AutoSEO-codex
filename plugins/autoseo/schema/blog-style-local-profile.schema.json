@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BlogStyleLocalProfile v1",
+  "type": "object",
+  "required": ["schema_version", "kind", "name", "definition"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "BlogStyleLocalProfile"},
+    "name": {"type": "string", "maxLength": 80, "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "not": {"enum": ["balanced-editorial"]}},
+    "definition": {
+      "type": "object",
+      "required": ["label", "scope", "description", "format_preset", "image_profile", "article_sequence", "text", "visual", "keep", "avoid", "uncertain"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {"type": "string", "maxLength": 100, "pattern": "\\S"},
+        "scope": {"const": "personal"},
+        "description": {"$ref": "#/$defs/text"},
+        "format_preset": {"$ref": "#/$defs/identifier"},
+        "image_profile": {"$ref": "#/$defs/identifier"},
+        "article_sequence": {"$ref": "#/$defs/textList"},
+        "keep": {"$ref": "#/$defs/textList"},
+        "avoid": {"$ref": "#/$defs/textList"},
+        "uncertain": {"$ref": "#/$defs/textList"},
+        "text": {
+          "type": "object",
+          "required": ["body_alignment", "heading_alignment", "source_alignment", "body_size", "body_line_spacing", "section_heading_size", "paragraph_max_sentences"],
+          "additionalProperties": false,
+          "properties": {
+            "body_alignment": {"$ref": "#/$defs/alignment"},
+            "heading_alignment": {"$ref": "#/$defs/alignment"},
+            "source_alignment": {"$ref": "#/$defs/alignment"},
+            "body_size": {"type": "integer", "minimum": 10, "maximum": 72},
+            "body_line_spacing": {"type": "number", "minimum": 1, "maximum": 3},
+            "section_heading_size": {"type": "integer", "minimum": 10, "maximum": 72},
+            "paragraph_max_sentences": {"type": "integer", "minimum": 1, "maximum": 10},
+            "section_heading_style": {"const": "native-heading"}
+          }
+        },
+        "visual": {
+          "type": "object",
+          "required": ["hero_ratio", "composition"],
+          "additionalProperties": false,
+          "properties": {
+            "hero_ratio": {"$ref": "#/$defs/ratio"},
+            "supporting_ratio": {"$ref": "#/$defs/ratio"},
+            "step_ratio": {"$ref": "#/$defs/ratio"},
+            "primary": {"$ref": "#/$defs/color"},
+            "accent": {"$ref": "#/$defs/color"},
+            "muted": {"$ref": "#/$defs/color"},
+            "table_header": {"$ref": "#/$defs/color"},
+            "composition": {"$ref": "#/$defs/text"},
+            "palette": {"$ref": "#/$defs/text"},
+            "base": {"$ref": "#/$defs/text"},
+            "headline": {"$ref": "#/$defs/text"},
+            "annotation": {"$ref": "#/$defs/text"},
+            "annotations": {"$ref": "#/$defs/text"},
+            "series_rule": {"$ref": "#/$defs/text"},
+            "provenance": {"$ref": "#/$defs/text"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {"type": "string", "maxLength": 80, "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+    "text": {"type": "string", "maxLength": 500, "pattern": "\\S"},
+    "textList": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/text"}},
+    "alignment": {"enum": ["left", "center", "right", "justify"]},
+    "ratio": {"enum": ["1:1", "16:9", "4:3", "4:5", "1.91:1"]},
+    "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"}
+  }
+}

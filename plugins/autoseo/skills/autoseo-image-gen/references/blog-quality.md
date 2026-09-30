@@ -42,24 +42,17 @@ summary card before the introduction by default. Vary purpose, not just color;
 prefer one useful photo over several interchangeable cards. Image count and style
 are editorial choices, not assumed ranking signals.
 
-### Optional `tactile-howto` profile
+### Explicit local profile file
 
-When the writer has explicitly selected this personal profile, use the following
-as a production target rather than a universal template:
+`balanced-editorial` is the only bundled profile. A different presentation
+direction requires an explicitly chosen private `BlogStyleLocalProfile` JSON
+outside the repository and cache, with mode `0600`, selected locally using
+`blog_style.py set-file <profile.json> --confirm`. The local selection is
+checksum-bound to the file.
 
-- Use a 1:1 cover and 4:5 procedure images with a cream/grid paper base, navy ink,
-  coral callouts and restrained handmade/collage texture.
-- Keep one short handwritten-style headline per image. Pair a real official or
-  user-authorized screenshot with a clean paper frame and one circle/arrow around
-  the exact control being explained.
-- Keep the article's short centered prose and native section-heading rhythm, but never
-  rasterize paragraphs, sources or dense comparison tables into an image.
-- Redact personal data, record the source/freshness note and disclose any AI-made
-  cover. Never redraw an app interface, invent a badge or copy the reference art.
-
-The profile is a local presentation choice. It does not change SEO/AEO/NEO scoring,
-does not imply that the image caused a view, and must not replace the six visual
-checks below.
+The selection does not change SEO/AEO/NEO scoring or replace the six visual checks
+below. Keep image provenance, permission, privacy and quality requirements for
+every profile.
 
 ## Compile one brief
 

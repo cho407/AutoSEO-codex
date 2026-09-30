@@ -7,8 +7,17 @@
   "properties": {
     "schema_version": {"const": 1},
     "kind": {"const": "BlogStyleSelection"},
-    "profile": {"type": "string", "enum": ["balanced-editorial", "tactile-howto"]},
-    "confirmed_at": {"type": "string", "format": "date-time"}
+    "profile": {"type": "string", "maxLength": 80, "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"},
+    "confirmed_at": {"type": "string", "format": "date-time"},
+    "profile_file": {"type": "string", "minLength": 1, "pattern": "^(?:/|[A-Za-z]:[\\\\/])", "description": "Absolute path to an owner-only private profile outside the repository and cache; runtime validates file safety and matching name."},
+    "profile_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
   },
+  "allOf": [
+    {
+      "if": {"required": ["profile_file"]},
+      "then": {"required": ["profile_sha256"], "properties": {"profile": {"not": {"enum": ["balanced-editorial"]}}}},
+      "else": {"properties": {"profile": {"enum": ["balanced-editorial"]}}, "not": {"required": ["profile_sha256"]}}
+    }
+  ],
   "additionalProperties": false
 }

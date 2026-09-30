@@ -113,26 +113,22 @@ it through the existing image brief fields: keep the requested `layout`, put the
 concrete subject in `visual_subject`, put lighting/crop/material direction in
 `art_direction`, explain its editorial job in `article_context`, select an
 appropriate `aspect_ratio`, and retain `style_profile: "balanced-editorial"` unless
-the user explicitly selected a saved personal profile. Reference URLs are provenance
+the user explicitly selected a local profile. Reference URLs are provenance
 only and are never proof of usage rights. Do not downgrade `photo` or `cover` to a
 card merely because local template rendering is available.
 
-## Optional personal `tactile-howto` profile
+## Optional local profile file
 
-`tactile-howto` remains a personal option for warm, practical how-to articles. It
-may use its saved palette, square cover, 4:5 step ratio, tactile paper treatment,
-and precise callout style. Its sections still use native headings at the readable
-heading scale, and source/detail blocks remain left aligned. Grid paper, tactile
-materials, luxury styling, and any one owner's visual taste are never global
-defaults. The universal evidence, readability, provenance, and rights floor always
-wins.
+`balanced-editorial` is the only shipped profile. To use another presentation
+direction, review an explicitly chosen private `BlogStyleLocalProfile` JSON stored
+outside the repository and cache with mode `0600`, then select it locally:
 
 ```text
 <plugin-root>/scripts/autoseo run blog_style.py presets
 <plugin-root>/scripts/autoseo run blog_style.py status
-<plugin-root>/scripts/autoseo run blog_style.py set tactile-howto --confirm
+<plugin-root>/scripts/autoseo run blog_style.py set-file <profile.json> --confirm
 ```
 
-The local selection contains only the profile name and confirmation time. Include
-the selected `style_profile` in each generated image brief so its direction is
-hash-bound and reviewable; this still does not prove live rendering or performance.
+The local selection is checksum-bound to the file. Include its selected
+`style_profile` in each generated image brief so the direction is hash-bound and
+reviewable; this still does not prove live rendering or performance.

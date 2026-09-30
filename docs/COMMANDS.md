@@ -71,12 +71,12 @@ the selected readiness lanes and combines them as `OptimizationReport v1` only w
 every selected lane is independently scoreable; the report always shows evidence
 coverage and never predicts rank or traffic.
 
-Presentation profiles are local and optional. `balanced-editorial` is the universal
-fallback. After reviewing the profile, an author may select the personal
-`tactile-howto` direction with `blog_style.py set tactile-howto --confirm`; it
-guides centered short prose, square/4:5 image ratios, tactile paper, navy/coral
-accents and real screenshot callouts. It is not a ranking signal or a promise of
-views. See [the blog presentation standard](BLOG_STYLE_STANDARD.md).
+`balanced-editorial` is the only shipped presentation profile. To use another
+direction, review an explicitly chosen private `BlogStyleLocalProfile` JSON outside
+the repository and cache with mode `0600`, then select it locally with
+`blog_style.py set-file <profile.json> --confirm`. The local selection is
+checksum-bound to the file; it is not a ranking signal or promise of views. See
+[the blog presentation standard](BLOG_STYLE_STANDARD.md).
 
 The Naver editor commands use a dedicated visible Chromium profile under
 `AUTOSEO_DATA_DIR`. Login, two-factor authentication, and CAPTCHA remain manual.

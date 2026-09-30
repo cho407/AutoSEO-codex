@@ -82,22 +82,67 @@ def test_photo_led_cover_keeps_caller_direction_without_card_downgrade(tmp_path)
     assert not (tmp_path / "photo-led-cover.png").exists()
 
 
-def test_personal_style_profile_is_explicit_and_changes_only_visual_guidance():
+def test_personal_style_profile_requires_matching_confirmed_file(tmp_path, monkeypatch):
+    from blog_style import save_file_selection
+    from test_blog_style import private_profile
+
+    monkeypatch.setenv("AUTOSEO_DATA_DIR", str(tmp_path / "data"))
+    file = private_profile(tmp_path)
     value = brief(
         layout="social-card",
-        visual_subject="공식 앱 화면을 종이 프레임 안에 배치한 단계 안내",
-        style_profile="tactile-howto",
+        visual_subject="합성 테스트 단계 안내",
+        style_profile="synthetic-style",
         aspect_ratio="4:5",
     )
+    with pytest.raises(ValueError, match="unsupported"):
+        validate_brief(value)
+    save_file_selection(file, confirmed=True)
     normalized = validate_brief(value)
-    assert normalized["style_profile"] == "tactile-howto"
+    assert normalized["style_profile"] == "synthetic-style"
     prompt = generation_prompt(value)
-    assert "tactile-howto" in prompt
-    assert "cream grid or tactile paper" in prompt
-    assert "4:5" in prompt
-    assert '"source_alignment":"left"' in prompt
-    assert '"section_heading_size":24' in prompt
-    assert '"section_heading_style":"native-heading"' in prompt
+    assert '"primary":"#123456"' in prompt
+    assert '"accent":"#ABCDEF"' in prompt
+    with pytest.raises(ValueError, match="unsupported"):
+        validate_brief({**value, "style_profile": "other-style"})
+    file.unlink()
+    with pytest.raises(OSError):
+        generation_prompt(value)
+
+
+def test_generic_brief_hash_stays_stable_with_local_selection(tmp_path, monkeypatch):
+    from blog_style import save_file_selection, save_selection
+    from test_blog_style import private_profile
+
+    monkeypatch.setenv("AUTOSEO_DATA_DIR", str(tmp_path / "data"))
+    image = tmp_path / "asset.png"
+    Image.new("RGB", (1600, 900), "white").save(image)
+    implicit = brief()
+    explicit = brief(style_profile="balanced-editorial")
+    original = check_image(image, implicit)["brief_sha256"]
+    assert check_image(image, explicit)["brief_sha256"] == original
+    save_selection("balanced-editorial", confirmed=True)
+    assert check_image(image, implicit)["brief_sha256"] == original
+    save_file_selection(private_profile(tmp_path), confirmed=True)
+    assert check_image(image, implicit)["brief_sha256"] == original
+    assert check_image(image, brief(style_profile="synthetic-style"))["brief_sha256"] != original
+
+
+def test_local_image_brief_agrees_with_schema(tmp_path, monkeypatch):
+    from blog_style import save_file_selection
+    from test_blog_style import private_profile
+
+    jsonschema = pytest.importorskip("jsonschema")
+    monkeypatch.setenv("AUTOSEO_DATA_DIR", str(tmp_path / "data"))
+    save_file_selection(private_profile(tmp_path), confirmed=True)
+    schema_path = Path(__file__).resolve().parents[1] / "plugins/autoseo/schema/blog-image-brief.schema.json"
+    validator = jsonschema.Draft202012Validator(json.loads(schema_path.read_text()))
+    value = brief(layout="social-card", visual_subject="합성 테스트", style_profile="synthetic-style")
+    validator.validate(validate_brief(value))
+    for name in ("../unsafe", "", "Uppercase"):
+        with pytest.raises(ValueError):
+            validate_brief({**value, "style_profile": name})
+        with pytest.raises(jsonschema.ValidationError):
+            validator.validate({**value, "style_profile": name})
 
 
 @pytest.mark.parametrize("layout", ["editorial", "cover", "photo", "social-card"])

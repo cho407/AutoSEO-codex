@@ -18,6 +18,27 @@
     "source": {"size": 14, "line_spacing": 1.8, "color": "#666666"},
     "detail": {"size": 16, "line_spacing": 1.8, "color": "#333333"}
   },
+  "naver_native_design": {
+    "schema_version": 1,
+    "preset": "compact-native",
+    "source_divider": "none",
+    "media": "optional",
+    "max_callouts": 1,
+    "roles": {
+      "short-answer": {"size": 15, "bold": false},
+      "intro": {"size": 15, "bold": false},
+      "question-heading": {"size": 19, "bold": true},
+      "minor-heading": {"size": 16, "bold": true},
+      "summary": {"size": 16, "bold": true},
+      "caution": {"size": 16, "bold": true},
+      "quote": {"size": 16, "bold": false},
+      "body": {"size": 15, "bold": false},
+      "detail": {"size": 15, "bold": false},
+      "caption": {"size": 13, "bold": false},
+      "source-heading": {"size": 16, "bold": true},
+      "source": {"size": 13, "bold": false}
+    }
+  },
   "html_spacing": {
     "body": "margin:0 0 1.25em;word-break:keep-all;overflow-wrap:anywhere",
     "heading": "margin:2em 0 1em;padding-bottom:0.5em;border-bottom:1px solid #DDDDDD",

@@ -39,22 +39,15 @@ On an explicit request to save defaults, preview the preference profile, then us
 Presets are `friendly`, `professional`, `expert-friendly`, `conversational`, `warm`,
 `concise`, `persuasive`, and `custom`; the current request overrides the preset.
 
-Presentation profiles are separate from writer identity. The generic
-`balanced-editorial` profile is the fallback for every environment. An explicitly
-confirmed local `tactile-howto` profile is a personal option for warm Korean
-how-to posts: centered short prose, native section headings with a concise
-rhythm, a square tactile cover, 4:5 step images, cream/grid paper, navy and coral
-accents, and real source
-screenshots with one precise callout. It is not a ranking rule, a universal beige
-template, or permission to invent UI. Keep the quality floor (facts, source date,
-privacy redaction, mobile legibility and provenance) even when the personal
-profile is selected. Put `style_profile` in each generated image brief so the
-direction is hash-bound and reviewable.
-
-On an explicit request to save a presentation preference, preview the profile and
-then use `blog_style.py set <profile> --confirm`. The local file contains only the
-profile name and confirmation time; article text, URLs, images, cookies and account
-identifiers never enter the distributed plugin.
+Presentation profiles are separate from writer identity. Only
+`balanced-editorial` ships. Another direction requires an explicitly reviewed
+private `BlogStyleLocalProfile` JSON outside the repository and cache, with mode
+`0600`; select it locally with `blog_style.py set-file <profile.json> --confirm`.
+The selection is checksum-bound to the file. It guides presentation only, not
+ranking, and never permits invented UI. Keep the quality floor (facts, source date,
+privacy redaction, mobile legibility and provenance) for every profile. Include the
+selected `style_profile` in each generated image brief so the direction is
+hash-bound and reviewable.
 
 ## Evidence and prose
 

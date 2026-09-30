@@ -43,16 +43,16 @@ catalog offers blog search but no rich blog-post writing endpoint.
 | `@autoseo naver-editor publish <draft>` | Preview settings, request approval, click publish once, verify once |
 | `@autoseo naver-editor schedule <draft-and-time>` | Preview time/settings, request approval, schedule once, verify once |
 
-**Current detached-input-buffer layout:** the live-tested code-first path handles
-one exact title, plain single-line paragraph blocks, and one draft save. It then
-checks one uniquely titled saved-list entry and the entire title/body fingerprint
-after a same-tab reload. Unsupported styles, headings, quotes, images, tags,
-links, attachments, guided components and final publication options fail during
-operation preflight **before any account text is entered**. The broad feature
-catalog describes the document schema and legacy adapter, not a promise that
-each feature works on this newer editor layout. For a rich article, stop at the
-preflight blocker and use a separately authorized visible editor workflow;
-never retry an uncertain partial save through another controller.
+**Current detached-input-buffer layout:** the default path handles one exact
+title, plain single-line paragraphs and one draft save. Unsupported styles,
+headings, quotes, images, tags, links, attachments, guided components and final
+publication options fail during full preflight **before title input**.
+`--experimental-native-text` is a separate, default-OFF compact-native text
+path described below. Neither the feature catalog nor a synthetic fixture
+establishes account support. Saved-format proof requires exact computed-style,
+text and paragraph-layout readback after reopening the uniquely titled draft;
+a save toast is only an acknowledgement. Stop on an uncertain partial write
+or save; never retry it through another controller.
 
 When `compose` receives a topic instead of a ready `NaverDocument v1`, first route
 through `autoseo-writing`: resolve the confirmed writing identity, research any
@@ -158,6 +158,71 @@ ambiguous control stops the run instead of guessing.
 
 Read `references/feature-compatibility.md` for the complete classification and
 the live-editor release checklist.
+
+## Opt-in native design (read-only)
+
+Use `scripts/naver_design.py validate DOCUMENT [--profile PATH]` or
+`scripts/naver_design.py plan DOCUMENT [--profile PATH]` through the standard
+runtime. Design requires an explicit `design_profile` with
+`schema_version: 1` and `preset: "compact-native"`; legacy documents are not
+migrated. Personal profiles must be bounded UTF-8 JSON (64 KiB maximum), regular,
+non-symlink, single-link files, owned by the current user with mode `0600` on
+POSIX. They merge only in memory, never into source or cache. Conflicting
+embedded/external profiles stop rather than override or fall back.
+
+JSON results identify the effective document hash, binding the validated
+profile and reviewed attachment bytes. Changed hashes
+require a deliberate new plan; no account operation is authorized. Schema
+checks are structural; Python owns ordering, permissions and media-hash checks.
+A plan reports unverified formatting, circle-marker, quote, divider and upload
+gates. A local fixture is not live-editor proof; an account draft save needs
+separate authorization and persistence readback; public verification needs
+separate exact-settings approval and actual post readback. Neither a plan nor
+a fixture proves save or publication readiness.
+
+### Experimental native text runtime
+
+`naver_editor.py plan DOCUMENT --experimental-native-text` emits the exact
+`compiled_operations` consumed by the executor. `compose DOCUMENT
+--experimental-native-text` (and explicit resume opt-in) enables bounded
+before-input formatting under an embedded `design_profile` with
+`schema_version: 1`, `preset: "compact-native"`. The constructor option is
+`experimental_native_text=True`; the default remains false.
+
+Experimental runtime verified by real Playwright on synthetic fixtures;
+the live authorized draft gate remains pending. No account-ready
+quotes/photos, uploading or publication claims. The read-only design planner
+continues reporting unavailable live-readiness gates.
+
+Heading roles compile to styled native **paragraphs**, never sectionTitle
+conversion or selecting existing text. Supported sizes are observed integers
+11/13/15/16/19/24/28/30/34/38 subject to semantic role constraints; emphasis is
+boolean bold. Optional alignment is left/center; line_spacing is 1.5–2.1 in
+0.1 steps (menu values 150–210). Omitted alignment/line spacing reset to
+left/1.5 in this experimental compiler only; legacy styles/hashes are unchanged.
+Body size/bold are explicitly reset before insertion after a heading.
+
+Text blocks may request `spacing_before: "section"`; default `"normal"` adds
+no space. Section spacing inserts exactly one native empty paragraph after
+preceding semantic text, never at the start or as a repeated blank run.
+Line height is not paragraph spacing: observed mobile paragraph margins are
+zero. Blank lines inside text remain forbidden. Neutral markers do nothing;
+explicit `list_marker_style: "circle"` renders `● ` once without rewriting
+the input JSON. Compiler, planner and verification share rendered text.
+
+Each style action/type requires a genuinely empty last paragraph, no foreign
+popup, the exact collapsed top caret and a collapsed empty input-buffer
+selection. Enter checks the exact inserted paragraph at its end (or the
+empty spacing target) and creates exactly one next empty paragraph.
+Only toolbar-owned focus loss permits bounded rebind to that empty target.
+Unknown toggle state, missing/ambiguous controls, user focus theft, changed
+prior paragraphs, unexpected splits or mismatched computed text runs stop;
+no forced clicks, DOM text/style writes or uncertain write retries.
+Version-4 experimental fingerprints include every paragraph, including
+semantic empty spacers and the terminal writable paragraph, with computed
+paragraph/run styles. They do not silently migrate version-3 checkpoints.
+
+
 
 ## Learn and resume semantics
 

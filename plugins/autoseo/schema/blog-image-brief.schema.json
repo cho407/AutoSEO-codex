@@ -19,7 +19,7 @@
     "layout": {"enum": ["social-card", "editorial", "cover", "photo", "card", "steps"], "default": "social-card"},
     "items": {"type": "array", "maxItems": 4, "items": {"type": "string", "minLength": 1, "maxLength": 50}},
     "reference_urls": {"type": "array", "maxItems": 5, "items": {"type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2048}},
-    "style_profile": {"type": "string", "enum": ["balanced-editorial", "tactile-howto"], "default": "balanced-editorial", "description": "Optional local presentation profile; it does not affect ranking signals."}
+    "style_profile": {"type": "string", "maxLength": 80, "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", "default": "balanced-editorial", "description": "Shipped generic profile or the matching explicitly confirmed local profile name. Runtime rejects unavailable or invalid local selections; this is not a ranking signal."}
   },
   "allOf": [
     {"if": {"required": ["layout"], "properties": {"layout": {"const": "steps"}}},

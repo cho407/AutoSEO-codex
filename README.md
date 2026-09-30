@@ -21,11 +21,12 @@ conversational, warm, concise, persuasive, or custom voice. Current topics use
 dated, corroborated trend evidence; scores expose their measured coverage and never
 stand in for Google or Naver ranking data.
 
-Presentation quality is split into a universal `balanced-editorial` floor and
-optional local profiles. The personal `tactile-howto` profile supports centered
-short prose, tactile square covers, 4:5 procedure images, navy/coral callouts and
-real source screenshots without changing the universal default or claiming a
-ranking effect. See [the blog presentation standard](docs/BLOG_STYLE_STANDARD.md).
+The only shipped presentation profile is `balanced-editorial`; it is the
+universal quality floor. Another direction requires an explicitly selected
+private `BlogStyleLocalProfile` JSON outside the repository and cache, with mode
+`0600`, using `blog_style.py set-file <profile.json> --confirm`. The local
+selection is checksum-bound to the file and is not a ranking signal. See [the
+blog presentation standard](docs/BLOG_STYLE_STANDARD.md).
 
 Trend collection supports overall results and 14 editorial categories, including
 travel, IT, economy, food and parenting. One public Google Trends RSS request is

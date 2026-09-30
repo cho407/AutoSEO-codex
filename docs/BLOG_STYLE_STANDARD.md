@@ -40,33 +40,22 @@ Every new post should pass these checks:
 The quality floor is represented by `balanced-editorial` and leaves the existing
 universal document preset unchanged.
 
-## Personal `tactile-howto` profile
+## Optional local profile file
 
-The optional local profile is intended for the author's own practical Korean
-how-to posts:
-
-- `blog-centered` layout, centered short prose, quote-like centered section
-  headings, about 16px body text and generous line spacing;
-- a square tactile cover; 4:5 step images;
-- cream/grid paper, navy (`#253B50`) and coral (`#E86D4E`) accents;
-- one short headline per image, one real screenshot or source photo, and one
-  purposeful callout;
-- small comparison tables/checklists in the document, not dense rasterized cards;
-- a closing checklist and a source/freshness note.
-
-The profile is stored only as a local selection:
+`balanced-editorial` is the only shipped profile. To use another presentation
+direction, review an explicitly chosen private `BlogStyleLocalProfile` JSON stored
+outside the repository and cache with mode `0600`, then select it locally:
 
 ```text
 <plugin-root>/scripts/autoseo run blog_style.py presets
 <plugin-root>/scripts/autoseo run blog_style.py status
-<plugin-root>/scripts/autoseo run blog_style.py set tactile-howto --confirm
+<plugin-root>/scripts/autoseo run blog_style.py set-file <profile.json> --confirm
 ```
 
-The local file contains the profile name and confirmation time only. It never
-contains article bodies, private URLs, images, cookies or account identifiers.
-Generated image briefs should include `"style_profile": "tactile-howto"`; the
-profile is then included in the prompt digest and cannot silently change after
-visual review.
+The local selection is checksum-bound to the file. A profile does not promise
+Naver/Google exposure, clicks, citations, model training or a fixed view count, and
+never overrides source accuracy, privacy, editor safety or per-post publication
+approval.
 
 ## Boundaries
 
